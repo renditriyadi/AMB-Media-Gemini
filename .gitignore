@@ -18,6 +18,7 @@ playwright-browsers/
 # Local dependencies and generated output
 node_modules/
 dist/
+ffmpeg/
 media-cache/
 .tmp-smoke/
 *.log
