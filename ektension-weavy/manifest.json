@@ -1,0 +1,85 @@
+{
+  "manifest_version": 3,
+  "name": "Weavy AI Multimodal Chat & Generator",
+  "version": "1.0.0",
+  "description": "Ekstensi Chrome SidePanel untuk Weavy AI: Multimodal Chat (Gemini, Claude, GPT), Prompt Enhancer, Manajemen Multi-Akun & Refresh Token, serta Generasi Gambar AI.",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "unlimitedStorage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "downloads",
+    "cookies",
+    "debugger",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://api.weavy.ai/*",
+    "https://*.weavy.ai/*",
+    "https://identitytoolkit.googleapis.com/*",
+    "https://securetoken.googleapis.com/*",
+    "https://*.fal.media/*",
+    "https://fal.media/*",
+    "https://*.byteintlapi.com/*",
+    "https://*.bytevcloudapi.com/*",
+    "https://*.vodupload.com/*",
+    "https://*.dola.com/*",
+    "https://dola.com/*",
+    "https://cdn.prod.website-files.com/*",
+    "https://*.tiktok.com/*",
+    "https://*.youtube.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://*.googleapis.com/*",
+    "https://aistudio.google.com/*",
+    "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*",
+        "https://*.run.app/*"
+      ],
+      "js": ["content-bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://*.dola.com/*",
+        "https://dola.com/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content-bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:*/*",
+      "http://127.0.0.1:*/*",
+      "https://*.run.app/*"
+    ]
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Buka Weavy AI Assistant",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

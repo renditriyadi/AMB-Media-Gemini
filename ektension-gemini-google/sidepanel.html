@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google & Gemini Auto-Register Side Panel</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card-bg: #131d31;
+      --card-hover: #1e2c47;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --accent: #06b6d4;
+      --gemini-grad: linear-gradient(135deg, #2563eb, #9333ea);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #22324f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11, 17, 32, 0.95);
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .brand-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--gemini-grad);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-idle { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.3); }
+    .badge-step1 { background: rgba(6, 182, 212, 0.15); color: var(--accent); border: 1px solid rgba(6, 182, 212, 0.3); animation: pulse 1.5s infinite; }
+    .badge-step2 { background: rgba(147, 51, 234, 0.2); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.4); animation: pulse 1.5s infinite; }
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Step Pipeline Banner */
+    .pipeline-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #080d1a;
+      border-bottom: 1px solid var(--border);
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .step-node {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+    }
+    .step-node.active { color: var(--accent); font-weight: 700; }
+    .step-node.done { color: var(--success); }
+    .step-node.pending { color: var(--text-muted); opacity: 0.7; }
+    .step-arrow { color: var(--border); font-size: 10px; }
+
+    /* Quick Action Bar (Clear Session) */
+    .quick-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--border);
+    }
+    .btn-clear-global {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-clear-global:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fff;
+    }
+
+    /* Tabs */
+    .tabs-container {
+      padding: 8px 14px 0 14px;
+      flex-shrink: 0;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 6px 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .tab-btn.active {
+      background: var(--card-bg);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+    }
+
+    /* Main Scrollable Content */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    .form-label {
+      display: block;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .input-box {
+      position: relative;
+    }
+    input[type="text"], input[type="password"], textarea {
+      width: 100%;
+      background: #080d1a;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 95px;
+      font-family: monospace;
+      line-height: 1.4;
+    }
+
+    .toggle-pass-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+    .btn-primary {
+      background: var(--gemini-grad);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Tab Log Full Expand */
+    #tabLogs {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    #tabLogs .card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      padding: 10px;
+    }
+    .log-box {
+      background: #080d1a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      flex: 1;
+      height: 100%;
+      min-height: 360px;
+      overflow-y: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-size: 11px;
+      color: #38bdf8;
+      line-height: 1.5;
+    }
+    .log-entry { margin-bottom: 4px; word-break: break-all; }
+
+    /* Sessions List */
+    .session-item {
+      background: #080d1a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .session-item.selected {
+      background: #14233c;
+      border-color: rgba(6, 182, 212, 0.6);
+    }
+    .session-email { font-size: 11px; font-weight: 700; color: #fff; word-break: break-all; }
+    .session-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .session-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .btn-icon {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: var(--card-hover); }
+    .btn-icon-login {
+      background: rgba(37, 99, 235, 0.2);
+      border-color: rgba(37, 99, 235, 0.5);
+      color: #60a5fa;
+      font-weight: 700;
+    }
+    .btn-icon-login:hover {
+      background: rgba(37, 99, 235, 0.4);
+      color: #fff;
+    }
+
+    .search-box {
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .search-box input {
+      padding-left: 28px;
+      font-size: 11px;
+    }
+    .search-icon {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .selection-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #080d1a;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    /* Footer / Status Bar */
+    .footer-status {
+      padding: 8px 14px;
+      border-top: 1px solid var(--border);
+      background: #090e1b;
+      flex-shrink: 0;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 55px;
+      left: 14px;
+      right: 14px;
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid var(--accent);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      text-align: center;
+      display: none;
+      z-index: 99;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">✨</div>
+      <span>Google & Gemini Auto-Flow</span>
+    </div>
+    <div id="statusBadge" class="badge badge-idle">Standby</div>
+  </div>
+
+  <!-- Pipeline Banner -->
+  <div class="pipeline-bar">
+    <div id="step1Node" class="step-node pending">
+      <span>1️⃣</span> <span>Login Google</span>
+    </div>
+    <div class="step-arrow">➔</div>
+    <div id="step2Node" class="step-node pending">
+      <span>2️⃣</span> <span>Daftar Gemini</span>
+    </div>
+  </div>
+
+  <!-- Quick Action Bar -->
+  <div class="quick-bar">
+    <span style="font-size: 10px; color: var(--text-muted);">Sesi Browser:</span>
+    <button id="btnGlobalClearData" class="btn-clear-global">🧹 Clear Session</button>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-container">
+    <div class="tabs">
+      <button id="tabSingleBtn" class="tab-btn active">Single</button>
+      <button id="tabBatchBtn" class="tab-btn">Batch</button>
+      <button id="tabSessionsBtn" class="tab-btn">Daftar Akun</button>
+      <button id="tabLogsBtn" class="tab-btn">Log</button>
+    </div>
+  </div>
+
+  <!-- Main Body Content -->
+  <div class="main-content">
+
+    <!-- TAB 1: Single Login -->
+    <div id="tabSingle" class="tab-content">
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Email Google</label>
+          <input type="text" id="singleEmail" placeholder="contoh: user@gmail.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password Google</label>
+          <div class="input-box">
+            <input type="password" id="singlePassword" placeholder="Kata sandi akun Google" />
+            <button type="button" id="togglePassBtn" class="toggle-pass-btn">👁️</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="btnStartSingle" class="btn btn-primary">🚀 Mulai Auto-Flow (Google ➔ Gemini)</button>
+          <button id="btnStopLogin" class="btn btn-danger" style="display: none;">🛑 Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Batch Login -->
+    <div id="tabBatch" class="tab-content" style="display: none;">
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Daftar Email (1 Email per baris)</label>
+          <textarea id="batchInput" placeholder="email1@gmasill.my.id&#10;email2@gmasill.my.id&#10;email3@gmasill.my.id"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password (1 Password untuk semua email di atas)</label>
+          <div class="input-box">
+            <input type="password" id="batchPassword" placeholder="Kata sandi untuk seluruh akun batch" />
+            <button type="button" id="toggleBatchPassBtn" class="toggle-pass-btn">👁️</button>
+          </div>
+          <div style="font-size: 10px; color: #38bdf8; margin-top: 5px;">
+            ℹ️ Otomatis: Tiap akun selesai diproses, browser di-clear session lalu lanjut ke email berikutnya.
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="btnStartBatch" class="btn btn-primary">⚡ Mulai Batch Auto-Flow</button>
+          <button id="btnStopBatch" class="btn btn-danger" style="display: none;">🛑 Stop Batch</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DAFTAR AKUN (Enhanced) -->
+    <div id="tabSessions" class="tab-content" style="display: none;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="form-label" style="margin: 0;">Daftar Akun</span>
+            <span id="accountCountBadge" style="font-size: 10px; padding: 2px 6px; border-radius: 9999px; background: rgba(37, 99, 235, 0.2); color: #93c5fd; font-weight: 700; border: 1px solid rgba(37, 99, 235, 0.3);">
+              Total: 0 Akun
+            </span>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button id="btnExportSessions" class="btn-icon">💾 Export JSON</button>
+            <button id="btnImportSessions" class="btn-icon">📥 Import JSON</button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;" />
+          </div>
+        </div>
+
+        <!-- Master Password for Quick Re-auth -->
+        <div class="form-group" style="margin-bottom: 8px; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span class="form-label" style="margin: 0; color: #60a5fa;">🔑 Master Password (Auto Re-Auth)</span>
+            <span style="font-size: 9px; color: var(--text-muted);">Diisi jika Google minta login ulang</span>
+          </div>
+          <div class="input-box">
+            <input type="password" id="sessionMasterPassword" placeholder="Ketik kata sandi akun untuk auto-fill..." />
+            <button type="button" id="toggleSessionMasterPassBtn" class="toggle-pass-btn">👁️</button>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="accountSearchInput" placeholder="Cari akun berdasarkan email..." />
+        </div>
+
+        <!-- Selection & Multi-Delete Toolbar -->
+        <div id="selectionToolbar" class="selection-toolbar" style="display: none;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="selectAllCheckbox" style="cursor: pointer;" />
+            <span id="selectAllLabel">Pilih Semua</span>
+          </label>
+
+          <div id="bulkActionButtons" style="display: flex; gap: 4px; align-items: center;">
+            <span id="selectedCountText" style="font-size: 10px; color: var(--accent); font-weight: 700;">0 dipilih</span>
+            <button id="btnDeleteSelected" class="btn-icon" style="color: var(--danger); font-weight: 700;">🗑️ Hapus</button>
+          </div>
+        </div>
+
+        <!-- Accounts List Container -->
+        <div id="sessionsList" style="max-height: 230px; overflow-y: auto; padding-right: 2px;">
+          <div style="text-align: center; color: var(--text-muted); font-size: 11px; padding: 16px;">
+            Belum ada akun yang tersimpan.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Logs Console -->
+    <div id="tabLogs" class="tab-content" style="display: none;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="form-label" style="margin: 0;">Live Activity Log</span>
+          <div style="display: flex; gap: 5px;">
+            <button id="btnCopyLogs" class="btn-icon">📋 Salin Log</button>
+            <button id="btnClearLogs" class="btn-icon">🗑️ Bersihkan</button>
+          </div>
+        </div>
+        <div id="logConsole" class="log-box">
+          <div class="log-entry">Siap menjalankan otomatisasi Google login & registrasi Gemini.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Mini Status Bar -->
+  <div class="footer-status">
+    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 2px; display: flex; justify-content: space-between;">
+      <span>Aktivitas Browser:</span>
+      <span id="miniLogTime">-</span>
+    </div>
+    <div id="miniLogText" style="font-size: 11px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+      Menunggu perintah login...
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

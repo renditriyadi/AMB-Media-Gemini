@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "Google Session & Gemini Auto-Register",
+  "version": "1.1.0",
+  "description": "Ekstensi Chrome Otomatisasi Login Google & Registrasi Gemini (gemini.google.com)",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "cookies",
+    "browsingData",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "*://accounts.google.com/*",
+    "*://myaccount.google.com/*",
+    "*://*.google.com/*",
+    "*://gemini.google.com/*",
+    "*://*.gemini.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Buka Side Panel Google & Gemini Auto-Login",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://accounts.google.com/*",
+        "*://myaccount.google.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "*://gemini.google.com/*",
+        "*://*.gemini.google.com/*"
+      ],
+      "js": ["gemini_content.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ]
+}

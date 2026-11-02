@@ -1,0 +1,3010 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta name="referrer" content="no-referrer">
+  <title>Weavy AI Assistant</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body class="dark-theme">
+  <div id="app" class="app-container">
+    <!-- Left Navigation Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-top">
+        <a class="sidebar-logo" href="https://app.weavy.ai/" target="_blank" rel="noopener noreferrer" title="Buka Weavy AI (https://app.weavy.ai/)" aria-label="Buka Weavy AI">
+          <img class="logo-icon" src="https://app.weavy.ai/android-chrome-192x192.png" alt="Weavy logo">
+        </a>
+
+        <!-- Navigation Tabs in Left Sidebar -->
+        <nav class="sidebar-nav">
+          <button class="nav-tab active" data-tab="generate" title="Generate Gambar">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span class="tab-label">Generate</span>
+          </button>
+          <button class="nav-tab" data-tab="chat" title="Chat Multimodal">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            <span class="tab-label">Chat</span>
+          </button>
+          <button class="nav-tab" data-tab="storyboard" title="Studio Storyboard AI">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+              <line x1="7" y1="2" x2="7" y2="22"/>
+              <line x1="17" y1="2" x2="17" y2="22"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <line x1="2" y1="7" x2="7" y2="7"/>
+              <line x1="2" y1="17" x2="7" y2="17"/>
+              <line x1="17" y1="17" x2="22" y2="17"/>
+              <line x1="17" y1="7" x2="22" y2="7"/>
+            </svg>
+            <span class="tab-label">Storyboard</span>
+          </button>
+          <button class="nav-tab" data-tab="library" title="Library">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span class="tab-label">Library</span>
+          </button>
+          <button class="nav-tab" data-tab="settings" title="Akun & Token">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="tab-label">Akun</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button id="btnToggleTheme" class="sidebar-icon-btn" title="Ganti Tema Gelap / Terang">
+          <svg class="icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+        </button>
+        <button id="btnFullScreen" class="sidebar-icon-btn" title="Buka Layar Penuh (Full Screen Tab)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="app-main-content">
+      <!-- Top Sub-Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="header-account-dropdown-wrapper">
+            <div id="activeAccountPill" class="account-pill" role="button" aria-haspopup="true" aria-expanded="false" title="Klik untuk beralih akun dengan cepat">
+              <span class="dot-status"></span>
+              <span id="headerAccountEmail" class="account-email">Belum Ada Akun</span>
+              <span id="headerAccountCredits" class="credits-badge">0 Koin</span>
+              <svg class="header-account-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+
+            <!-- Quick Account Dropdown -->
+            <div id="headerAccountDropdown" class="header-account-dropdown hidden">
+              <div class="header-dropdown-top">
+                <div class="header-dropdown-title-row">
+                  <span class="header-dropdown-title">Pilih Akun Aktif</span>
+                </div>
+                <div class="header-dropdown-provider-tabs">
+                  <button type="button" class="header-provider-tab active" data-provider="weavy" id="headerTabWeavy">Weavy</button>
+                  <button type="button" class="header-provider-tab" data-provider="flow" id="headerTabFlow">Google Flow</button>
+                  <button type="button" class="header-provider-tab" data-provider="dola" id="headerTabDola">Dola AI</button>
+                  <button type="button" class="header-provider-tab" data-provider="gemini" id="headerTabGemini">Gemini</button>
+                </div>
+              </div>
+              <div id="headerAccountDropdownList" class="header-dropdown-list">
+                <!-- Dynamic account items -->
+              </div>
+              <div class="header-dropdown-footer">
+                <button type="button" id="btnHeaderDropdownRefresh" class="header-dropdown-action-btn" title="Refresh Saldo Akun Aktif">
+                  <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6M1 20v-6h6"/>
+                    <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                  </svg>
+                  <span>Sync Saldo</span>
+                </button>
+                <button type="button" id="btnHeaderDropdownAddAccount" class="header-dropdown-action-btn" title="Tambah / Import Akun Baru">
+                  <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  <span>Tambah Akun</span>
+                </button>
+                <button type="button" id="btnHeaderDropdownManage" class="header-dropdown-action-btn" title="Buka Pengaturan Akun">
+                  <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>Akun</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="header-right" style="display: flex; align-items: center; gap: 6px;">
+          <a href="https://ais-dev-me6o5g57qhusszacauuxhp-937002040529.asia-east1.run.app" target="_blank" rel="noopener noreferrer" id="btnOpenLiveWebPreview" class="icon-btn" title="Buka Live Web Preview AI Studio (Test Cepat di Tab Baru)" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; color: #38bdf8;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </a>
+          <button id="btnRefreshCredits" class="icon-btn" title="Refresh Saldo Kredit">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+    <!-- TAB CONTENT: CHAT -->
+    <main id="tabChat" class="tab-pane">
+      <!-- Session Bar -->
+      <div class="chat-controls-bar">
+        <div class="chat-title-info">
+          <span class="chat-app-label">Chat Multimodal AI</span>
+        </div>
+        <div class="session-actions">
+          <button id="btnNewSession" class="chat-session-icon-btn" title="Buat Sesi Chat Baru" aria-label="Buat sesi chat baru">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <div class="chat-session-history-wrap">
+            <button id="btnSessionHistory" class="chat-session-icon-btn" type="button" title="Lihat riwayat chat" aria-label="Lihat riwayat chat" aria-expanded="false">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div id="chatSessionHistoryPopover" class="chat-session-history-popover hidden">
+              <div class="chat-session-history-header">
+                <span>Riwayat Chat</span>
+                <button id="btnHistoryNewSession" type="button" class="chat-history-new-btn" title="Buat sesi baru">
+                  <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  <span>Baru</span>
+                </button>
+              </div>
+              <div id="chatSessionHistoryList" class="chat-session-history-list"></div>
+            </div>
+          </div>
+          <button id="btnClearCurrentChat" class="btn-sm btn-icon-only" title="Hapus Riwayat Sesi Ini">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat Messages Container -->
+      <div id="chatMessages" class="chat-messages-container">
+        <!-- Default Welcome Greeting -->
+        <div class="welcome-card">
+          <div class="welcome-icon-glow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <h3>Selamat Datang di Weavy AI Assistant</h3>
+          <p>Terhubung langsung ke ekosistem multimodal Weavy AI (Gemini 3 Pro, Claude Sonnet 5, GPT-5 Sol, Seedream V5, Nano Banana Pro).</p>
+          <div class="quick-examples">
+            <button class="example-item" data-text="Buatkan prompt 8K fotorealistik untuk model Seedream V5 tentang foto model fashion streetwear di Shibuya malam hari.">
+              ✨ Prompt Fashion Streetwear
+            </button>
+            <button class="example-item" data-text="/kebunimpian Sulap lahan sempit 4x4,5m jadi kebun organik impian full tanaman pekarangan rumah 50 detik.">
+              🏡 /kebunimpian 4x4.5m 50s
+            </button>
+            <button class="example-item" data-text="/homeharvest Panen terong hijau panjang lebat di pekarangan halaman rumah untuk sayur lalapan 29 detik.">
+              🍆 /homeharvest Sayur 29s
+            </button>
+            <button class="example-item" data-text="/plantreview Bibit Long Murbei asal Taiwan buah unik panjang menyerupai ulat raksasa 45 detik.">
+              🍇 /plantreview Long Murbei 45s
+            </button>
+            <button class="example-item" data-text="/buahunggul ">
+              🌳 /buahunggul Universal 30s
+            </button>
+            <button class="example-item" data-text="/onthespot ">
+              🔥 /onthespot 30s Veo/Flow
+            </button>
+            <button class="example-item" data-text="/harvestpov Buah melon kuning madu ranum di pekarangan kebun belakang rumah.">
+              🌾 /harvestpov Kebun Melon
+            </button>
+            <button class="example-item" data-text="/facelessgardenugc Bibit pepaya calina merah delima di polybag pekarangan rumah.">
+              🌱 /facelessgardenugc Kebun UGC
+            </button>
+            <button class="example-item" data-text="/fashion Tolong rancang storyboard 15 detik TikTok untuk jaket denim oversized vintage.">
+              🎬 /fashion Storyboard 15s
+            </button>
+            <button class="example-item" data-text="Analisis komposisi pencahayaan dan gaya estetik dari foto yang saya lampirkan.">
+              🔍 Analisis Foto Multimodal
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input Area -->
+      <footer class="chat-input-wrapper">
+        <!-- Floating Scroll To Bottom Button (Orange) -->
+        <button id="btnScrollToBottom" class="chat-scroll-bottom-btn hidden" type="button" title="Scroll ke bawah" aria-label="Scroll ke paling bawah">
+          <svg class="chat-scroll-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <polyline points="19 12 12 19 5 12"></polyline>
+          </svg>
+        </button>
+        <div class="chat-input-card">
+          <!-- Slash Command Presets Autocomplete Popup -->
+          <div id="slashPresetAutocomplete" class="slash-autocomplete-popup hidden" role="listbox" aria-label="Pilih Preset Prompt">
+            <div class="slash-popup-header">
+              <div class="slash-popup-header-title">
+                <svg class="slash-popup-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"/>
+                </svg>
+                <span>Pilih Preset Prompt AI</span>
+              </div>
+              <span class="slash-popup-hint">↑↓ Pilih • Enter / Tab Sisipkan</span>
+            </div>
+            <div id="slashPresetList" class="slash-popup-list"></div>
+          </div>
+
+          <!-- Media Mention (@) Autocomplete Popup -->
+          <div id="mediaMentionAutocomplete" class="media-mention-popup hidden" role="listbox" aria-label="Pilih Media Terlampir">
+            <div class="media-mention-header">
+              <div class="media-mention-header-title">
+                <svg class="media-mention-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <span>Pilih Media Terlampir (@)</span>
+              </div>
+              <span class="media-mention-hint">↑↓ Pilih • Enter / Tab Sisipkan</span>
+            </div>
+            <div id="mediaMentionList" class="media-mention-list"></div>
+          </div>
+
+          <!-- Attachment Preview Tray -->
+          <div id="attachmentPreviewTray" class="attachment-tray hidden">
+            <!-- Dynamic attached items will be injected here -->
+          </div>
+
+          <!-- Tagged Media Preview Bar (Mini preview chips of referenced @img/@vid) -->
+          <div id="taggedMediaPreviewBar" class="tagged-media-bar hidden"></div>
+
+          <!-- Textarea on top -->
+          <textarea 
+            id="chatInputText" 
+            class="chat-textarea" 
+            placeholder="Ketik @ untuk media terlampir, / untuk preset, atau paste gambar... (Enter kirim)" 
+            rows="1"></textarea>
+
+          <!-- Bottom controls bar inside card -->
+          <div class="input-controls-bar">
+            <div class="input-controls-left">
+              <button type="button" id="btnChatAddImage" class="attach-btn" title="Tambah gambar dari Upload atau Library">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </button>
+              <input type="file" id="fileInputAttachment" multiple accept="image/*,video/*" class="sr-only">
+            </div>
+
+            <div class="input-controls-right">
+              <!-- Quick Preset Dropdown Button & Popover -->
+              <div class="preset-dropdown-wrapper">
+                <button id="btnPresetDropdown" type="button" class="preset-btn" title="Menu Quick Preset AI">
+                  <svg class="preset-sparkle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"/>
+                  </svg>
+                  <span>Preset</span>
+                  <span id="presetStatusBadge" class="preset-status-badge">ON</span>
+                  <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                <!-- Popover Menu -->
+                <div id="presetMenuPopover" class="preset-popover hidden">
+                  <div class="preset-popover-header">
+                    <div class="preset-header-title">
+                      <svg class="icon-sparkle-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"/>
+                      </svg>
+                      <span>Quick Preset AI</span>
+                    </div>
+                  </div>
+                  <div class="preset-popover-list">
+                    <p class="preset-popover-hint">Klik preset untuk menggunakannya secara instan:</p>
+                    <button type="button" class="preset-option-btn" data-slash="/customstoryboard">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Custom Storyboard (Pure Brief)</span>
+                          <span class="preset-option-badge" style="background: rgba(147, 51, 234, 0.2); color: #c084fc;">CUSTOM</span>
+                        </div>
+                        <p class="preset-option-desc">Susun JSON Storyboard murni dari brief Anda tanpa suntikan formula AI</p>
+                      </div>
+                      <span class="preset-option-cmd">/customstoryboard</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/copilotstoryboard">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Storyboard Copilot</span>
+                          <span class="preset-option-badge">COPILOT</span>
+                        </div>
+                        <p class="preset-option-desc">Analisis link/media & ikuti Main Brief untuk hasilkan Storyboard</p>
+                      </div>
+                      <span class="preset-option-cmd">/copilotstoryboard</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/kebunimpian">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Kebun Impian Lahan Sempit</span>
+                          <span class="preset-option-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">KEBUN</span>
+                        </div>
+                        <p class="preset-option-desc">Tour kebun lahan sempit (Tangan wanita, latar bersahaja, semi-ASMR, max 60s)</p>
+                      </div>
+                      <span class="preset-option-cmd">/kebunimpian</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/homeharvest">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Home Harvest Sayur Dapur</span>
+                          <span class="preset-option-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">PANEN</span>
+                        </div>
+                        <p class="preset-option-desc">Panen sayur pekarangan 29s (3 Scene 9 Shoot): Hook lebat, petik, piano vibe</p>
+                      </div>
+                      <span class="preset-option-cmd">/homeharvest</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/plantreview">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Plant Review & Oddity</span>
+                          <span class="preset-option-badge" style="background: rgba(236, 72, 153, 0.2); color: #f472b6;">REVIEW</span>
+                        </div>
+                        <p class="preset-option-desc">Review bibit/buah unik viral: Hook oddity, VO, tabulampot, JSON & caption</p>
+                      </div>
+                      <span class="preset-option-cmd">/plantreview</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/buahunggul">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Universal Produk, Bibit & Pupuk</span>
+                          <span class="preset-option-badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">UNGGUL</span>
+                        </div>
+                        <p class="preset-option-desc">Universal 30s (3 Scene @ 10s): Buah, Sayur, Bibit, Pupuk & Produk Lainnya</p>
+                      </div>
+                      <span class="preset-option-cmd">/buahunggul</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/onthespot">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">On The Spot: Bibit & Buah</span>
+                          <span class="preset-option-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171;">INVESTIGASI</span>
+                        </div>
+                        <p class="preset-option-desc">Investigasi On The Spot Trans7 (3 Fakta @ 10s Veo/Flow): Narator & macro 4K</p>
+                      </div>
+                      <span class="preset-option-cmd">/onthespot</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/harvestpov">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">POV Harvest & Taste</span>
+                          <span class="preset-option-badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">HARVEST</span>
+                        </div>
+                        <p class="preset-option-desc">POV kebun: Petik buah ➔ Belah juicy ➔ Cicipi makan (10s 3-Scene)</p>
+                      </div>
+                      <span class="preset-option-cmd">/harvestpov</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/facelessgardenugc">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Faceless Garden UGC</span>
+                          <span class="preset-option-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">GARDEN</span>
+                        </div>
+                        <p class="preset-option-desc">Kebun rumahan 20s: Hands-only wanita, VO natural-persuasive, polybag</p>
+                      </div>
+                      <span class="preset-option-cmd">/facelessgardenugc</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/fashion">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Fashion Video 15s</span>
+                          <span class="preset-option-badge">FASHION</span>
+                        </div>
+                        <p class="preset-option-desc">Prompt video fashion 15 detik untuk TikTok/Reels</p>
+                      </div>
+                      <span class="preset-option-cmd">/fashion</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/lockcut">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Lock Cut Fashion</span>
+                          <span class="preset-option-badge">LOCKCUT</span>
+                        </div>
+                        <p class="preset-option-desc">Montase rapid jump-cut, locked camera zero zoom</p>
+                      </div>
+                      <span class="preset-option-cmd">/lockcut</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/jumpcut">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Jump Cut Fashion</span>
+                          <span class="preset-option-badge">JUMPCUT</span>
+                        </div>
+                        <p class="preset-option-desc">Hard cut berganti pose dinamis per ~1 detik</p>
+                      </div>
+                      <span class="preset-option-cmd">/jumpcut</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/natural">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Natural & Candid</span>
+                          <span class="preset-option-badge">NATURAL</span>
+                        </div>
+                        <p class="preset-option-desc">Gaya ekspresi & pencahayaan alami tanpa terasa pose</p>
+                      </div>
+                      <span class="preset-option-cmd">/natural</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/ugc">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Konten UGC Creator</span>
+                          <span class="preset-option-badge">UGC</span>
+                        </div>
+                        <p class="preset-option-desc">Gaya review produk otentik ala influencer</p>
+                      </div>
+                      <span class="preset-option-cmd">/ugc</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/clean">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Clean Object & Studio</span>
+                          <span class="preset-option-badge">CLEAN</span>
+                        </div>
+                        <p class="preset-option-desc">Latar bersih minimalis untuk foto katalog/produk</p>
+                      </div>
+                      <span class="preset-option-cmd">/clean</span>
+                    </button>
+                    <button type="button" class="preset-option-btn" data-slash="/video">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Storyboard Video AI</span>
+                          <span class="preset-option-badge">VIDEO</span>
+                        </div>
+                        <p class="preset-option-desc">Rancangan adegan & gerakan kamera sinematik</p>
+                      </div>
+                      <span class="preset-option-cmd">/video</span>
+                    </button>
+                    <button type="button" class="preset-option-btn preset-option-download" data-slash="/download">
+                      <div class="preset-option-info">
+                        <div class="preset-option-title-row">
+                          <span class="preset-option-name">Download Video TikTok</span>
+                          <span class="preset-option-badge preset-badge-download">DOWNLOAD</span>
+                        </div>
+                        <p class="preset-option-desc">Download video, thumbnail & musik TikTok tanpa watermark via link</p>
+                      </div>
+                      <span class="preset-option-cmd">/download</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Provider Select Dropdown (Weavy / Dola) with Real Authentic Icons -->
+              <div class="provider-select-wrapper" id="chatProviderDropdownWrapper">
+                <button id="btnChatProviderDropdown" type="button" class="provider-dropdown-btn" title="Pilih Provider AI (Weavy / Dola)">
+                  <img id="chatProviderActiveIcon" src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6829dad31872740b3fb4f912_favicon.svg" class="chat-provider-icon" alt="Provider" />
+                  <span id="chatProviderActiveName" class="chat-provider-name">Weavy</span>
+                  <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                <!-- Hidden native select for full backward compatibility & programmatic events -->
+                <label for="chatProviderSelect" class="sr-only">Provider AI</label>
+                <select id="chatProviderSelect" class="chat-provider-select sr-only" title="Pilih Provider AI">
+                  <option value="weavy" selected>Weavy</option>
+                  <option value="dola">Dola</option>
+                  <option value="gemini">Gemini</option>
+                </select>
+
+                <!-- Provider Selection Popover Menu -->
+                <div id="chatProviderPopover" class="provider-popover hidden">
+                  <div class="preset-popover-header">
+                    <div class="preset-header-title">
+                      <svg class="icon-sparkle-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                      </svg>
+                      <span>PILIH PROVIDER AI</span>
+                    </div>
+                  </div>
+                  <div class="provider-popover-list">
+                    <button type="button" class="provider-item-btn active" data-provider-val="weavy">
+                      <div class="provider-item-left">
+                        <img src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6829dad31872740b3fb4f912_favicon.svg" class="provider-item-icon" alt="Weavy AI" />
+                        <div class="provider-item-info">
+                          <span class="provider-item-name">Weavy AI</span>
+                          <span class="provider-item-badge">CLOUD ENGINE</span>
+                        </div>
+                      </div>
+                      <svg class="provider-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="provider-item-btn" data-provider-val="dola">
+                      <div class="provider-item-left">
+                        <img src="https://sf-flow-web-cdn.ciciai.com/obj/ocean-flow-web-sg/dola_web/favicon-dola.png" class="provider-item-icon" alt="Dola AI" />
+                        <div class="provider-item-info">
+                          <span class="provider-item-name">Dola AI</span>
+                          <span class="provider-item-badge">BYTEDANCE</span>
+                        </div>
+                      </div>
+                      <svg class="provider-item-check hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="provider-item-btn" data-provider-val="gemini">
+                      <div class="provider-item-left">
+                        <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg" class="provider-item-icon" alt="Google Gemini" />
+                        <div class="provider-item-info">
+                          <span class="provider-item-name">Google Gemini</span>
+                          <span class="provider-item-badge">GOOGLE AI</span>
+                        </div>
+                      </div>
+                      <svg class="provider-item-check hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Storyboard Copilot Feature Toggle -->
+                  <div class="provider-popover-divider"></div>
+                  <div class="provider-copilot-section">
+                    <div class="provider-copilot-info">
+                      <div class="provider-copilot-label-wrap">
+                        <svg class="icon-clapper-amber" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                          <polygon points="23 7 16 12 23 17 23 7"/>
+                          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                        </svg>
+                        <span class="provider-copilot-title">Storyboard Copilot</span>
+                        <span class="copilot-badge-pill">SMART</span>
+                      </div>
+                      <span class="provider-copilot-desc">Rancang scene, naskah hook & alur video otomatis</span>
+                    </div>
+                    <label class="switch-toggle-copilot" title="Aktifkan Storyboard Copilot di Chat" for="chatStoryboardCopilotToggle">
+                      <input type="checkbox" id="chatStoryboardCopilotToggle" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Storyboard Copilot Active Pill Badge in Chat Bar -->
+              <div id="chatCopilotActiveBadge" class="chat-copilot-active-badge hidden" title="Storyboard Copilot Aktif: AI merancang alur & scene video">
+                <span class="copilot-dot-pulse"></span>
+                <span>🎬 Copilot ON</span>
+              </div>
+
+              <!-- Model Select Dropdown (Filtered by Provider) -->
+              <div class="model-select-wrapper">
+                <label for="chatModelSelect" class="sr-only">Model AI</label>
+                <select id="chatModelSelect" class="form-select chat-model-select" title="Pilih Model AI">
+                  <optgroup label="Google">
+                    <option value="google/gemini-3-pro" selected>Gemini 3 Pro</option>
+                    <option value="google/gemini-3.1-pro">Gemini 3.1 Pro</option>
+                    <option value="google/gemini-3.6-flash">Gemini 3.6 Flash</option>
+                    <option value="google/gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+                    <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                  </optgroup>
+                  <optgroup label="Anthropic">
+                    <option value="anthropic/claude-sonnet-5">Claude Sonnet 5</option>
+                    <option value="anthropic/claude-opus-5">Claude Opus 5</option>
+                    <option value="anthropic/claude-opus-4-7">Claude Opus 4.7</option>
+                    <option value="anthropic/claude-opus-4-6">Claude Opus 4.6</option>
+                    <option value="anthropic/claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                    <option value="anthropic/claude-haiku-4-5">Claude Haiku 4.5</option>
+                  </optgroup>
+                  <optgroup label="OpenAI">
+                    <option value="openai/gpt-5.6-sol">GPT-5.6 Sol</option>
+                    <option value="openai/gpt-5.6-terra">GPT-5.6 Terra</option>
+                    <option value="openai/gpt-5.6-luna">GPT-5.6 Luna</option>
+                    <option value="openai/gpt-4o">GPT-4o</option>
+                    <option value="openai/gpt-4.1">GPT-4.1</option>
+                  </optgroup>
+                  <optgroup label="Meta">
+                    <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
+                    <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <button id="btnSendMessage" class="send-btn" title="Kirim Pesan">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="19" x2="12" y2="5"/>
+                  <polyline points="5 12 12 5 19 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+
+    <!-- TAB CONTENT: GENERATE (WIREFRAME V2 SPEC) -->
+    <main id="tabGenerate" class="tab-pane active">
+      <div class="gen-workspace-container">
+        
+        <!-- PROMPT CARD (Wireframe 2) -->
+        <div class="gen-prompt-card" id="genPromptCard">
+          <div class="gen-prompt-header">
+            <span class="gen-prompt-bullet">○</span>
+            <span class="gen-prompt-label">PROMPT</span>
+          </div>
+
+          <!-- Reference Images Tray (Multi-Image Reference placed AT TOP above textarea) -->
+          <div id="genRefTray" class="gen-ref-tray hidden">
+            <div class="gen-ref-tray-header">
+              <span class="gen-ref-count-text" id="genRefCountText">Foto Referensi Terlampir</span>
+              <button type="button" id="btnClearAllRefImages" class="btn-clear-tray" title="Hapus semua referensi">Hapus Semua</button>
+            </div>
+            <div id="genRefChipsGrid" class="gen-ref-chips-grid">
+              <!-- Dynamically populated reference image chips -->
+            </div>
+          </div>
+
+          <!-- Hidden native file input for multiple image references -->
+          <input type="file" id="genRefFileInput" multiple accept="image/*" class="sr-only">
+
+          <div class="gen-textarea-wrapper">
+            <textarea 
+              id="genPromptInput" 
+              class="gen-prompt-textarea" 
+              rows="4" 
+              placeholder="Tulis instruksi edit gambar & paste (Ctrl+V) atau unggah gambar via tombol +..."
+            ></textarea>
+          </div>
+
+          <!-- Divider -->
+          <div class="gen-card-divider"></div>
+
+          <!-- Action Toolbar Row -->
+          <div class="gen-action-bar">
+            <div class="gen-action-left">
+              <button type="button" id="btnGenAddImage" class="gen-tool-btn" title="Unggah / Tambah Foto Referensi (Multi-Image)">
+                <svg class="icon-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </button>
+              
+              <button type="button" id="btnOpenGenSettings" class="gen-tool-btn gen-settings-btn" title="Pengaturan Model & Rasio">
+                <svg class="icon-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="4" y1="21" x2="4" y2="14"/>
+                  <line x1="4" y1="10" x2="4" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12" y2="3"/>
+                  <line x1="20" y1="21" x2="20" y2="16"/>
+                  <line x1="20" y1="12" x2="20" y2="3"/>
+                  <line x1="1" y1="14" x2="7" y2="14"/>
+                  <line x1="9" y1="8" x2="15" y2="8"/>
+                  <line x1="17" y1="16" x2="23" y2="16"/>
+                </svg>
+                <span>Settings</span>
+              </button>
+
+              <!-- Quick Fast / Pro Tier Toggle Button (Dola AI Exclusive) -->
+              <div class="gen-tier-toggle-wrapper hidden" id="wrapGenTierToggle">
+                <button type="button" id="btnQuickTierToggle" class="gen-tool-btn gen-tier-btn" title="Beralih Mode Dola AI (Fast / Pro)">
+                  <span class="gen-tier-icon" id="btnQuickTierIcon">⚡</span>
+                  <span class="gen-tier-label" id="btnQuickTierLabel">Fast</span>
+                  <svg class="icon-tool-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                <div id="genTierMenuPopover" class="gen-tier-popover hidden">
+                  <div class="gen-tier-menu-item active" data-tier="fast" id="optTierFast">
+                    <div class="tier-item-icon">⚡</div>
+                    <div class="tier-item-info">
+                      <div class="tier-item-name">Fast <span class="tier-badge-sub">Default</span></div>
+                      <div class="tier-item-desc">Solves most problems • Generasi cepat</div>
+                    </div>
+                    <div class="tier-item-check" id="checkTierFast">✓</div>
+                  </div>
+                  <div class="gen-tier-menu-item" data-tier="pro" id="optTierPro">
+                    <div class="tier-item-icon">💎</div>
+                    <div class="tier-item-info">
+                      <div class="tier-item-name">Pro <span class="tier-badge-pro">HD Pro</span></div>
+                      <div class="tier-item-desc">Advanced Pro model • Kualitas detail & sinematik tinggi</div>
+                    </div>
+                    <div class="tier-item-check hidden" id="checkTierPro">✓</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <button type="button" id="btnSubmitGenerate" class="gen-submit-btn">
+              <svg class="icon-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 2l2.4 5.6L20 10l-5.6 2.4L12 18l-2.4-5.6L4 10l5.6-2.4z"/>
+              </svg>
+              <span id="btnSubmitGenText">Generate Image</span>
+            </button>
+          </div>
+
+          <!-- Active Info Sub-bar -->
+          <div class="gen-active-subbar" id="genActiveSubbar" title="Klik untuk mengubah model & provider">
+            <img src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6829dad31872740b3fb4f912_favicon.svg" class="weavy-sub-logo" alt="Weavy">
+            <span class="subbar-provider-name" id="subbarProviderName">Weavy</span>
+            <span class="subbar-sep">/</span>
+            <span class="subbar-model-name" id="subbarModelName">Nano Banana Pro</span>
+          </div>
+        </div>
+
+        <!-- Hidden legacy selects for backward compatibility with existing engine -->
+        <select id="genModelSelect" class="sr-only">
+          <option value="fal-ai/nano-banana-pro/edit" selected>Nano Banana Pro (Google AI - 11 Koin)</option>
+          <option value="fal-ai/bytedance/seedream/v5/lite/edit">Seedream V5.0 Pro Edit (ByteDance - 12 Koin)</option>
+          <option value="flare-ai/flare-2.5">GPT Image 2.5 (Weavy Flare - 4 Koin - Recommended)</option>
+          <option value="gpt_image_1_edit">ChatGPT Images 2.0 Edit (OpenAI - 9 Koin)</option>
+          <option value="gpt_image_2">ChatGPT Images 2.0 (OpenAI - 9 Koin)</option>
+          <option value="xai/grok-imagine-image">Grok Imagine Image (xAI - 4 Koin)</option>
+        </select>
+        <select id="genAspectSelect" class="sr-only">
+          <option value="9:16" selected>9:16 (Vertikal / HP)</option>
+          <option value="16:9">16:9 (Landscape / Layar Lebar)</option>
+          <option value="1:1">1:1 (Persegi / Feed)</option>
+          <option value="4:3">4:3 (Standar)</option>
+          <option value="3:4">3:4 (Portrait)</option>
+        </select>
+        <select id="genResolutionSelect" class="sr-only">
+          <option value="1024x1024">1024 x 1024</option>
+          <option value="1080p" selected>1080p HD</option>
+          <option value="1K">1K Standar</option>
+          <option value="2K">2K Ultra</option>
+          <option value="4K">4K Master</option>
+          <option value="360p">360p Video</option>
+          <option value="720p">720p Video</option>
+        </select>
+
+        <!-- RECENT GENERATIONS SECTION (Wireframe 2) -->
+        <section class="recent-generations-section">
+          <div class="recent-gen-header">
+            <h3 class="recent-gen-title">Recent Generations</h3>
+            <button type="button" id="btnViewAllGenerations" class="recent-gen-viewall">View all &gt;</button>
+          </div>
+
+          <div id="recentGenerationsGrid" class="recent-gen-grid">
+            <!-- Dynamically populated recent generation cards or active generating card -->
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- TAB CONTENT: STUDIO STORYBOARD (AMB MEDIA V2 SPEC) -->
+    <main id="tabStoryboard" class="tab-pane storyboard-workspace-shell">
+      <div class="sb-container">
+
+        <!-- SECTION A: Studio Brief & Storyboard Generator (StudioVideoIngestCard) -->
+        <section class="settings-card sb-ingest-card">
+          <div class="card-header card-header-flex sb-card-header">
+            <div class="card-header-title">
+              <div class="sb-header-icon-box">
+                <svg class="card-icon text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="23 7 16 12 23 17 23 7"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+              </div>
+              <div>
+                <div class="sb-title-row">
+                  <h3 class="sb-main-title">Storyboard Generator</h3>
+                  <span class="sb-badge-tag">Visual Consistency</span>
+                </div>
+                <p class="sb-sub-desc">Isi referensi produk, talent, dan latar untuk hasil storyboard yang konsisten.</p>
+              </div>
+            </div>
+            <div class="sb-header-actions">
+              <button type="button" id="btnResetStoryboard" class="btn-sm btn-outline" title="Reset & Buat Baru (Kosongkan form input dan bersihkan referensi)">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                  <path d="M21 3v5h-5"/>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                  <path d="M8 16H3v5"/>
+                </svg>
+                <span>Baru</span>
+              </button>
+
+              <button type="button" id="btnOpenStoryboardCopilot" class="btn-sm btn-outline storyboard-copilot-toggle" title="Buka Storyboard Copilot">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  <path d="M8 10h.01M12 10h.01M16 10h.01"/>
+                </svg>
+                <span>Copilot</span>
+              </button>
+
+            </div>
+          </div>
+
+          <form id="sbForm" class="settings-form sb-form-wrapper">
+            <!-- TAB PANE 1: MANUAL BRIEF & CONSISTENCY INPUTS -->
+            <div id="sbPaneManual" class="sb-pane active">
+              <div class="sb-form-grid">
+                <div class="sb-form-main">
+                  <!-- Visual Consistency Grid (Produk, Model, Background) -->
+                  <div class="sb-consistency-grid">
+                    <!-- 1. Produk -->
+                    <div class="sb-box-card">
+                      <div class="sb-box-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                          <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+                            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                          </svg>
+                          <label>Produk</label>
+                        </div>
+                        <button type="button" id="btnOpenProdVarsModal" class="btn-xs btn-outline" style="font-size: 10px; padding: 2px 7px; gap: 4px; display: inline-flex; align-items: center; border-color: #38bdf8; color: #38bdf8;" title="Studio Foto Produk: Rancang foto produk multi-sudut & latar estetik">
+                          <span>📸 Studio Produk</span>
+                        </button>
+                      </div>
+                      <div class="sb-box-content">
+                        <div class="sb-thumb-uploader" id="uploaderProd">
+                          <input type="file" id="sbProdFileInput" accept="image/*" class="hidden">
+                          <div id="sbProdEmpty" class="sb-uploader-empty">
+                            <svg class="icon-sm" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                              <polyline points="17 8 12 3 7 8"/>
+                              <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <span>Produk</span>
+                          </div>
+                          <div id="sbProdPreviewBox" class="sb-uploader-preview hidden">
+                            <img id="sbProdImgPreview" src="" alt="Produk">
+                            <div class="sb-uploader-overlay">
+                              <button type="button" class="btn-img-act btn-change" id="btnChangeProdImg">Ganti</button>
+                              <button type="button" class="btn-img-act btn-del" id="btnRemoveProdImg">&times;</button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="sb-box-inputs">
+                          <input type="text" id="sbProductName" class="form-control text-sm" placeholder="Nama produk">
+                          <textarea id="sbProductDesc" rows="2" class="form-textarea text-xs" placeholder="Detail produk"></textarea>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 2. Model / Talent -->
+                    <div class="sb-box-card">
+                      <div class="sb-box-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                          <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                          </svg>
+                          <label>Talent</label>
+                        </div>
+                        <button type="button" id="btnOpenCharSheetModal" class="btn-xs btn-outline" style="font-size: 10px; padding: 2px 7px; gap: 4px; display: inline-flex; align-items: center; border-color: var(--accent-primary, #e8a23d); color: var(--accent-primary, #e8a23d);" title="Buat Karakter Sheet 3 Sudut (Front, Side, Back) dari foto talent ini">
+                          <span>👤 Karakter Sheet</span>
+                        </button>
+                      </div>
+                      <div class="sb-box-content">
+                        <div class="sb-thumb-uploader" id="uploaderModel">
+                          <input type="file" id="sbModelFileInput" accept="image/*" class="hidden">
+                          <div id="sbModelEmpty" class="sb-uploader-empty">
+                            <svg class="icon-sm" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                              <polyline points="17 8 12 3 7 8"/>
+                              <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <span>Talent</span>
+                          </div>
+                          <div id="sbModelPreviewBox" class="sb-uploader-preview hidden">
+                            <img id="sbModelImgPreview" src="" alt="Model">
+                            <div class="sb-uploader-overlay">
+                              <button type="button" class="btn-img-act btn-change" id="btnChangeModelImg">Ganti</button>
+                              <button type="button" class="btn-img-act btn-del" id="btnRemoveModelImg">&times;</button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="sb-box-inputs">
+                          <textarea id="sbModelTalent" rows="3" class="form-textarea text-xs h-full" placeholder="Deskripsi talent / model"></textarea>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 3. Background / Setting -->
+                    <div class="sb-box-card">
+                      <div class="sb-box-header">
+                        <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <label>Latar</label>
+                      </div>
+                      <div class="sb-box-content">
+                        <div class="sb-thumb-uploader" id="uploaderBg">
+                          <input type="file" id="sbBgFileInput" accept="image/*" class="hidden">
+                          <div id="sbBgEmpty" class="sb-uploader-empty">
+                            <svg class="icon-sm" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                              <polyline points="17 8 12 3 7 8"/>
+                              <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <span>Latar</span>
+                          </div>
+                          <div id="sbBgPreviewBox" class="sb-uploader-preview hidden">
+                            <img id="sbBgImgPreview" src="" alt="Background">
+                            <div class="sb-uploader-overlay">
+                              <button type="button" class="btn-img-act btn-change" id="btnChangeBgImg">Ganti</button>
+                              <button type="button" class="btn-img-act btn-del" id="btnRemoveBgImg">&times;</button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="sb-box-inputs">
+                          <textarea id="sbBgSetting" rows="3" class="form-textarea text-xs h-full" placeholder="Deskripsi latar / suasana"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Custom Assets Section (Other Reference) -->
+                  <div id="sbCustomAssetsContainer" class="sb-custom-assets-section hidden">
+                    <div class="sb-section-subtitle">
+                      <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                        <polyline points="2 17 12 22 22 17"/>
+                        <polyline points="2 12 12 17 22 12"/>
+                      </svg>
+                      <span>Referensi tambahan</span>
+                    </div>
+                    <div id="sbCustomAssetsList" class="sb-custom-assets-grid"></div>
+                  </div>
+
+                  <div class="sb-top-row">
+                    <div class="sb-add-asset-row">
+                      <button type="button" id="btnAddCustomAsset" class="btn-sm btn-outline btn-add-custom">
+                        <svg class="icon-xs" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <line x1="12" y1="5" x2="12" y2="19"/>
+                          <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>Tambah referensi</span>
+                      </button>
+                    </div>
+
+                    <div class="sb-duration-col">
+                      <div class="sb-mini-field">
+                        <label for="sbTotalDuration">Durasi</label>
+                        <select id="sbTotalDuration" class="form-select text-xs">
+                          <option value="10" selected>10 detik</option>
+                          <option value="15">15 detik</option>
+                          <option value="30">30 detik</option>
+                          <option value="45">45 detik</option>
+                          <option value="60">60 detik</option>
+                        </select>
+                      </div>
+                      <div class="sb-mini-field">
+                        <label for="sbNumScenes">Scene</label>
+                        <select id="sbNumScenes" class="form-select text-xs">
+                          <option value="3">3 scene</option>
+                          <option value="4" selected>4 scene</option>
+                          <option value="5">5 scene</option>
+                          <option value="6">6 scene</option>
+                          <option value="8">8 scene</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 4. Main Brief -->
+                  <div class="sb-brief-col">
+                    <div class="sb-box-header" style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                          <polyline points="14 2 14 8 20 8"/>
+                          <line x1="16" y1="13" x2="8" y2="13"/>
+                          <line x1="16" y1="17" x2="8" y2="17"/>
+                          <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                        <label>Brief utama</label>
+                      </div>
+                      <button type="button" id="btnQuickHookVariations" class="btn-xs btn-outline" style="font-size: 10.5px; padding: 2px 8px; gap: 4px; display: inline-flex; align-items: center; border-color: var(--accent-primary, #e8a23d); color: var(--accent-primary, #e8a23d);" title="Rancang 3 opsi hook pembuka viral TikTok (A/B testing)">
+                        <span>⚡ 3 Ide Hook TikTok</span>
+                      </button>
+                    </div>
+                    <textarea id="sbMainBrief" rows="3" class="form-textarea text-xs" placeholder="Jelaskan hook, masalah, solusi, dan CTA singkat atau klik '3 Ide Hook TikTok'"></textarea>
+                  </div>
+                </div>
+
+                <aside class="sb-form-side">
+                  <div class="sb-config-toolbar">
+                    <div class="sb-config-box">
+                      <span class="sb-config-label">
+                        <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="11" width="18" height="10" rx="2"/>
+                          <circle cx="12" cy="5" r="2"/>
+                          <path d="M12 7v4"/>
+                          <line x1="8" y1="16" x2="8" y2="16"/>
+                          <line x1="16" y1="16" x2="16" y2="16"/>
+                        </svg>
+                        <span>AI</span>
+                      </span>
+                      <select id="sbAiModel" class="form-select text-xs">
+                        <optgroup label="Model Google (Weavy)">
+                          <option value="google/gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+                          <option value="google/gemini-3.6-flash">Gemini 3.6 Flash</option>
+                          <option value="google/gemini-3-pro">Gemini 3 Pro</option>
+                          <option value="google/gemini-3.1-pro">Gemini 3.1 Pro</option>
+                          <option value="google/gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+                        </optgroup>
+                        <optgroup label="Model Anthropic (Weavy)">
+                          <option value="anthropic/claude-sonnet-5">Claude Sonnet 5</option>
+                          <option value="anthropic/claude-opus-5">Claude Opus 5</option>
+                          <option value="anthropic/claude-haiku-4-5">Claude Haiku 4.5</option>
+                        </optgroup>
+                        <optgroup label="Model OpenAI (Weavy)">
+                          <option value="openai/gpt-4o">GPT-4o</option>
+                          <option value="openai/gpt-5.6-sol">GPT-5.6 Sol</option>
+                          <option value="openai/gpt-4.1">GPT-4.1</option>
+                        </optgroup>
+                        <optgroup label="Model Meta (Weavy)">
+                          <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
+                          <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    <div class="sb-config-box">
+                      <span class="sb-config-label">
+                        <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        <span>Image</span>
+                      </span>
+                      <select id="sbImageModel" class="form-select text-xs">
+                        <option value="GPT Image 2.5" selected>GPT Image 2.5 (Flare - 10 Koin)</option>
+                        <option value="ChatGPT Images 2.0 Edit">ChatGPT Images 2.0 Edit (OpenAI - 9 Koin)</option>
+                        <option value="Seedream V5.0 Pro Edit">Seedream V5.0 Pro Edit (ByteDance - 12 Koin)</option>
+                        <option value="Nano Banana Pro">Nano Banana Pro (Google AI - 11 Koin)</option>
+                        <option value="Grok Imagine Image">Grok Imagine Image (xAI - 8 Koin)</option>
+                      </select>
+                    </div>
+
+                    <div class="sb-config-box">
+                      <span class="sb-config-label">
+                        <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                          <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                        <span>Aspect</span>
+                      </span>
+                      <div class="sb-aspect-btn-group">
+                        <button type="button" class="sb-aspect-btn active" data-aspect="9:16">9:16</button>
+                        <button type="button" class="sb-aspect-btn" data-aspect="16:9">16:9</button>
+                        <button type="button" class="sb-aspect-btn" data-aspect="1:1">1:1</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="sbAdvancedPanel" class="sb-advanced-panel sb-advanced-panel-collapsed">
+                    <button type="button" id="sbAdvancedToggle" class="sb-advanced-toggle" aria-expanded="false" aria-controls="sbAdvancedPanelBody">
+                      <span class="sb-advanced-toggle-label">Opsi TikTok & Konsistensi</span>
+                      <svg class="icon-xs" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
+
+                    <div id="sbAdvancedPanelBody" class="sb-advanced-panel-body">
+                      <!-- 1. Formula Angle Video -->
+                      <div class="form-group mb-1">
+                        <label for="sbFormula" class="sb-advanced-label">
+                          <svg class="icon-xs text-accent" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                          </svg>
+                          Angle Cerita
+                        </label>
+                        <select id="sbFormula" class="form-select text-xs">
+                          <option value="none">Tanpa formula (Bebas)</option>
+                          <option value="hook_extreme" selected>🔥 Hook Extreme (Problem-Agitate-Solve)</option>
+                          <option value="humor_parody">😂 Humor & Parodi Relatable</option>
+                          <option value="deep_emotional">🌟 Deep Emotional Storytelling</option>
+                          <option value="fast_ugc">⚡ Fast Cuts UGC TikTok</option>
+                          <option value="hard_sell">🛍️ Hard Sell / Keranjang Kuning</option>
+                        </select>
+                      </div>
+
+                      <!-- 2. TikTok Native Look Modifier (Opsi 2) -->
+                      <div class="form-group mb-1">
+                        <label for="sbTiktokStyle" class="sb-advanced-label">
+                          <svg class="icon-xs text-accent" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                          </svg>
+                          Gaya Visual TikTok
+                        </label>
+                        <select id="sbTiktokStyle" class="form-select text-xs">
+                          <option value="ugc_handheld" selected>📱 UGC Handheld Raw (Natural Room Light)</option>
+                          <option value="iphone_pov">🤳 iPhone 15 Pro POV (First-Person Hands-on)</option>
+                          <option value="macro_texture">🔬 Macro Texture & Swatch (Satisfying ASMR Look)</option>
+                          <option value="split_screen">⚡ Split Screen (Before vs After Contrast)</option>
+                          <option value="authentic_vlog">🎬 Casual Room Vlog (Relatable Reaction)</option>
+                          <option value="commercial_studio">✨ Clean Studio Commercial (Minimalist)</option>
+                        </select>
+                      </div>
+
+                      <!-- 3. Pola Hook Pembuka TikTok (Opsi 3) -->
+                      <div class="form-group mb-1">
+                        <label for="sbHookPattern" class="sb-advanced-label">
+                          <svg class="icon-xs text-accent" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                          </svg>
+                          Pola Hook 3 Detik Awal
+                        </label>
+                        <select id="sbHookPattern" class="form-select text-xs">
+                          <option value="auto_smart" selected>🎯 Auto Smart Viral Hook (AI Selection)</option>
+                          <option value="pattern_interrupt">🛑 Visual Disruption / Stop Scroll Instan</option>
+                          <option value="negative_fear">⚠️ Negative Warning ("Jangan beli sebelum...")</option>
+                          <option value="split_transformation">🔄 Transformation Teaser (Before/After cepat)</option>
+                          <option value="relatable_pov">🙋 Relatable POV ("POV lu lagi buru-buru...")</option>
+                          <option value="secret_unboxing">🤫 Bongkar Rahasia / "Racun TikTok Nyata"</option>
+                          <option value="flash_urgency">🏷️ Flash Sale Promo / Keranjang Kuning</option>
+                        </select>
+                      </div>
+
+                      <!-- 4. Character Lock & Product Anchor Toggle (Opsi 4) -->
+                      <div class="form-group mb-1" style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0;">
+                        <label for="sbLockConsistency" class="sb-advanced-label" style="cursor: pointer; user-select: none;">
+                          <svg class="icon-xs text-accent" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          </svg>
+                          Kunci Karakter & Produk
+                        </label>
+                        <input type="checkbox" id="sbLockConsistency" checked style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--accent-primary, #e8a23d);" title="Kunci wajah talent dan kemasan produk agar konsisten 100% antar frame">
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+
+              <div class="sb-action-submit-bar">
+                <div class="sb-dynamic-info">
+                  <svg class="icon-xs text-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  <span id="sbDynamicSceneInfo">Merancang 4 scene konsisten (15 detik total)</span>
+                </div>
+
+                <button type="submit" id="btnSubmitStoryboard" class="btn-primary btn-submit-storyboard">
+                  <svg class="icon-sm" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  <span id="sbBtnSubmitLabel">Buat storyboard</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <!-- SECTION B: Marketing Strategy & Hook Breakdown (StudioAnalysisCard) -->
+        <section id="sbAnalysisSection" class="settings-card hidden">
+          <div class="card-header card-header-flex">
+            <div class="card-header-title">
+              <svg class="card-icon text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <div>
+                <h3>Analisis Strategi Konten & Hook</h3>
+                <span id="sbAnalysisAiBadge" class="sb-badge-tag">Gemini 2.5 Flash</span>
+              </div>
+            </div>
+            <button type="button" id="btnCopyAnalysis" class="btn-sm btn-outline">
+              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              <span>Salin Analisis</span>
+            </button>
+          </div>
+
+          <div class="sb-analysis-body">
+            <!-- Hook Analysis Box -->
+            <div class="sb-analysis-hook-box">
+              <span class="sb-analysis-subheading">🎯 Opening Hook Analysis:</span>
+              <p id="sbHookAnalysisText" class="sb-analysis-p">-</p>
+            </div>
+
+            <!-- Target Emotion & Proof Strategy -->
+            <div class="sb-analysis-row col-2">
+              <div class="sb-analysis-mini-box">
+                <span class="sb-analysis-subheading">❤️ Target Emosi Penonton:</span>
+                <p id="sbTargetEmotionText" class="sb-analysis-p">-</p>
+              </div>
+              <div class="sb-analysis-mini-box">
+                <span class="sb-analysis-subheading">🔍 Visual Proof Strategy:</span>
+                <p id="sbVisualProofText" class="sb-analysis-p">-</p>
+              </div>
+            </div>
+
+            <!-- Core USPs Chips -->
+            <div class="sb-analysis-chips-box">
+              <span class="sb-analysis-subheading">✨ Core USPs:</span>
+              <div id="sbCoreUspsContainer" class="sb-chips-wrap"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION B1: ATM (Amati, Tiru, Modifikasi) Remix Engine (StudioAtmRemixCard) -->
+        <section id="sbAtmSection" class="settings-card hidden">
+          <div class="card-header card-header-flex">
+            <div class="card-header-title">
+              <svg class="card-icon text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              <div>
+                <h3>ATM (Amati, Tiru, Modifikasi) Remix Engine</h3>
+                <p class="sb-sub-desc">Rancang versi baru dari hook & alur storyboard di atas dengan formula kreatif berbeda</p>
+              </div>
+            </div>
+          </div>
+
+          <form id="sbAtmForm" class="settings-form">
+            <div class="form-row col-2">
+              <div class="form-group mb-2">
+                <label for="sbAtmFormula">Formula Remix Angle</label>
+                <select id="sbAtmFormula" class="form-select text-xs">
+                  <option value="hook_extreme" selected>🔥 Hook Extreme (Problem-Agitate-Solve)</option>
+                  <option value="humor_parody">😂 Humor & Parodi Relatable</option>
+                  <option value="deep_emotional">🌟 Deep Emotional Storytelling</option>
+                  <option value="fast_ugc">⚡ Fast Cuts UGC TikTok Aesthetic</option>
+                  <option value="hard_sell">🛍️ Direct Hard Sell & Scarcity Promo</option>
+                </select>
+              </div>
+              <div class="form-group mb-2">
+                <label for="sbAtmDuration">Durasi Versi Baru</label>
+                <select id="sbAtmDuration" class="form-select text-xs">
+                  <option value="10" selected>10 Detik (Ultra Short)</option>
+                  <option value="15">15 Detik (TikTok Short)</option>
+                  <option value="30">30 Detik (Standard Commercial)</option>
+                  <option value="45">45 Detik (Deep Review)</option>
+                  <option value="60">60 Detik (Full Storytelling)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="sbAtmNotes">Catatan Modifikasi Tambahan</label>
+              <input type="text" id="sbAtmNotes" class="form-control text-xs" placeholder="Misal: Lebih santai, ekspresi talent kaget di awal, fokus ke tekstur...">
+            </div>
+
+            <button type="submit" id="btnSubmitAtmRemix" class="btn-primary btn-block">
+              <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              <span id="sbAtmBtnLabel">Rancang Versi Baru (ATM)</span>
+            </button>
+          </form>
+        </section>
+
+        <!-- SECTION C: Storyboard Scenes Breakdown (StudioSceneCard) -->
+        <section id="sbScenesSection" class="settings-card hidden">
+          <!-- Storyboard Header Bar -->
+          <div class="sb-scenes-header-bar">
+            <div>
+              <div class="sb-scenes-header-title">
+                <svg class="icon-sm text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"/>
+                  <rect x="14" y="3" width="7" height="7"/>
+                  <rect x="14" y="14" width="7" height="7"/>
+                  <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <h3 id="sbScenesProjectTitle">Storyboard Scenes Breakdown</h3>
+                <span id="sbCompletedCountBadge" class="sb-completed-badge">0/0 Selesai</span>
+              </div>
+              <p id="sbScenesMetaInfo" class="sb-scenes-meta-text">Model Gambar: <strong class="text-accent">GPT Image 2.5</strong> (Aspek 9:16) &bull; Format Prompt Weavy AI</p>
+            </div>
+
+            <!-- Actions Toolbar -->
+            <div class="sb-scenes-actions-group">
+              <button type="button" id="btnSaveStoryboardProject" class="btn-sm btn-primary" title="Simpan storyboard ini ke daftar proyek">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/>
+                  <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                <span class="sb-save-label">Simpan</span>
+              </button>
+
+              <button type="button" id="btnBatchGenerateScenes" class="btn-sm btn-batch-gen" title="Generate semua scene secara berurutan">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span id="sbBatchGenLabel">Generate Semua</span>
+              </button>
+
+              <button type="button" id="btnCompositeGrid" class="btn-sm btn-outline sb-btn-composite" title="Buka / Tutup 1-Sheet Grid Master (Inline Layout)" aria-expanded="false">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="3" y1="9" x2="21" y2="9"/>
+                  <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+                <span>1-Sheet</span>
+                <span class="sb-toggle-icon-wrap" title="Buka / Tutup">
+                  <svg id="sbCompositeChevronIcon" class="icon-xs sb-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </span>
+              </button>
+
+              <button type="button" id="btnOpenCharSheetToolbar" class="btn-sm btn-outline sb-btn-charsheet" title="Buka Studio Karakter Sheet (3-View Multi-Angle Reference)">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span>Karakter Sheet</span>
+              </button>
+
+              <button type="button" id="btnOpenProdVarsToolbar" class="btn-sm btn-outline sb-btn-prodvars" title="Buka Studio Foto Produk Multi-Scene & Latar AI">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                <span>Studio Produk</span>
+              </button>
+
+              <button type="button" id="btnCopyAllScenes" class="btn-sm btn-outline" title="Salin semua naskah & breakdown scene">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                </svg>
+                <span>Salin Naskah</span>
+              </button>
+
+              <button type="button" id="btnCopyAllScenesJson" class="btn-sm btn-outline" title="Salin semua data scene & project dalam format JSON">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <span>Salin JSON</span>
+              </button>
+
+              <button type="button" id="btnToggleAllPrompts" class="btn-sm btn-outline" title="Buka/Tutup semua prompt">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span id="sbTogglePromptsLabel">Prompt</span>
+              </button>
+
+              <button type="button" id="btnCloseScenesSection" class="btn-sm btn-outline text-muted" title="Tutup / Sembunyikan breakdown scene ini">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                <span>Tutup</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- SECTION D: 1-Sheet Grid Inline Panel (Integrated in the same layout, non-popup) -->
+          <div id="sbCompositeModal" class="sb-onesheet-inline-panel hidden" role="region" aria-label="1-Sheet Grid Master Generator">
+            <div class="sb-onesheet-header">
+              <div class="sb-onesheet-header-left">
+                <div class="sb-onesheet-badge-icon">
+                  <svg class="icon-sm text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="21" x2="9" y2="9"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="sb-onesheet-title-row">
+                    <h4 class="sb-onesheet-title">🎬 1-Sheet Grid Master Generator (All-in-One)</h4>
+                    <span class="sb-badge-inline">16:9 Contact Sheet</span>
+                  </div>
+                  <p class="sb-onesheet-desc">Rakit alur seluruh scene menjadi satu lembar gambar master grid multi-panel sinematik.</p>
+                </div>
+              </div>
+              <div class="sb-onesheet-header-actions">
+                <button type="button" id="btnCloseCompositeModal" class="sb-btn-close-inline" title="Tutup / Sembunyikan Panel 1-Sheet Grid">
+                  <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <polyline points="18 15 12 9 6 15"/>
+                  </svg>
+                  <span>Tutup 1-Sheet</span>
+                </button>
+              </div>
+            </div>
+            <div class="sb-onesheet-body space-y-3">
+              <!-- Galeri Aset Input & Hasil Scene -->
+              <div class="sb-onesheet-assets-box">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-semibold text-primary flex items-center gap-1.5">
+                    🖼️ Referensi Input & Hasil Scene yang Digunakan
+                  </span>
+                  <span id="sbCompositeAssetCount" class="sb-asset-badge">0 Referensi</span>
+                </div>
+                <p class="text-xs text-muted mb-2">
+                  Menampilkan semua foto produk, model/talent, latar, serta hasil gambar tiap scene yang sudah digenerate sebagai multimodal guidance konsistensi visual.
+                </p>
+                <div id="sbCompositeAssetsGrid" class="sb-onesheet-assets-grid">
+                  <!-- Dynamic thumbnails will be populated here -->
+                </div>
+              </div>
+
+              <!-- Master Prompt Gabungan Semua Scene -->
+              <div class="sb-onesheet-prompt-box">
+                <div class="flex items-center justify-between mb-1">
+                  <label for="sbCompositePromptText" class="text-xs font-semibold text-primary">
+                    📝 Master Grid Prompt (Gabungan Alur Seluruh Scene)
+                  </label>
+                  <button type="button" id="btnRefreshCompositePrompt" class="btn-xs btn-outline" title="Susun Ulang Prompt dari Alur Scene Terkini">
+                    🔄 Reset Prompt
+                  </button>
+                </div>
+                <textarea id="sbCompositePromptText" rows="5" class="form-textarea text-xs font-mono" placeholder="Prompt master 1-sheet multi-panel akan dirakit otomatis di sini..."></textarea>
+              </div>
+
+              <!-- Controls: Model AI & Rasio (Default 16:9) -->
+              <div class="sb-onesheet-controls-row">
+                <div class="form-group flex-1 mb-0">
+                  <label for="sbCompositeModelSelect" class="text-xs">Model AI Generator</label>
+                  <select id="sbCompositeModelSelect" class="form-select text-xs">
+                    <option value="gpt-image-2.5" selected>GPT Image 2.5 (Flare - 4 Koin)</option>
+                    <option value="seedream">Seedream V5.0 Pro Edit (ByteDance - 12 Koin)</option>
+                    <option value="nano-banana">Nano Banana Pro (Google AI - 11 Koin)</option>
+                    <option value="gpt_image_1_edit">ChatGPT Images 2.0 Edit (OpenAI - 9 Koin)</option>
+                    <option value="grok">Grok Imagine Image (xAI - 4 Koin)</option>
+                  </select>
+                </div>
+
+                <div class="form-group flex-1 mb-0">
+                  <label for="sbCompositeRatioSelect" class="text-xs">Aspek Rasio Grid Sheet</label>
+                  <select id="sbCompositeRatioSelect" class="form-select text-xs">
+                    <option value="16:9" selected>16:9 (Landscape - Rekomendasi: Panel 9:16 Berjajar Samping)</option>
+                    <option value="9:16">9:16 (Vertical Canvas - Frame Bertumpuk Atas-Bawah)</option>
+                    <option value="1:1">1:1 (Square Collage)</option>
+                    <option value="4:3">4:3 (Classic Sheet)</option>
+                    <option value="3:4">3:4 (Portrait Sheet)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Actions: Generate Button & Copy Prompt -->
+              <div class="sb-onesheet-actions-row">
+                <button type="button" id="btnGenerateCompositeGrid" class="btn-primary flex-1">
+                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                  <span id="btnGenerateCompositeLabel">Generate 1-Sheet Grid Image</span>
+                </button>
+                <button type="button" id="btnCopyCompositePrompt" class="btn-secondary btn-sm" title="Salin Master Prompt ke Clipboard">
+                  📋 Salin Prompt
+                </button>
+              </div>
+
+              <!-- Realtime Loading State -->
+              <div id="sbCompositeLoadingBox" class="sb-onesheet-loading-box hidden">
+                <div class="sb-loading-spinner-wrap">
+                  <div class="sb-spinner"></div>
+                  <div class="sb-loading-info">
+                    <span id="sbCompositeLoadingText" class="text-xs font-semibold">Mengirim tugas 1-sheet grid ke Weavy AI...</span>
+                    <div class="sb-progress-bar-bg mt-1">
+                      <div id="sbCompositeProgressBar" class="sb-progress-bar-fill" style="width: 25%;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Result Preview Area -->
+              <div id="sbCompositeResultArea" class="sb-onesheet-result-area hidden">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-accent flex items-center gap-1">
+                    ✨ Hasil 1-Sheet Grid Image Berhasil Digenerate
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <a id="btnDownloadCompositeResult" href="#" target="_blank" download="1_sheet_grid.png" class="btn-xs btn-primary">
+                      ⬇️ Unduh
+                    </a>
+                    <a id="btnOpenCompositeResult" href="#" target="_blank" class="btn-xs btn-outline">
+                      🔍 Buka HD
+                    </a>
+                  </div>
+                </div>
+                <div class="sb-onesheet-img-wrapper">
+                  <img id="sbCompositeResultImg" src="" alt="1-Sheet Grid Result" class="sb-onesheet-img" />
+                </div>
+              </div>
+
+              <!-- Error Alert Area -->
+              <div id="sbCompositeErrorAlert" class="status-alert alert-error hidden"></div>
+            </div>
+          </div>
+
+          <!-- Scenes Grid List -->
+          <div id="sbScenesList" class="sb-scenes-grid">
+            <!-- Dynamic StudioSceneCards injected here -->
+          </div>
+        </section>
+
+        <!-- SECTION D2: TikTok Hook Variations Modal (A/B Test) -->
+        <div id="sbHookVariationsModal" class="sb-modal-backdrop hidden">
+          <div class="sb-modal-card" style="max-width: 580px;">
+            <div class="sb-modal-header">
+              <div class="sb-modal-title">
+                <svg class="icon-sm text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <h4>⚡ 3 Variasi Hook TikTok Penjualan (A/B Test)</h4>
+              </div>
+              <button type="button" id="btnCloseHookVariationsModal" class="btn-close-modal" title="Tutup Modal">&times;</button>
+            </div>
+            <div class="sb-modal-body space-y-3">
+              <p class="text-xs text-muted">
+                3 detik pertama menentukan apakah audiens TikTok akan scroll atau nonton sampai checkout. Pilih salah satu variasi hook di bawah ini untuk diterapkan ke Scene 1 storyboard Anda:
+              </p>
+              <div id="sbHookVariationsList" class="space-y-3">
+                <!-- Dynamically filled hook cards -->
+                <div class="sb-loading-spinner-wrap py-4">
+                  <div class="sb-spinner"></div>
+                  <span class="text-xs text-muted">Merancang formula hook TikTok dengan AI...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION D3: Studio Karakter Sheet (Multi-Angle Front/Side/Back Reference) Modal -->
+        <div id="sbCharSheetModal" class="sb-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="sbCharSheetModalTitle">
+          <div class="sb-modal-card" style="max-width: 620px;">
+            <div class="sb-modal-header">
+              <div class="sb-modal-title">
+                <div class="sb-onesheet-badge-icon" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: rgba(232, 162, 61, 0.15); border-radius: 6px;">
+                  <svg class="icon-sm text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <div>
+                  <h4 id="sbCharSheetModalTitle" style="margin: 0; font-size: 14px; font-weight: 700; color: var(--text-primary);">👤 Studio Karakter Sheet (3-View Multi-Angle Reference)</h4>
+                  <span class="sb-badge-inline" style="font-size: 10px;">Front, Side & Back View • Ultra-Realistic</span>
+                </div>
+              </div>
+              <button type="button" id="btnCloseCharSheetModal" class="btn-close-modal" title="Tutup Modal">&times;</button>
+            </div>
+            <div class="sb-modal-body space-y-3">
+              <p class="text-xs text-muted">
+                Buat lembar referensi karakter foto tampak depan (<strong>Front View</strong>), samping (<strong>Side View</strong>), dan belakang (<strong>Back View</strong>) berdampingan untuk mengunci konsistensi visual talent/model 100% antar frame video.
+              </p>
+
+              <!-- Referensi Foto Talent Input -->
+              <div class="sb-charsheet-talent-box" style="background: var(--bg-tertiary, #1c1917); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span class="text-xs font-semibold text-primary" style="display: flex; align-items: center; gap: 5px;">
+                    🖼️ Foto Referensi Talent / Wajah Asli
+                  </span>
+                  <span id="sbCharSheetTalentStatus" class="sb-asset-badge">Siap Digunakan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div id="sbCharSheetImgPreviewWrap" style="width: 54px; height: 54px; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--border-color); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                    <img id="sbCharSheetTalentImgPreview" src="" alt="Talent Preview" style="width: 100%; height: 100%; object-fit: cover;" class="hidden">
+                    <span id="sbCharSheetEmptyIcon" style="font-size: 20px;">👤</span>
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div id="sbCharSheetTalentDescText" class="text-xs text-muted" style="margin-bottom: 4px; line-height: 1.35; max-height: 38px; overflow: hidden; text-overflow: ellipsis;">
+                      Menggunakan foto talent yang diunggah di form Storyboard.
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                      <button type="button" id="btnChangeCharSheetTalentImg" class="btn-xs btn-outline" style="font-size: 10.5px; padding: 2px 8px;">
+                        Ganti / Upload Foto
+                      </button>
+                      <input type="file" id="sbCharSheetFileInput" accept="image/*" class="hidden">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Prompt Karakter Sheet (Default Otomatis) -->
+              <div class="sb-onesheet-prompt-box">
+                <div class="flex items-center justify-between mb-1">
+                  <label for="sbCharSheetPromptText" class="text-xs font-semibold text-primary">
+                    📝 Prompt Otomatis Karakter Sheet
+                  </label>
+                  <button type="button" id="btnResetCharSheetPrompt" class="btn-xs btn-outline" title="Reset ke prompt bawaan standar">
+                    🔄 Reset Prompt
+                  </button>
+                </div>
+                <textarea id="sbCharSheetPromptText" rows="4" class="form-textarea text-xs font-mono" placeholder="Prompt Karakter Sheet otomatis..."></textarea>
+              </div>
+
+              <!-- Pengaturan Model & Aspek Rasio -->
+              <div class="sb-onesheet-controls-row" style="display: flex; gap: 10px;">
+                <div class="form-group flex-1 mb-0">
+                  <label for="sbCharSheetModelSelect" class="text-xs">Model AI Generator</label>
+                  <select id="sbCharSheetModelSelect" class="form-select text-xs">
+                    <option value="gpt-image-2.5" selected>GPT Image 2.5 (Flare - 4 Koin - Rekomendasi)</option>
+                    <option value="seedream">Seedream V5.0 Pro Edit (ByteDance - 12 Koin)</option>
+                    <option value="nano-banana">Nano Banana Pro (Google AI - 11 Koin)</option>
+                    <option value="gpt_image_1_edit">ChatGPT Images 2.0 Edit (OpenAI - 9 Koin)</option>
+                    <option value="grok">Grok Imagine Image (xAI - 4 Koin)</option>
+                  </select>
+                </div>
+
+                <div class="form-group flex-1 mb-0">
+                  <label for="sbCharSheetRatioSelect" class="text-xs">Aspek Rasio Canvas</label>
+                  <select id="sbCharSheetRatioSelect" class="form-select text-xs">
+                    <option value="16:9" selected>16:9 (Landscape - 3 Pose Berjajar Samping)</option>
+                    <option value="4:3">4:3 (Standar Studio Sheet)</option>
+                    <option value="1:1">1:1 (Persegi)</option>
+                    <option value="9:16">9:16 (Vertikal)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Actions Row -->
+              <div class="sb-onesheet-actions-row" style="display: flex; gap: 8px; margin-top: 10px;">
+                <button type="button" id="btnGenerateCharSheet" class="btn-primary flex-1" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                  <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                  <span id="btnGenerateCharSheetLabel">Generate Karakter Sheet</span>
+                </button>
+                <button type="button" id="btnCopyCharSheetPrompt" class="btn-secondary btn-sm" title="Salin Prompt ke Clipboard">
+                  📋 Salin Prompt
+                </button>
+              </div>
+
+              <!-- Realtime Loading State -->
+              <div id="sbCharSheetLoadingBox" class="sb-onesheet-loading-box hidden">
+                <div class="sb-loading-spinner-wrap">
+                  <div class="sb-spinner"></div>
+                  <div class="sb-loading-info">
+                    <span id="sbCharSheetLoadingText" class="text-xs font-semibold">Mengirim tugas Karakter Sheet ke Weavy AI...</span>
+                    <div class="sb-progress-bar-bg mt-1">
+                      <div id="sbCharSheetProgressBar" class="sb-progress-bar-fill" style="width: 25%;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Result Preview Area -->
+              <div id="sbCharSheetResultArea" class="sb-onesheet-result-area hidden">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-accent flex items-center gap-1">
+                    ✨ Karakter Sheet Berhasil Dibuat!
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <button type="button" id="btnApplyCharSheetToTalent" class="btn-xs btn-primary" title="Terapkan foto ini sebagai foto Talent utama di Storyboard">
+                      🎯 Pasang ke Talent Storyboard
+                    </button>
+                    <a id="btnDownloadCharSheetResult" href="#" target="_blank" download="character_sheet.png" class="btn-xs btn-outline">
+                      ⬇️ Unduh
+                    </a>
+                    <a id="btnOpenCharSheetResult" href="#" target="_blank" class="btn-xs btn-outline">
+                      🔍 Buka HD
+                    </a>
+                  </div>
+                </div>
+                <div class="sb-onesheet-img-wrapper" style="border-radius: 8px; overflow: hidden; border: 1px solid rgba(232, 162, 61, 0.4); max-height: 280px; display: flex; align-items: center; justify-content: center; background: #000;">
+                  <img id="sbCharSheetResultImg" src="" alt="Hasil Karakter Sheet" class="sb-onesheet-img" style="max-height: 280px; width: 100%; object-fit: contain;" />
+                </div>
+              </div>
+
+              <!-- Error Alert Area -->
+              <div id="sbCharSheetErrorAlert" class="status-alert alert-error hidden"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION D4: Studio Foto Produk & Multi-Scene Variations Modal -->
+        <div id="sbProductVariationsModal" class="sb-modal-backdrop hidden">
+          <div class="sb-modal-card" style="max-width: 740px;">
+            <div class="sb-modal-header" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(14, 165, 233, 0.05)); border-bottom: 1px solid rgba(56, 189, 248, 0.25);">
+              <div class="flex items-center gap-2">
+                <div style="background: #38bdf8; color: #000; border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+                  📸
+                </div>
+                <div>
+                  <h3 class="sb-modal-title" style="color: #38bdf8;">Studio Foto Produk AI (Multi-Scene & Latar)</h3>
+                  <p class="text-xs text-muted mb-0">Rancang foto produk multi-sudut & latar estetik. AI sesuaikan prompt tiap variasi secara otomatis.</p>
+                </div>
+              </div>
+              <button type="button" id="btnCloseProdVarsModal" class="sb-modal-close" aria-label="Tutup">&times;</button>
+            </div>
+
+            <div class="sb-modal-body" style="max-height: calc(85vh - 70px); overflow-y: auto; padding: 14px;">
+              <!-- Produk Reference Box -->
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span class="text-xs font-semibold text-primary" style="display: flex; align-items: center; gap: 5px;">
+                    📦 Foto Referensi Produk
+                  </span>
+                  <span id="sbProdVarsStatus" class="sb-asset-badge">Siap Digunakan</span>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                  <div style="width: 60px; height: 60px; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--border-color); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                    <img id="sbProdVarsImgPreview" src="" alt="Produk Preview" style="width: 100%; height: 100%; object-fit: contain;" class="hidden">
+                    <span id="sbProdVarsEmptyIcon" style="font-size: 22px;">📦</span>
+                  </div>
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; gap: 6px;">
+                      <input type="text" id="sbProdVarsNameInput" class="form-control text-xs flex-1" placeholder="Nama produk (misal: Serum GlowX, Kopi Coldbrew, Sepatu Air)" />
+                      <button type="button" id="btnChangeProdVarsImg" class="btn-xs btn-outline" style="font-size: 11px; white-space: nowrap;">
+                        Upload Foto
+                      </button>
+                      <input type="file" id="sbProdVarsFileInput" accept="image/*" class="hidden">
+                    </div>
+                    <input type="text" id="sbProdVarsDescInput" class="form-control text-xs" placeholder="Detail kemasan/warna/fitur khusus produk..." />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main Brief & Environment Settings -->
+              <div class="form-group mb-3">
+                <label for="sbProdVarsBriefText" class="text-xs font-semibold text-primary mb-1 block">
+                  💡 Konsep Latar / Main Brief Suasana
+                </label>
+                <textarea id="sbProdVarsBriefText" rows="2" class="form-textarea text-xs" placeholder="Contoh: Diletakkan di atas meja marmer putih dengan percikan air segar, bunga melati lembut, pantulan cahaya pagi..."></textarea>
+                
+                <!-- Quick Preset Chips -->
+                <div class="sb-preset-chips">
+                  <span class="sb-preset-chip" data-preset="💎 Luxury Minimalist: Pedestal marmer/akrilik, soft shadow dramatis, clean studio luxury, pencahayaan soft rim light">💎 Luxury Minimalist</span>
+                  <span class="sb-preset-chip" data-preset="🌿 Nature & Organic: Di atas kayu alami, dedaunan hijau tropis, butiran embun segar, sinar matahari pagi">🌿 Nature & Eco</span>
+                  <span class="sb-preset-chip" data-preset="⚡ Cyberpunk Neon: Lampu neon biru & magenta, lantai aspal basah berkilau, suasana malam futuristik">⚡ Cyberpunk Neon</span>
+                  <span class="sb-preset-chip" data-preset="☕ Cozy Cafe Lifestyle: Meja kafe kayu estetik, cangkir kopi, buku, bokeh cahaya senja hangat">☕ Cozy Cafe</span>
+                  <span class="sb-preset-chip" data-preset="🌊 Splash & Action: Percikan air kristal segar berhamburan, es batu melayang, visual punchy bertenaga">🌊 Dynamic Splash</span>
+                  <span class="sb-preset-chip" data-preset="🏙️ Urban Modern: Dinding semen ekspos, arsitektur minimalis modern, kontras bayangan tajam">🏙️ Urban Modern</span>
+                </div>
+              </div>
+
+              <!-- Controls Row: Variations Count, Strategy, Text AI, Image AI, Ratio -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 12px;">
+                <div class="form-group mb-0">
+                  <label for="sbProdVarsCountSelect" class="text-xs">Jumlah Output</label>
+                  <select id="sbProdVarsCountSelect" class="form-select text-xs">
+                    <option value="2">2 Gambar</option>
+                    <option value="3">3 Gambar</option>
+                    <option value="4" selected>4 Gambar (Rekomendasi)</option>
+                    <option value="6">6 Gambar Lengkap</option>
+                  </select>
+                </div>
+
+                <div class="form-group mb-0">
+                  <label for="sbProdVarsStrategySelect" class="text-xs">Strategi Variasi</label>
+                  <select id="sbProdVarsStrategySelect" class="form-select text-xs">
+                    <option value="multi_setting" selected>Latar Beragam (Sesuai Brief)</option>
+                    <option value="packshot_angles">Multi-Angle Packshot (Macro, 45°, Top, POV)</option>
+                    <option value="tiktok_lifestyle">TikTok Lifestyle & Hands-On</option>
+                    <option value="minimalist_podium">Podium & Pedestal Mewah</option>
+                  </select>
+                </div>
+
+                <div class="form-group mb-0">
+                  <label for="sbProdVarsTextModelSelect" class="text-xs font-semibold text-accent" style="color: #38bdf8;">🧠 Model Text AI (Prompt)</label>
+                  <select id="sbProdVarsTextModelSelect" class="form-select text-xs" style="border-color: rgba(56, 189, 248, 0.4);">
+                    <optgroup label="Model Google (Weavy)">
+                      <option value="google/gemini-2.5-flash" selected>Gemini 2.5 Flash (Cepat & Cerdas)</option>
+                      <option value="google/gemini-3.6-flash">Gemini 3.6 Flash</option>
+                      <option value="google/gemini-3-pro">Gemini 3 Pro (Deep Creative)</option>
+                      <option value="google/gemini-3.1-pro">Gemini 3.1 Pro</option>
+                      <option value="google/gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+                    </optgroup>
+                    <optgroup label="Model Anthropic (Weavy)">
+                      <option value="anthropic/claude-sonnet-5">Claude Sonnet 5 (Artistik Visual)</option>
+                      <option value="anthropic/claude-opus-5">Claude Opus 5</option>
+                      <option value="anthropic/claude-haiku-4-5">Claude Haiku 4.5</option>
+                    </optgroup>
+                    <optgroup label="Model OpenAI (Weavy)">
+                      <option value="openai/gpt-4o">GPT-4o (Commercial Director)</option>
+                      <option value="openai/gpt-5.6-sol">GPT-5.6 Sol</option>
+                      <option value="openai/gpt-4.1">GPT-4.1</option>
+                    </optgroup>
+                    <optgroup label="Model Meta (Weavy)">
+                      <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
+                      <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <div class="form-group mb-0">
+                  <label for="sbProdVarsModelSelect" class="text-xs">🎨 Model Image AI (Render)</label>
+                  <select id="sbProdVarsModelSelect" class="form-select text-xs">
+                    <option value="gpt-image-2.5" selected>GPT Image 2.5 (Flare - 4 Koin)</option>
+                    <option value="seedream">Seedream V5.0 Pro Edit (ByteDance - 12 Koin)</option>
+                    <option value="nano-banana">Nano Banana Pro (Google AI - 11 Koin)</option>
+                    <option value="grok">Grok Imagine Image (xAI - 4 Koin)</option>
+                  </select>
+                </div>
+
+                <div class="form-group mb-0">
+                  <label for="sbProdVarsRatioSelect" class="text-xs">Aspek Rasio</label>
+                  <select id="sbProdVarsRatioSelect" class="form-select text-xs">
+                    <option value="9:16" selected>9:16 (Vertikal / Reels / TikTok)</option>
+                    <option value="1:1">1:1 (Persegi / Feed)</option>
+                    <option value="16:9">16:9 (Landscape / Banner)</option>
+                    <option value="4:3">4:3 (Studio)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Button to Adjust Prompts Automatically -->
+              <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <button type="button" id="btnBuildProdVarsPrompts" class="btn-sm btn-outline flex-1" style="border-color: #38bdf8; color: #38bdf8; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                  <span>✨ Sesuaikan & Susun Prompt Tiap Variasi</span>
+                </button>
+                <button type="button" id="btnTogglePromptsPreview" class="btn-sm btn-secondary" title="Lihat/Tutup Daftar Prompt">
+                  👁️ Detail Prompt
+                </button>
+              </div>
+
+              <!-- Pre-generation Editable Prompts Accordion Container -->
+              <div id="sbProdVarsPromptsContainer" class="hidden" style="margin-bottom: 12px;">
+                <div class="text-xs font-semibold text-muted mb-1">Daftar Prompt Tiap Variasi (Dapat Diedit Manual):</div>
+                <div id="sbProdVarsPromptsList" class="sb-prompts-accordion"></div>
+              </div>
+
+              <!-- Primary Generate Button -->
+              <button type="button" id="btnGenerateProductVariations" class="btn-primary w-full" style="background: linear-gradient(135deg, #0284c7, #0369a1); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-weight: 700; font-size: 13px;">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span id="btnGenerateProductVariationsLabel">🚀 Generate 4 Variasi Foto Produk</span>
+              </button>
+
+              <!-- Loading & Progress Box -->
+              <div id="sbProdVarsLoadingBox" class="sb-onesheet-loading-box hidden" style="margin-top: 12px;">
+                <div class="sb-loading-spinner-wrap">
+                  <div class="sb-spinner"></div>
+                  <div class="sb-loading-info">
+                    <span id="sbProdVarsLoadingText" class="text-xs font-semibold">Menyiapkan variasi foto produk...</span>
+                    <div class="sb-progress-bar-bg mt-1">
+                      <div id="sbProdVarsProgressBar" class="sb-progress-bar-fill" style="width: 15%; background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Results Grid & Manual Selection Area -->
+              <div id="sbProdVarsResultsArea" class="hidden" style="margin-top: 14px;">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-primary flex items-center gap-1.5" style="color: #38bdf8;">
+                    🏆 Hasil Variasi Foto Produk (Klik untuk Memilih Juara)
+                  </span>
+                  <span class="text-xs text-muted">Pilih yang terbaik untuk dipasang ke Storyboard</span>
+                </div>
+                <div id="sbProdVarsResultsGrid" class="sb-prodvars-grid">
+                  <!-- Dynamic variation cards will be injected here -->
+                </div>
+              </div>
+
+              <!-- Error Alert Area -->
+              <div id="sbProdVarsErrorAlert" class="status-alert alert-error hidden mt-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION E: Proyek Storyboard Tersimpan (History) -->
+        <section class="settings-card">
+          <div class="card-header card-header-flex">
+            <div class="card-header-title">
+              <svg class="card-icon text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+              </svg>
+              <h3>Proyek Storyboard Tersimpan</h3>
+            </div>
+            <button type="button" id="btnClearSbHistory" class="btn-sm btn-outline text-muted" title="Hapus Riwayat">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+            </button>
+          </div>
+          <div id="sbSavedProjectsContainer" class="sb-saved-list">
+            <div class="empty-state">Belum ada proyek storyboard tersimpan.</div>
+          </div>
+        </section>
+
+      </div>
+      <div id="storyboardCopilotResizer" class="storyboard-copilot-resizer hidden" role="separator" aria-label="Atur lebar Storyboard Copilot" tabindex="0"></div>
+      <aside id="storyboardCopilotPanel" class="storyboard-copilot-panel hidden" aria-label="Storyboard Copilot">
+        <div class="storyboard-copilot-header">
+          <div>
+            <span class="storyboard-copilot-kicker">STORYBOARD AI</span>
+            <h2>Storyboard Copilot</h2>
+            <p>Diskusikan alur dan scene kamu.</p>
+          </div>
+          <div class="storyboard-copilot-header-actions">
+            <button type="button" id="btnNewStoryboardCopilotSession" class="storyboard-copilot-icon-btn" title="Buat percakapan Copilot baru" aria-label="Buat percakapan Copilot baru">+</button>
+            <div class="storyboard-copilot-history-wrap">
+              <button type="button" id="btnStoryboardCopilotHistory" class="storyboard-copilot-icon-btn" title="Lihat riwayat Copilot" aria-label="Lihat riwayat Copilot" aria-expanded="false">
+                <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="storyboardCopilotHistoryPopover" class="storyboard-copilot-history-popover hidden">
+                <div class="storyboard-copilot-history-header">
+                  <span>Riwayat Copilot</span>
+                  <button type="button" id="btnHistoryNewStoryboardCopilotSession" class="chat-history-new-btn" title="Buat percakapan baru">+ Baru</button>
+                </div>
+                <div id="storyboardCopilotHistoryList" class="storyboard-copilot-history-list"></div>
+              </div>
+            </div>
+            <button type="button" id="btnCloseStoryboardCopilot" class="sheet-close-btn" title="Tutup Copilot">✕</button>
+          </div>
+        </div>
+        <div id="storyboardCopilotMessages" class="storyboard-copilot-messages"></div>
+        <form id="storyboardCopilotForm" class="storyboard-copilot-input-wrapper">
+          <button id="btnStoryboardCopilotScrollToBottom" class="chat-scroll-bottom-btn hidden" type="button" title="Scroll ke bawah" aria-label="Scroll ke paling bawah">
+            <svg class="chat-scroll-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+          </button>
+          <div class="storyboard-copilot-context" id="storyboardCopilotContext">Belum ada scene aktif</div>
+          <div id="storyboardCopilotVisualContext" class="storyboard-copilot-visual-context"></div>
+          <div class="storyboard-copilot-input-card">
+            <div id="storyboardCopilotAttachments" class="storyboard-copilot-attachments hidden"></div>
+            <textarea id="storyboardCopilotInput" class="chat-textarea" rows="2" placeholder="Diskusikan storyboard atau scene ini..."></textarea>
+            <div class="storyboard-copilot-input-actions">
+              <div class="input-controls-left">
+                <button type="button" id="btnStoryboardCopilotAddImage" class="storyboard-copilot-add-image" title="Tambah gambar dari Upload atau Library">+</button>
+                <input type="file" id="storyboardCopilotFileInput" accept="image/*" multiple class="sr-only">
+              </div>
+              <div class="input-controls-right">
+                <!-- Provider Select Dropdown (Weavy / Dola) for Storyboard Copilot -->
+                <div class="provider-select-wrapper" id="sbCopilotProviderDropdownWrapper">
+                  <button id="btnStoryboardCopilotProviderDropdown" type="button" class="provider-dropdown-btn" title="Pilih Provider AI (Weavy / Dola)">
+                    <img id="sbCopilotProviderActiveIcon" src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6829dad31872740b3fb4f912_favicon.svg" class="chat-provider-icon" alt="Provider" />
+                    <span id="sbCopilotProviderActiveName" class="chat-provider-name">Weavy</span>
+                    <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+
+                  <label for="storyboardCopilotProviderSelect" class="sr-only">Provider AI Storyboard</label>
+                  <select id="storyboardCopilotProviderSelect" class="chat-provider-select sr-only" title="Pilih Provider AI">
+                    <option value="weavy" selected>Weavy</option>
+                    <option value="dola">Dola</option>
+                    <option value="gemini">Gemini</option>
+                  </select>
+
+                  <div id="storyboardCopilotProviderPopover" class="provider-popover hidden">
+                    <div class="preset-popover-header">
+                      <div class="preset-header-title">
+                        <svg class="icon-sparkle-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="3"/>
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>PILIH PROVIDER AI</span>
+                      </div>
+                    </div>
+                    <div class="provider-popover-list">
+                      <button type="button" class="sb-copilot-provider-item-btn provider-item-btn active" data-provider-val="weavy">
+                        <div class="provider-item-left">
+                          <img src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6829dad31872740b3fb4f912_favicon.svg" class="provider-item-icon" alt="Weavy AI" />
+                          <div class="provider-item-info">
+                            <span class="provider-item-name">Weavy AI</span>
+                            <span class="provider-item-badge">CLOUD ENGINE</span>
+                          </div>
+                        </div>
+                        <svg class="provider-item-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </button>
+                      <button type="button" class="sb-copilot-provider-item-btn provider-item-btn" data-provider-val="dola">
+                        <div class="provider-item-left">
+                          <img src="https://sf-flow-web-cdn.ciciai.com/obj/ocean-flow-web-sg/dola_web/favicon-dola.png" class="provider-item-icon" alt="Dola AI" />
+                          <div class="provider-item-info">
+                            <span class="provider-item-name">Dola AI</span>
+                            <span class="provider-item-badge">BYTEDANCE</span>
+                          </div>
+                        </div>
+                        <svg class="provider-item-check hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </button>
+                      <button type="button" class="sb-copilot-provider-item-btn provider-item-btn" data-provider-val="gemini">
+                        <div class="provider-item-left">
+                          <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg" class="provider-item-icon" alt="Google Gemini" />
+                          <div class="provider-item-info">
+                            <span class="provider-item-name">Google Gemini</span>
+                            <span class="provider-item-badge">GOOGLE AI</span>
+                          </div>
+                        </div>
+                        <svg class="provider-item-check hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <label for="storyboardCopilotModelSelect" class="sr-only">Model AI Storyboard</label>
+                <select id="storyboardCopilotModelSelect" class="form-select chat-model-select">
+                  <optgroup label="Google">
+                    <option value="google/gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+                    <option value="google/gemini-3-pro">Gemini 3 Pro</option>
+                    <option value="google/gemini-3.1-pro">Gemini 3.1 Pro</option>
+                    <option value="google/gemini-3.6-flash">Gemini 3.6 Flash</option>
+                    <option value="google/gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+                    <option value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                  </optgroup>
+                  <optgroup label="Anthropic">
+                    <option value="anthropic/claude-sonnet-5">Claude Sonnet 5</option>
+                    <option value="anthropic/claude-opus-5">Claude Opus 5</option>
+                    <option value="anthropic/claude-opus-4-7">Claude Opus 4.7</option>
+                    <option value="anthropic/claude-opus-4-6">Claude Opus 4.6</option>
+                    <option value="anthropic/claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                    <option value="anthropic/claude-haiku-4-5">Claude Haiku 4.5</option>
+                  </optgroup>
+                  <optgroup label="OpenAI">
+                    <option value="openai/gpt-5.6-sol">GPT-5.6 Sol</option>
+                    <option value="openai/gpt-5.6-terra">GPT-5.6 Terra</option>
+                    <option value="openai/gpt-5.6-luna">GPT-5.6 Luna</option>
+                    <option value="openai/gpt-4o">GPT-4o</option>
+                    <option value="openai/gpt-4.1">GPT-4.1</option>
+                  </optgroup>
+                  <optgroup label="Meta">
+                    <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
+                    <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
+                  </optgroup>
+                </select>
+                <button type="submit" class="send-btn" title="Kirim Pesan">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="19" x2="12" y2="5"/>
+                    <polyline points="5 12 12 5 19 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </aside>
+    </main>
+
+    <!-- TAB CONTENT: LIBRARY -->
+    <main id="tabLibrary" class="tab-pane">
+      <div id="libraryContent" class="library-page-wrapper"></div>
+    </main>
+
+    <!-- SHARED IMAGE SOURCE PICKER -->
+    <div id="imageSourcePickerModal" class="image-source-picker-modal hidden">
+      <div class="image-source-picker-sheet">
+        <div class="image-source-picker-header">
+          <h2 id="imageSourcePickerTitle">Add Image</h2>
+          <button type="button" id="btnCloseImageSourcePicker" class="image-source-picker-close" title="Tutup">✕</button>
+        </div>
+        <div id="imageSourcePickerBody" class="image-source-picker-body"></div>
+      </div>
+    </div>
+
+    <!-- TAB CONTENT: SETTINGS & ACCOUNT MANAGER -->
+    <main id="tabSettings" class="tab-pane">
+      <div class="settings-page-wrapper">
+        <!-- 1. Top Settings Header -->
+        <div class="settings-top-header">
+          <div class="settings-header-text">
+            <h2 class="settings-main-title">Settings</h2>
+            <p class="settings-main-subtitle">Manage AI providers and accounts</p>
+          </div>
+        </div>
+
+        <!-- 2. Provider Banner Card -->
+        <div class="provider-banner-card">
+          <div class="provider-banner-left">
+            <div class="provider-banner-logo provider-banner-logo-weavy" id="providerBannerLogo" aria-label="Provider Logo">W</div>
+            <div class="provider-banner-meta">
+              <div class="provider-banner-title-wrap">
+                <span class="provider-banner-title" id="providerBannerTitle">Weavy Accounts</span>
+                <span class="provider-banner-badge" id="weavyAccountsBadgeCount">(0)</span>
+              </div>
+              <p class="provider-banner-desc" id="providerBannerDesc">Kelola akun Weavy, refresh token, dan alokasi kredit untuk pembuatan video.</p>
+            </div>
+          </div>
+          <div class="provider-banner-right">
+            <div class="provider-tab-pill active" id="pillProviderWeavy" title="Provider aktif Weavy" data-provider="weavy">
+              <span class="provider-pill-icon provider-pill-icon-weavy" aria-hidden="true">W</span>
+              <span class="provider-pill-name">Weavy</span>
+              <span class="provider-pill-badge" id="weavyPillCount">0</span>
+            </div>
+            <div class="provider-tab-pill" id="pillProviderFlow" title="Provider aktif Google Flow" data-provider="flow">
+              <span class="provider-pill-icon provider-pill-icon-flow" aria-hidden="true">F</span>
+              <span class="provider-pill-name">Flow</span>
+              <span class="provider-pill-badge" id="flowPillCount">0</span>
+            </div>
+            <div class="provider-tab-pill" id="pillProviderDola" title="Provider aktif Dola AI (ByteDance)" data-provider="dola">
+              <span class="provider-pill-icon provider-pill-icon-dola" aria-hidden="true">D</span>
+              <span class="provider-pill-name">Dola</span>
+              <span class="provider-pill-badge" id="dolaPillCount">0</span>
+            </div>
+            <div class="provider-tab-pill" id="pillProviderGemini" title="Provider aktif Google Gemini (gemini.google.com)" data-provider="gemini">
+              <span class="provider-pill-icon provider-pill-icon-gemini" aria-hidden="true">G</span>
+              <span class="provider-pill-name">Gemini</span>
+              <span class="provider-pill-badge" id="geminiPillCount">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Bento 3-Stat Metric Cards -->
+        <div class="stats-bento-grid">
+          <!-- Total Akun -->
+          <div class="stat-bento-card">
+            <div class="stat-bento-content">
+              <span class="stat-bento-label">TOTAL AKUN</span>
+              <div class="stat-bento-value"><span id="statTotalAccounts">0</span> Akun</div>
+            </div>
+            <div class="stat-bento-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Akun Aktif Saat Ini -->
+          <div class="stat-bento-card">
+            <div class="stat-bento-content">
+              <span class="stat-bento-label">AKUN AKTIF SAAT INI</span>
+              <div class="stat-bento-value active-name truncate" id="statActiveAccountEmail" title="Belum Ada Akun">Belum Ada Akun</div>
+            </div>
+            <div class="stat-bento-icon-box icon-box-active">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Total Kuota Kredit -->
+          <div class="stat-bento-card">
+            <div class="stat-bento-content">
+              <span class="stat-bento-label">TOTAL KUOTA KREDIT</span>
+              <div class="stat-bento-value credit-val"><span id="statTotalCredits">0</span> Credits</div>
+            </div>
+            <div class="stat-bento-icon-box icon-box-credits">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Collapsible Accordion: Cara Ambil Refresh Token -->
+        <div class="token-guide-accordion">
+          <button type="button" class="accordion-header" id="btnToggleTokenGuide">
+            <div class="accordion-header-left">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+              <span class="accordion-title">Cara Ambil Refresh Token</span>
+            </div>
+            <svg class="accordion-chevron" id="accordionGuideChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div class="accordion-body hidden" id="tokenGuideContent">
+            <p class="guide-intro">Gunakan script otomatis di bawah ini untuk mengekstrak Refresh Token & Cookie akun Weavy kamu secara instan tanpa perlu mencari manual di DevTools:</p>
+            
+            <ol class="guide-steps-list">
+              <li>Buka tab <strong><a href="https://app.weavy.ai" target="_blank" rel="noreferrer" class="guide-link">https://app.weavy.ai</a></strong> di browser dan pastikan sudah login.</li>
+              <li>Buka Developer Tools (Tekan <strong>F12</strong> atau <strong>Ctrl+Shift+I</strong>) &rarr; pilih tab <strong>Console</strong>.</li>
+              <li>Klik tombol <strong>"Salin Script"</strong> di bawah, paste ke Console Weavy, lalu tekan <strong>Enter</strong>.</li>
+              <li>Token & Cookie akan otomatis disalin ke clipboard! Kembali ke sini, klik <strong>+ Add Account</strong> lalu tempelkan.</li>
+            </ol>
+
+            <div class="code-snippet-box">
+              <div class="code-snippet-header">
+                <span class="code-snippet-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
+                  Console Script (Auto Extract Token)
+                </span>
+                <button type="button" id="btnCopyTokenScript" class="btn-copy-code" title="Salin script ke clipboard">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span id="copyTokenScriptText">Salin Script</span>
+                </button>
+              </div>
+              <pre class="code-snippet-pre"><code id="tokenExtractScriptCode" class="code-snippet-code">(async function(){
+  try {
+    if (!location.host.includes("weavy.ai")) {
+      alert("⚠️ Buka app.weavy.ai dulu di tab ini!");
+      return;
+    }
+    var getReq = function(req) {
+      return new Promise(function(res, rej) {
+        req.onsuccess = function() { res(req.result); };
+        req.onerror = function() { rej(req.error); };
+      });
+    };
+    var db = await getReq(indexedDB.open("firebaseLocalStorageDb"));
+    var store = db.transaction("firebaseLocalStorage", "readonly").objectStore("firebaseLocalStorage");
+    var items = await getReq(store.getAll());
+    db.close();
+    var target = null;
+    for (var i = 0; i &lt; items.length; i++) {
+      var val = (items[i] && items[i].value) ? items[i].value : items[i];
+      if (val && val.stsTokenManager && val.stsTokenManager.refreshToken) {
+        target = val;
+        break;
+      }
+    }
+    if (!target) {
+      alert("⚠️ Refresh Token tidak ditemukan. Pastikan Anda sudah login di app.weavy.ai");
+      return;
+    }
+    var payload = {
+      refreshToken: target.stsTokenManager.refreshToken,
+      email: target.email || "",
+      cookie: document.cookie || ""
+    };
+    var str = JSON.stringify(payload);
+    try {
+      await navigator.clipboard.writeText(str);
+      alert("✅ BERHASIL DISALIN!\n\nData Token & Cookie akun " + (payload.email || "Weavy") + " sudah disalin ke Clipboard.\n\nSilakan buka Ekstensi lalu tempelkan ke kolom Refresh Token!");
+    } catch(errCopy) {
+      prompt("Salin data JSON berikut:", str);
+    }
+  } catch(e) {
+    alert("❌ Error: " + e.message);
+  }
+})();</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Status Alert Banner for Settings Page -->
+        <div id="settingsPageAlert" class="status-alert hidden" style="margin-bottom: 12px;"></div>
+
+        <!-- 6. Search & Action Bar -->
+        <div class="accounts-action-toolbar">
+          <div class="search-account-wrap">
+            <svg class="search-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="inputSearchAccount" class="search-account-input" placeholder="Cari akun berdasarkan email...">
+            <button type="button" id="btnClearAccountSearch" class="btn-clear-search hidden">&times;</button>
+          </div>
+
+          <div class="toolbar-actions-right">
+            <button type="button" id="btnAutoImportActiveAccount" class="btn-toolbar btn-auto-detect" title="Ambil otomatis sesi login dari tab app.weavy.ai yang aktif">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>⚡ Auto-Import Akun Aktif</span>
+            </button>
+
+            <button type="button" id="btnExportAccounts" class="btn-toolbar" title="Export Cadangan Akun (JSON / Antar Browser)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>📥 Export</span>
+            </button>
+
+            <button type="button" id="btnImportAccounts" class="btn-toolbar" title="Import Data Akun dari File JSON / Backup Browser Lain">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>📤 Import</span>
+            </button>
+
+            <button type="button" id="btnToggleBatchSelect" class="btn-toolbar btn-batch-select" title="Pilih Banyak Akun">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span id="batchSelectBtnText">Pilih Banyak</span>
+            </button>
+
+            <button type="button" id="btnSyncAllAccounts" class="btn-toolbar btn-sync-all" title="Sinkronkan Saldo & Token Semua Akun">
+              <svg class="sync-spin-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span id="syncAllBtnLabel">Sync ALL (0)</span>
+            </button>
+
+            <button type="button" id="btnOpenAddAccountModal" class="btn-toolbar btn-add-acc-primary" title="Tambah Akun Manual">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Manual</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Batch Action Bar (Active when Pilih Banyak is ON) -->
+        <div id="batchActionBar" class="batch-action-bar hidden">
+          <div class="batch-action-left">
+            <label class="batch-select-all-label">
+              <input type="checkbox" id="chkSelectAllAccounts">
+              <span>Pilih Semua (<span id="batchSelectedCount">0</span>)</span>
+            </label>
+          </div>
+          <div class="batch-action-right">
+            <button type="button" id="btnBatchExportSelected" class="btn-sm btn-outline">
+              📥 Export Terpilih
+            </button>
+            <button type="button" id="btnBatchSyncSelected" class="btn-sm btn-outline">
+              ↻ Sync Terpilih
+            </button>
+            <button type="button" id="btnBatchDeleteSelected" class="btn-sm btn-outline text-error">
+              🗑 Hapus Terpilih
+            </button>
+            <button type="button" id="btnBatchCancel" class="btn-sm btn-ghost">
+              Batal
+            </button>
+          </div>
+        </div>
+
+        <!-- 6. Saved Accounts List Container -->
+        <div id="accountsListContainer" class="accounts-list-modern">
+          <div class="empty-state">Belum ada akun Weavy yang ditambahkan.</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODAL POPUP: ADD WEAVY ACCOUNT -->
+    <div id="addAccountModal" class="gen-modal-backdrop hidden">
+      <div class="gen-modal-overlay" id="addAccountOverlay"></div>
+      <div class="add-account-dialog">
+        <div class="dialog-header">
+          <div class="dialog-header-title">
+            <span class="provider-pill-icon provider-pill-icon-dola" style="width: 24px; height: 24px; font-size: 13px; font-weight: bold;">+</span>
+            <h3 id="addAccountDialogTitle">Tambah Akun AI Secara Manual</h3>
+          </div>
+          <button type="button" id="btnCloseAddAccountModal" class="sheet-close-btn" title="Tutup">✕</button>
+        </div>
+        <div class="dialog-body">
+          <p class="dialog-desc">
+            Tempelkan data akun berupa <strong>Salinan JSON Akun</strong>, <strong>JSON Bookmarklet</strong>, <strong>cURL Command</strong>, atau <strong>Cookie Sesi</strong> (Weavy, Google Flow, atau Dola AI). Sistem akan mendeteksi token, sessionid, nama profil, dan kredensial secara otomatis.
+          </p>
+
+          <div class="form-group">
+            <label for="inputRefreshToken">Data Akun / Salinan JSON / Cookie Sesi</label>
+            <textarea 
+              id="inputRefreshToken" 
+              class="form-textarea" 
+              rows="5" 
+              placeholder="Tempelkan hasil Salin Akun (JSON), cURL Dola/Weavy, Cookie Sesi (sessionid / sid_tt), atau Bookmarklet di sini..."
+            ></textarea>
+          </div>
+
+          <button id="btnAddAccount" class="btn-primary btn-block">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>Verifikasi & Simpan Akun</span>
+          </button>
+
+          <div id="authStatusAlert" class="status-alert hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL POPUP: CONFIRM DELETE ACCOUNT -->
+    <div id="deleteAccountConfirmModal" class="gen-modal-backdrop hidden">
+      <div class="gen-modal-overlay" id="deleteAccountOverlay"></div>
+      <div class="add-account-dialog" style="max-width: 400px;">
+        <div class="dialog-header">
+          <div class="dialog-header-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <h3 style="color: #e74c3c;">Konfirmasi Hapus Akun</h3>
+          </div>
+          <button type="button" id="btnCloseDeleteAccountModal" class="sheet-close-btn" title="Tutup">✕</button>
+        </div>
+        <div class="dialog-body">
+          <p class="dialog-desc" id="deleteAccountModalMessage" style="font-size: 14px; margin-bottom: 20px; line-height: 1.5;">
+            Apakah Anda yakin ingin menghapus akun ini dari daftar?
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" id="btnCancelDeleteAccount" class="btn-sm btn-outline">Batal</button>
+            <button type="button" id="btnConfirmDeleteAccountAction" class="btn-sm" style="background: #e74c3c; color: #fff; font-weight: 600; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+              Hapus Akun
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL POPUP: IMPORT WEAVY ACCOUNTS (JSON / FILE) -->
+    <div id="importAccountsModal" class="gen-modal-backdrop hidden">
+      <div class="gen-modal-overlay" id="importAccountsOverlay"></div>
+      <div class="add-account-dialog">
+        <div class="dialog-header">
+          <div class="dialog-header-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <h3>Import Data Akun (JSON / TXT)</h3>
+          </div>
+          <button type="button" id="btnCloseImportAccountsModal" class="sheet-close-btn" title="Tutup">✕</button>
+        </div>
+        <div class="dialog-body">
+          <p class="dialog-desc">
+            Import data akun Weavy dari file <code>.json</code> atau <code>.txt</code>. Mendukung format JSON, blok teks (<code>Email: ... Refresh Token: ...</code>), maupun format baris (<code>email|refreshToken</code>). Email akan otomatis terdeteksi dan dipertahankan.
+          </p>
+
+          <!-- File Upload Option -->
+          <div class="form-group">
+            <label for="inputFileImportAccounts">Upload File (.json atau .txt)</label>
+            <input type="file" id="inputFileImportAccounts" accept=".json,.txt,application/json,text/plain" class="form-input" style="padding: 6px 10px; cursor: pointer;">
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0;">
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            <span style="font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Atau Tempel JSON / TXT</span>
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="inputImportAccountsText">Teks Data Akun</label>
+            <textarea 
+              id="inputImportAccountsText" 
+              class="form-textarea" 
+              rows="6" 
+              placeholder="Tempel data akun di sini... Contoh:
+Email: user@gmail.com
+Refresh Token: AMf-vBy...
+
+Atau format: user@gmail.com|AMf-vBy...
+Atau file JSON akun"
+            ></textarea>
+          </div>
+
+          <div id="importProgressPanel" class="import-progress-panel hidden" aria-live="polite">
+            <div class="import-progress-summary">
+              <span id="importTotalLabel">Total akun: 0</span>
+              <strong id="importProgressLabel">Proses: 0/0</strong>
+            </div>
+            <div class="import-progress-track" role="progressbar" aria-label="Progress import akun" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+              <div id="importProgressFill" class="import-progress-fill"></div>
+            </div>
+          </div>
+
+          <button type="button" id="btnExecuteImportAccounts" class="btn-primary btn-block">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>Proses & Simpan Akun</span>
+          </button>
+
+          <div id="importStatusAlert" class="status-alert hidden"></div>
+        </div>
+      </div>
+    </div>
+    </div> <!-- app-main-content -->
+  </div> <!-- app-container -->
+
+  <!-- LIGHTBOX MODAL (PREVIEW GAMBAR & VIDEO HD) -->
+  <div id="mediaLightboxModal" class="lightbox-modal hidden">
+    <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+    <div class="lightbox-container">
+      <div class="lightbox-header">
+        <div class="lightbox-badges">
+          <span id="lightboxTitle" class="lightbox-title">Pratinjau Media HD</span>
+          <span class="lightbox-tag" id="lightboxTypeTag">IMAGE</span>
+          <span class="lightbox-tag-secondary" id="lightboxModelTag">Weavy AI</span>
+          <span class="lightbox-tag-secondary" id="lightboxAspectTag">9:16</span>
+        </div>
+        <div class="lightbox-actions">
+          <button type="button" id="lightboxDownloadBtn" class="btn-sm btn-primary no-underline" title="Unduh Resolusi Asli">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="no-underline">Unduh</span>
+          </button>
+          <button id="lightboxCloseBtn" type="button" class="lightbox-close-btn" title="Tutup Pratinjau">&times;</button>
+        </div>
+      </div>
+      <div class="lightbox-body">
+        <img id="lightboxImg" src="" alt="Zoom Preview" class="lightbox-content hidden">
+        <video id="lightboxVideo" src="" controls playsinline autoplay loop class="lightbox-content hidden"></video>
+      </div>
+      <div class="lightbox-footer" id="lightboxFooter">
+        <div class="lightbox-prompt-container" id="lightboxPromptWrap">
+          <div class="lightbox-prompt-text" id="lightboxPromptText"></div>
+        </div>
+        <div class="lightbox-actions-row">
+          <button type="button" id="btnLightboxCopyPrompt" class="btn-sm btn-outline no-underline">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+            <span>Salin Prompt</span>
+          </button>
+          <button type="button" id="btnLightboxReuse" class="btn-sm btn-outline no-underline">
+            <span>↻ Gunakan Ulang Prompt</span>
+          </button>
+          <button type="button" id="btnLightboxDownloadBottom" class="btn-sm btn-primary no-underline">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Unduh Resolusi Asli</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL / SHEET (WIREFRAME 1 SPEC) -->
+  <div id="genSettingsModal" class="gen-modal-backdrop hidden">
+    <div class="gen-modal-overlay" id="genSettingsOverlay"></div>
+    <div class="gen-settings-sheet">
+      
+      <!-- Sheet Header -->
+      <div class="sheet-header">
+        <h2 class="sheet-title">Settings</h2>
+        <button type="button" id="btnCloseGenSettings" class="sheet-close-btn" title="Tutup Pengaturan">✕</button>
+      </div>
+
+      <div class="sheet-body">
+        <!-- Mode Switcher (Wireframe 1) -->
+        <div class="sheet-mode-row">
+          <span class="sheet-mode-label">Mode</span>
+          <div class="mode-segmented-control">
+            <button type="button" class="mode-btn" data-mode="video" id="btnModeVideo">Video</button>
+            <button type="button" class="mode-btn active" data-mode="image" id="btnModeImage">Image</button>
+          </div>
+        </div>
+
+        <!-- Settings Options List (Wireframe 1) -->
+        <div class="sheet-options-list">
+          
+          <!-- Provider Row -->
+          <div class="sheet-option-row" id="rowSelectProvider" role="button" tabindex="0">
+            <div class="option-row-left">
+              <svg class="option-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              <span class="option-row-title">Provider</span>
+            </div>
+            <div class="option-row-right">
+              <img id="valProviderLogo" src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6829dad31872740b3fb4f912_favicon.svg" class="weavy-logo-icon provider-val-icon" alt="Provider Logo">
+              <span class="option-val-text" id="valProvider">Weavy</span>
+              <span class="option-chevron">&gt;</span>
+            </div>
+          </div>
+
+          <!-- Model Tier Row (Dola AI Fast / Pro Segmented Control) -->
+          <div class="sheet-option-row sheet-tier-row hidden" id="rowSelectTier">
+            <div class="option-row-left">
+              <svg class="option-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              <span class="option-row-title">Tier / Mode</span>
+            </div>
+            <div class="option-row-right" style="gap: 4px;">
+              <div class="tier-segmented-control" id="tierSegmentedControl">
+                <button type="button" class="tier-btn active" data-tier="fast" id="btnTierFast" title="Fast Mode (Default & responsif)">⚡ Fast</button>
+                <button type="button" class="tier-btn" data-tier="pro" id="btnTierPro" title="Pro Mode (Kualitas HD & detail tinggi)">💎 Pro</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Model Row -->
+          <div class="sheet-option-row" id="rowSelectModel" role="button" tabindex="0">
+            <div class="option-row-left">
+              <svg class="option-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+              <span class="option-row-title">Model</span>
+            </div>
+            <div class="option-row-right">
+              <span class="model-emoji-icon" id="valModelEmoji"><img src="https://devicons.io/devicons/icons/nanobanana.svg" class="model-val-icon" alt="Nano Banana Pro" /></span>
+              <span class="option-val-text" id="valModelName">Nano Banana Pro</span>
+              <span class="option-chevron">&gt;</span>
+            </div>
+          </div>
+
+          <!-- Aspect Ratio Row -->
+          <div class="sheet-option-row" id="rowSelectAspect" role="button" tabindex="0">
+            <div class="option-row-left">
+              <svg class="option-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              <span class="option-row-title">Aspect Ratio</span>
+            </div>
+            <div class="option-row-right">
+              <span class="option-val-text" id="valAspect">9:16 (Vertical)</span>
+              <span class="option-chevron">&gt;</span>
+            </div>
+          </div>
+
+          <!-- Resolution Row -->
+          <div class="sheet-option-row" id="rowSelectResolution" role="button" tabindex="0">
+            <div class="option-row-left">
+              <svg class="option-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+                <polyline points="17 2 12 7 7 2"/>
+              </svg>
+              <span class="option-row-title">Resolution</span>
+            </div>
+            <div class="option-row-right">
+              <span class="option-val-text" id="valResolution">1024 x 1024</span>
+              <span class="option-chevron">&gt;</span>
+            </div>
+          </div>
+
+          <!-- Video Duration Row -->
+          <div class="sheet-option-row hidden" id="rowSelectDuration" role="button" tabindex="0">
+            <div class="option-row-left">
+              <svg class="option-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"/>
+                <polyline points="12 7 12 12 15 14"/>
+              </svg>
+              <span class="option-row-title">Video Duration</span>
+            </div>
+            <div class="option-row-right">
+              <span class="option-val-text" id="valVideoDuration">10s</span>
+              <span class="option-chevron">&gt;</span>
+            </div>
+          </div>
+
+          <!-- Video Type Row -->
+          <div class="sheet-option-row hidden" id="rowSelectVideoType" role="button" tabindex="0">
+            <div class="option-row-left">
+              <span class="option-row-title">Video Type</span>
+            </div>
+            <div class="option-row-right">
+              <span class="option-val-text" id="valVideoType">Ingredients</span>
+              <span class="option-chevron">&gt;</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SUB-PICKER MODAL: PROVIDER SELECTOR -->
+  <div id="pickerProviderModal" class="gen-subpicker-backdrop hidden">
+    <div class="gen-subpicker-sheet">
+      <div class="subpicker-header">
+        <h3 class="subpicker-title">Pilih AI Provider</h3>
+        <button type="button" id="btnCloseProviderPicker" class="sheet-close-btn">✕</button>
+      </div>
+      <div class="subpicker-body" id="pickerProviderList">
+        <button type="button" class="provider-option subpicker-item" data-provider="flow">
+          <div class="subpicker-item-main-row">
+            <div class="subpicker-model-title-wrap">
+              <img src="https://labs.google/favicon.ico" class="subpicker-model-icon" alt="Flow" />
+              <span class="subpicker-item-main">Google Flow</span>
+            </div>
+            <span class="subpicker-item-badge">GOOGLE LABS</span>
+          </div>
+          <span class="subpicker-item-sub">Model video Veo 2 / Omni 1.1 &amp; Imagen 3 Text-to-Image (0 Koin)</span>
+        </button>
+
+        <button type="button" class="provider-option subpicker-item" data-provider="dola">
+          <div class="subpicker-item-main-row">
+            <div class="subpicker-model-title-wrap">
+              <img src="https://sf-flow-web-cdn.ciciai.com/obj/ocean-flow-web-sg/dola_web/favicon-dola.png" class="subpicker-model-icon" alt="Dola AI" />
+              <span class="subpicker-item-main">Dola AI</span>
+            </div>
+            <span class="subpicker-item-badge">BYTEDANCE</span>
+          </div>
+          <span class="subpicker-item-sub">Model video SeaDance 2.5 (1080p Unwatermarked) &amp; Doubao Image (1-2 Koin)</span>
+        </button>
+
+        <button type="button" class="provider-option subpicker-item" data-provider="gemini">
+          <div class="subpicker-item-main-row">
+            <div class="subpicker-model-title-wrap">
+              <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg" class="subpicker-model-icon" alt="Gemini" />
+              <span class="subpicker-item-main">Google Gemini</span>
+            </div>
+            <span class="subpicker-item-badge">GOOGLE DEEPMIND</span>
+          </div>
+          <span class="subpicker-item-sub">Model multimodal canggih Gemini 2.5 / 1.5 Pro &amp; Flash dengan akses Web Chat &amp; File Upload</span>
+        </button>
+
+        <button type="button" class="provider-option subpicker-item" data-provider="weavy">
+          <div class="subpicker-item-main-row">
+            <div class="subpicker-model-title-wrap">
+              <img src="https://cdn.prod.website-files.com/681b040781d5b5e278a69989/6829dad31872740b3fb4f912_favicon.svg" class="subpicker-model-icon" alt="Weavy" />
+              <span class="subpicker-item-main">Weavy AI</span>
+            </div>
+            <span class="subpicker-item-badge">CLOUD ENGINE</span>
+          </div>
+          <span class="subpicker-item-sub">Cloud Image generation multi-model, prompt enhancer &amp; direct download</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUB-PICKER MODAL: MODEL SELECTOR -->
+  <div id="pickerModelModal" class="gen-subpicker-backdrop hidden">
+    <div class="gen-subpicker-sheet">
+      <div class="subpicker-header">
+        <h3 class="subpicker-title" id="pickerModelHeaderTitle">Pilih Model AI</h3>
+        <button type="button" id="btnCloseModelPicker" class="sheet-close-btn">✕</button>
+      </div>
+      <div class="subpicker-body" id="pickerModelList">
+        <!-- Dynamically rendered list of models (Image / Video) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SUB-PICKER MODAL: ASPECT RATIO SELECTOR -->
+  <div id="pickerAspectModal" class="gen-subpicker-backdrop hidden">
+    <div class="gen-subpicker-sheet">
+      <div class="subpicker-header">
+        <h3 class="subpicker-title">Pilih Aspek Rasio</h3>
+        <button type="button" id="btnCloseAspectPicker" class="sheet-close-btn">✕</button>
+      </div>
+      <div class="subpicker-body" id="pickerAspectList">
+        <button type="button" class="subpicker-item" data-aspect="9:16">
+          <span class="subpicker-item-main">9:16 (Vertical)</span>
+          <span class="subpicker-item-sub">TikTok, Reels, Shorts & Story</span>
+        </button>
+        <button type="button" class="subpicker-item" data-aspect="16:9">
+          <span class="subpicker-item-main">16:9 (Landscape)</span>
+          <span class="subpicker-item-sub">YouTube, TV & Layar Lebar</span>
+        </button>
+        <button type="button" class="subpicker-item" data-aspect="1:1">
+          <span class="subpicker-item-main">1:1 (Square)</span>
+          <span class="subpicker-item-sub">Instagram Post / Feed & Profil</span>
+        </button>
+        <button type="button" class="subpicker-item" data-aspect="4:3">
+          <span class="subpicker-item-main">4:3 (Standard Photo)</span>
+          <span class="subpicker-item-sub">Katalog & Web Banner Klasik</span>
+        </button>
+        <button type="button" class="subpicker-item" data-aspect="3:4">
+          <span class="subpicker-item-main">3:4 (Portrait Photo)</span>
+          <span class="subpicker-item-sub">Foto Potret & Lookbook Fashion</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUB-PICKER MODAL: RESOLUTION SELECTOR -->
+  <div id="pickerResolutionModal" class="gen-subpicker-backdrop hidden">
+    <div class="gen-subpicker-sheet">
+      <div class="subpicker-header">
+        <h3 class="subpicker-title">Pilih Resolusi Output</h3>
+        <button type="button" id="btnCloseResolutionPicker" class="sheet-close-btn">✕</button>
+      </div>
+      <div class="subpicker-body" id="pickerResolutionList">
+        <button type="button" class="subpicker-item" data-mode="image" data-res="1024x1024">
+          <span class="subpicker-item-main">1024 x 1024</span>
+          <span class="subpicker-item-sub">Canvas square untuk image generation</span>
+        </button>
+        <button type="button" class="subpicker-item" data-mode="image" data-res="1K">
+          <span class="subpicker-item-main">1K Standard</span>
+          <span class="subpicker-item-sub">Preset Flow untuk output jernih dan cepat</span>
+        </button>
+        <button type="button" class="subpicker-item" data-mode="image" data-res="2K">
+          <span class="subpicker-item-main">2K Ultra HD</span>
+          <span class="subpicker-item-sub">Detail Tajam untuk Cetak & Display</span>
+        </button>
+        <button type="button" class="subpicker-item" data-mode="image" data-res="4K">
+          <span class="subpicker-item-main">4K Master Quality</span>
+          <span class="subpicker-item-sub">Resolusi Tertinggi Maksimal</span>
+        </button>
+        <button type="button" class="subpicker-item hidden" data-mode="video" data-res="1080p">
+          <div class="subpicker-item-main-row">
+            <span class="subpicker-item-main">1080p Full HD Video</span>
+            <span class="subpicker-item-badge">REKOMENDASI</span>
+          </div>
+          <span class="subpicker-item-sub">Kualitas visual maksimal ByteDance SeaDance &amp; Google Veo</span>
+        </button>
+        <button type="button" class="subpicker-item hidden" data-mode="video" data-res="720p">
+          <div class="subpicker-item-main-row">
+            <span class="subpicker-item-main">720p HD Video</span>
+            <span class="subpicker-item-badge">STANDAR</span>
+          </div>
+          <span class="subpicker-item-sub">Kualitas video jernih dengan proses render seimbang</span>
+        </button>
+        <button type="button" class="subpicker-item hidden" data-mode="video" data-res="360p">
+          <span class="subpicker-item-main">360p Fast Video</span>
+          <span class="subpicker-item-sub">Render lebih cepat untuk preview awal</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUB-PICKER MODAL: VIDEO DURATION SELECTOR -->
+  <div id="pickerDurationModal" class="gen-subpicker-backdrop hidden">
+    <div class="gen-subpicker-sheet">
+      <div class="subpicker-header">
+        <h3 class="subpicker-title">Pilih Durasi Video</h3>
+        <button type="button" id="btnCloseDurationPicker" class="sheet-close-btn">✕</button>
+      </div>
+      <div class="subpicker-body" id="pickerDurationList">
+        <button type="button" class="subpicker-item" data-duration="5s">
+          <div class="subpicker-item-main-row">
+            <span class="subpicker-item-main">5 detik (Fast)</span>
+            <span class="subpicker-item-badge">1 KOIN DOLA</span>
+          </div>
+          <span class="subpicker-item-sub">Durasi cepat hemat credit SeaDance</span>
+        </button>
+        <button type="button" class="subpicker-item" data-duration="10s">
+          <div class="subpicker-item-main-row">
+            <span class="subpicker-item-main">10 detik (Full Story)</span>
+            <span class="subpicker-item-badge">2 KOIN DOLA / FLOW</span>
+          </div>
+          <span class="subpicker-item-sub">Durasi maksimal untuk scene lengkap</span>
+        </button>
+        <button type="button" class="subpicker-item" data-duration="4s">
+          <span class="subpicker-item-main">4 detik (Google Flow)</span>
+          <span class="subpicker-item-sub">Render ultra-cepat Flow</span>
+        </button>
+        <button type="button" class="subpicker-item" data-duration="6s">
+          <span class="subpicker-item-main">6 detik (Google Flow)</span>
+          <span class="subpicker-item-sub">Durasi pendek Flow</span>
+        </button>
+        <button type="button" class="subpicker-item" data-duration="8s">
+          <span class="subpicker-item-main">8 detik (Google Flow)</span>
+          <span class="subpicker-item-sub">Durasi menengah Flow</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUB-PICKER MODAL: VIDEO TYPE SELECTOR -->
+  <div id="pickerVideoTypeModal" class="gen-subpicker-backdrop hidden">
+    <div class="gen-subpicker-sheet">
+      <div class="subpicker-header">
+        <h3 class="subpicker-title">Pilih Video Type</h3>
+        <button type="button" id="btnCloseVideoTypePicker" class="sheet-close-btn">✕</button>
+      </div>
+      <div class="subpicker-body" id="pickerVideoTypeList">
+        <button type="button" class="subpicker-item" data-video-type="Ingredients">
+          <span class="subpicker-item-main">Ingredients</span>
+          <span class="subpicker-item-sub">Gunakan gambar referensi sebagai bahan video</span>
+        </button>
+        <button type="button" class="subpicker-item" data-video-type="Frames">
+          <span class="subpicker-item-main">Frames</span>
+          <span class="subpicker-item-sub">Gunakan frame awal dan akhir</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALL RECENT GENERATIONS MODAL (VIEW ALL) -->
+  <div id="allRecentGenerationsModal" class="gen-modal-backdrop hidden">
+    <div class="gen-all-history-sheet">
+      <div class="sheet-header">
+        <h2 class="sheet-title">Riwayat Hasil Generasi</h2>
+        <div class="sheet-header-actions">
+          <button type="button" id="btnClearAllHistory" class="btn-sm btn-outline text-error" title="Hapus Semua Riwayat">Hapus Semua</button>
+          <button type="button" id="btnCloseAllHistory" class="sheet-close-btn" title="Tutup">✕</button>
+        </div>
+      </div>
+      <div class="sheet-body">
+        <div id="allHistoryGrid" class="recent-gen-grid all-history-grid">
+          <!-- All history items -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STORYBOARD COPILOT MODALS (GLOBAL TOP-LEVEL) -->
+  <div id="storyboardCreateProjectModal" class="storyboard-generate-confirm-modal hidden">
+    <div class="storyboard-generate-confirm-backdrop" id="storyboardCreateProjectBackdrop"></div>
+    <section class="storyboard-generate-confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="storyboardCreateProjectTitle">
+      <div class="storyboard-generate-confirm-header">
+        <div>
+          <span class="storyboard-copilot-kicker">COPILOT REQUEST</span>
+          <h2 id="storyboardCreateProjectTitle">Buat Storyboard Baru</h2>
+        </div>
+        <button type="button" id="btnCloseStoryboardCreateProject" class="sheet-close-btn" title="Tutup">✕</button>
+      </div>
+      <div class="storyboard-generate-confirm-body">
+        <p id="storyboardCreateProjectReason" class="storyboard-generate-confirm-reason"></p>
+        <div id="storyboardCreateProjectSummary" class="storyboard-create-project-summary"></div>
+        <div id="storyboardCreateProjectReferences" class="storyboard-create-project-references"></div>
+      </div>
+      <div class="storyboard-generate-confirm-actions">
+        <button type="button" id="btnCancelStoryboardCreateProject" class="btn-sm btn-outline">Batal</button>
+        <button type="button" id="btnApproveStoryboardCreateProject" class="btn-primary">
+          <span>Buat & Terapkan Storyboard</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div id="storyboardGenerateConfirmModal" class="storyboard-generate-confirm-modal hidden">
+    <div class="storyboard-generate-confirm-backdrop" id="storyboardGenerateConfirmBackdrop"></div>
+    <section class="storyboard-generate-confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="storyboardGenerateConfirmTitle">
+      <div class="storyboard-generate-confirm-header">
+        <div>
+          <span class="storyboard-copilot-kicker">COPILOT REQUEST</span>
+          <h2 id="storyboardGenerateConfirmTitle">Konfirmasi Generate Scene</h2>
+        </div>
+        <button type="button" id="btnCloseStoryboardGenerateConfirm" class="sheet-close-btn" title="Tutup">✕</button>
+      </div>
+      <div class="storyboard-generate-confirm-body">
+        <p id="storyboardGenerateConfirmReason" class="storyboard-generate-confirm-reason"></p>
+        <div class="storyboard-generate-confirm-meta">
+          <span id="storyboardGenerateConfirmScene"></span>
+          <span id="storyboardGenerateConfirmReferences"></span>
+        </div>
+        <label for="storyboardGenerateModelSelect">Model AI untuk generate</label>
+        <select id="storyboardGenerateModelSelect" class="form-select"></select>
+        <div id="storyboardGenerateModelDescription" class="storyboard-generate-model-description"></div>
+      </div>
+      <div class="storyboard-generate-confirm-actions">
+        <button type="button" id="btnCancelStoryboardGenerate" class="btn-sm btn-outline">Batal</button>
+        <button type="button" id="btnApproveStoryboardGenerate" class="btn-primary">
+          <span>Generate Scene</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div id="storyboardDeleteConfirmModal" class="storyboard-delete-confirm-modal hidden">
+    <div class="storyboard-delete-confirm-backdrop" data-delete-confirm-cancel></div>
+    <section class="storyboard-delete-confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="storyboardDeleteConfirmTitle">
+      <div class="storyboard-delete-confirm-icon" aria-hidden="true">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </div>
+      <div class="storyboard-delete-confirm-content">
+        <span class="storyboard-copilot-kicker">HAPUS PROJECT</span>
+        <h2 id="storyboardDeleteConfirmTitle">Hapus storyboard ini?</h2>
+        <p>Project <strong id="storyboardDeleteConfirmName"></strong> akan dihapus dari daftar tersimpan.</p>
+      </div>
+      <div class="storyboard-delete-confirm-actions">
+        <button type="button" id="btnCancelStoryboardDelete" class="btn-sm btn-outline">Batal</button>
+        <button type="button" id="btnApproveStoryboardDelete" class="btn-sm btn-danger">Hapus Project</button>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>

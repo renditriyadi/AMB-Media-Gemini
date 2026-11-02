@@ -1,0 +1,1116 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   THEME DESIGN TOKENS ARCHITECTURE (SEPARATED LIGHT & DARK MODE)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. LIGHT MODE THEME TOKENS (Default / Cream Studio Aesthetic)
+   -------------------------------------------------------------------------- */
+:root {
+  --bg-app: #E2DFD8;
+  --bg-sidebar: #ECE9E3;
+  --bg-header: rgba(236, 233, 227, 0.95);
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #F8F7F4;
+  --bg-surface-secondary: #EBE8E1;
+  --border-subtle: #D8D4CC;
+  --border-strong: #C4C0B6;
+  --border-focus: #F59E0B;
+  
+  --text-primary: #1C1917;
+  --text-secondary: #57534E;
+  --text-muted: #78716C;
+  --text-dim: #A8A29E;
+
+  --accent-primary: #D97706;
+  --accent-hover: #B45309;
+  --accent-surface: #FEF3C7;
+  --accent-glow: rgba(217, 119, 6, 0.15);
+
+  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   2. DARK MODE THEME TOKENS (Obsidian Luxury & Studio Glow Aesthetic)
+   * Ubah nilai di blok ini untuk kustomisasi khusus Dark Mode tanpa merusak Light Mode.
+   -------------------------------------------------------------------------- */
+.dark {
+  --bg-app: #09090B;              /* Deep Obsidian Black */
+  --bg-sidebar: #0E0E12;          /* Sleek Dark Surface */
+  --bg-header: rgba(14, 14, 18, 0.85);
+  --bg-surface: #141418;          /* Elevated Luxury Card Surface */
+  --bg-surface-elevated: #1B1B22; /* High Elevation Layer */
+  --bg-surface-secondary: #22222B;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --border-focus: #F59E0B;
+
+  --text-primary: #F4F4F5;
+  --text-secondary: #D4D4D8;
+  --text-muted: #A1A1AA;
+  --text-dim: #71717A;
+
+  --accent-primary: #F59E0B;
+  --accent-hover: #FBBF24;
+  --accent-surface: rgba(245, 158, 11, 0.12);
+  --accent-glow: rgba(245, 158, 11, 0.25);
+
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+@layer utilities {
+  .font-serif-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+  .font-sans-body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  
+  /* Theme-aware background & card utility classes */
+  .bg-theme-app {
+    background-color: var(--bg-app);
+  }
+  .bg-theme-sidebar {
+    background-color: var(--bg-sidebar);
+  }
+  .bg-theme-surface {
+    background-color: var(--bg-surface);
+  }
+  .bg-theme-elevated {
+    background-color: var(--bg-surface-elevated);
+  }
+  .border-theme-subtle {
+    border-color: var(--border-subtle);
+  }
+  .border-theme-strong {
+    border-color: var(--border-strong);
+  }
+  .text-theme-primary {
+    color: var(--text-primary);
+  }
+  .text-theme-secondary {
+    color: var(--text-secondary);
+  }
+  .text-theme-muted {
+    color: var(--text-muted);
+  }
+  
+  /* Dark Mode Luxury Glow Effect */
+  .dark-card-glow {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 8px 30px -4px rgba(0, 0, 0, 0.6);
+  }
+  .dark-focus-glow:focus-within {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4), 0 0 20px -3px rgba(245, 158, 11, 0.2);
+  }
+}
+
+@layer base {
+  :root {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+  }
+
+  h1, .font-display, .font-serif-display {
+    font-family: 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.015em;
+  }
+
+  h2, h3, h4, .font-heading, .font-sans-body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.015em;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  button:focus, button:focus-visible {
+    outline: none !important;
+  }
+
+  ::selection {
+    background-color: #fde68a; /* amber-200 */
+    color: #78350f; /* amber-900 */
+  }
+}
+
+/* Custom presentation slide theme transition (Top-Right to Bottom-Left) */
+@keyframes slideSweepFromTopRight {
+  0% {
+    clip-path: circle(0% at var(--slide-x, 100%) var(--slide-y, 0%));
+  }
+  100% {
+    clip-path: circle(160% at var(--slide-x, 100%) var(--slide-y, 0%));
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 99999;
+  animation: slideSweepFromTopRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Custom scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(168, 162, 158, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 162, 158, 0.65);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Canvas infinite dot grid background */
+.canvas-grid-dots {
+  background-image: radial-gradient(rgba(120, 113, 108, 0.25) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+.dark .canvas-grid-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  background-color: #0E0E12;
+}
+
+/* Weavy Design System Tokens */
+:root {
+  --weavy-text: #F1A0FA;
+  --weavy-image: #6EDDB3;
+  --weavy-video: #EF9092;
+  --weavy-audio: #4452F2;
+  --weavy-3d: #6E6CEC;
+  --weavy-mask: #C1DD6E;
+  --weavy-lora: #BB68FF;
+  --weavy-seed: #E77E3E;
+  --weavy-green: #16745d;
+  --weavy-green-dark: #0b4836;
+  --weavy-green-stroke: #45a08a;
+  --weavy-purple: #653fe1;
+  --weavy-purple-dark: #352074;
+  --weavy-purple-stroke: #8c6def;
+  --weavy-blue: #2c57f0;
+  --weavy-blue-dark: #183c9b;
+  --weavy-blue-stroke: #5a82e8;
+  --weavy-orange: #e54a19;
+  --weavy-orange-dark: #c53111;
+  --weavy-orange-stroke: #ea8362;
+  --weavy-black: #312f37;
+  --weavy-black-dark: #222127;
+  --weavy-black-stroke: #65616b;
+}
+
+/* Weavy Wire (Cable) & Connection Edge Rules */
+.weavy-edge-path {
+  opacity: 0.68;
+  stroke-width: 2px;
+  transition: stroke-width 0.15s ease, opacity 0.15s ease;
+}
+.group:hover .weavy-edge-path {
+  opacity: 1;
+  stroke-width: 2.8px;
+}
+.weavy-edge-path.selected {
+  opacity: 1;
+  stroke-width: 4px;
+}
+
+/* Flowing electrical pulse animation for canvas wires */
+@keyframes canvasWireFlow {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.canvas-wire-flow {
+  animation: canvasWireFlow 0.8s linear infinite;
+}
+
+/* Refined Weavy-style dark checkerboard grid for Canvas Model Viewport */
+.canvas-checkerboard {
+  background-color: #1a1a20;
+  background-image: 
+    linear-gradient(45deg, #22222a 25%, transparent 25%), 
+    linear-gradient(-45deg, #22222a 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #22222a 75%), 
+    linear-gradient(-45deg, transparent 75%, #22222a 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}/* ==========================================================================
+   STORYBOARD COPILOT CARD & CHAT RENDER (Matching ektension-weavy)
+   ========================================================================== */
+@keyframes dotBlink {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.chat-typing-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(232, 162, 61, 0.08);
+  border: 1px solid rgba(232, 162, 61, 0.25);
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chat-typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-typing-dots .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #fbbf24;
+  animation: dotBlink 1.4s infinite ease-in-out;
+}
+.chat-typing-dots .dot:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing-dots .dot:nth-child(3) { animation-delay: 0.4s; }
+
+.chat-storyboard-copilot-card {
+  margin: 10px 0;
+  border-radius: 14px;
+  border: 1px solid rgba(232, 162, 61, 0.35);
+  background: linear-gradient(180deg, rgba(232, 162, 61, 0.08) 0%, rgba(20, 20, 24, 0.98) 100%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(232, 162, 61, 0.12);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.chat-storyboard-copilot-card:hover {
+  border-color: rgba(232, 162, 61, 0.55);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 14px rgba(232, 162, 61, 0.2);
+}
+
+.sb-copilot-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  background: rgba(232, 162, 61, 0.12);
+  border-bottom: 1px solid rgba(232, 162, 61, 0.2);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sb-copilot-card-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sb-copilot-pulse-dot {
+  width: 7.5px;
+  height: 7.5px;
+  border-radius: 50%;
+  background-color: #fbbf24;
+  box-shadow: 0 0 8px #fbbf24;
+  animation: dotBlink 1.5s infinite ease-in-out;
+}
+
+.sb-copilot-badge-text {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sb-copilot-meta-pills {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.sb-copilot-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #d6d3d1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.sb-copilot-card-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sb-copilot-project-title {
+  font-size: 14px;
+  font-weight: 750;
+  color: #ffffff;
+  line-height: 1.35;
+}
+
+.sb-copilot-brief-text {
+  font-size: 12px;
+  color: #a8a29e;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 8px 11px;
+  border-radius: 8px;
+  border-left: 3px solid #e8a23d;
+}
+
+.sb-copilot-scenes-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sb-copilot-scene-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  line-height: 1.45;
+  transition: background 0.15s ease;
+}
+
+.sb-copilot-scene-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sb-copilot-scene-num {
+  font-weight: 800;
+  color: #fbbf24;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(232, 162, 61, 0.18);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sb-copilot-scene-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sb-copilot-scene-title {
+  font-weight: 700;
+  color: #f5f5f4;
+}
+
+.sb-copilot-scene-desc {
+  color: #a8a29e;
+  font-size: 11.5px;
+}
+
+.sb-copilot-scene-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 4px;
+}
+
+.btn-copy-scene-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.btn-copy-scene-item:hover {
+  background: rgba(234, 88, 12, 0.18);
+  border-color: rgba(234, 88, 12, 0.45);
+  color: #fdba74;
+}
+
+.btn-copy-scene-item.copied {
+  background: rgba(34, 197, 94, 0.18) !important;
+  border-color: rgba(34, 197, 94, 0.6) !important;
+  color: #4ade80 !important;
+}
+
+.sb-copilot-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+.btn-apply-storyboard-from-chat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #e8a23d 0%, #d97706 100%);
+  color: #1c1917;
+  font-size: 12px;
+  font-weight: 750;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(232, 162, 61, 0.35);
+  flex: 1;
+  min-width: 160px;
+}
+
+.btn-apply-storyboard-from-chat:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(232, 162, 61, 0.5);
+  color: #000000;
+}
+
+.btn-copy-storyboard-script,
+.btn-copy-storyboard-json,
+.btn-copy-hook-only,
+.btn-toggle-storyboard-raw-json {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d6d3d1;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy-hook-only {
+  background: rgba(232, 162, 61, 0.12);
+  border-color: rgba(232, 162, 61, 0.3);
+  color: #fbbf24;
+}
+
+.btn-copy-hook-only:hover {
+  background: rgba(232, 162, 61, 0.22);
+  border-color: rgba(232, 162, 61, 0.5);
+  color: #fef08a;
+}
+
+.btn-copy-storyboard-script:hover,
+.btn-copy-storyboard-json:hover,
+.btn-toggle-storyboard-raw-json:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-toggle-storyboard-raw-json.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+/* Light Mode Overrides */
+:not(.dark) .chat-storyboard-copilot-card {
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+  border-color: #fde68a;
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.08);
+}
+
+:not(.dark) .sb-copilot-card-header {
+  background: #fef3c7;
+  border-bottom-color: #fde68a;
+}
+
+:not(.dark) .sb-copilot-project-title {
+  color: #1c1917;
+}
+
+:not(.dark) .sb-copilot-brief-text {
+  background: #f8fafc;
+  color: #475569;
+}
+
+:not(.dark) .sb-copilot-scene-item {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+:not(.dark) .sb-copilot-scene-title {
+  color: #1c1917;
+}
+
+:not(.dark) .sb-copilot-scene-desc {
+  color: #64748b;
+}
+
+:not(.dark) .sb-copilot-pill {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+:not(.dark) .btn-copy-storyboard-script,
+:not(.dark) .btn-copy-storyboard-json,
+:not(.dark) .btn-toggle-storyboard-raw-json {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+
+/* ==========================================================================
+   CANVAS LIGHT SKIN
+   Node, inspector, dashboard, group & toolbar di Canvas didesain dengan warna
+   gelap yang di-hardcode (gaya Weavy). Blok ini men-skin ulang elemen bertanda
+   .canvas-light-skin ketika mode terang aktif, memakai palet krem hangat yang
+   lembut (tidak silau). Mode gelap TIDAK terpengaruh sama sekali.
+   (Digenerate; ubah nilai warna di sini bila ingin menyesuaikan.)
+   ========================================================================== */
+html:not(:is(.dark)) .canvas-grid-dots {
+  background-image: radial-gradient(rgba(110, 98, 84, 0.30) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+html:not(.dark) .canvas-node-card {
+  background-color: #F1EEE8;
+  border-color: rgba(60, 50, 40, 0.16);
+  box-shadow: 0 1px 2px rgba(60, 50, 40, 0.10), 0 8px 24px -6px rgba(60, 50, 40, 0.16);
+}
+html:not(.dark) .canvas-node-card:hover { border-color: rgba(60, 50, 40, 0.30); }
+html:not(.dark) .canvas-node-card.border-white\/40 { border-color: rgba(180, 83, 9, 0.65); box-shadow: 0 0 0 1px rgba(180,83,9,.25), 0 12px 28px -8px rgba(60,50,40,.25); }
+html:not(.dark) .canvas-light-skin.shadow-xl,
+html:not(.dark) .canvas-light-skin.shadow-2xl { --tw-shadow-color: rgba(60,50,40,.18); }
+html:not(.dark) .canvas-light-skin.bg-\[\#0c0c10\], html:not(.dark) .canvas-light-skin .bg-\[\#0c0c10\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0c0c10\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#0c0c10\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0c0c10\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#0c0c10\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0c0c10\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#0c0c10\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#0c0c10\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#0c0c10\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#0c0c10\], html:not(.dark) .canvas-light-skin .to-\[\#0c0c10\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#0c0c10\], html:not(.dark) .canvas-light-skin .via-\[\#0c0c10\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0d0d11\], html:not(.dark) .canvas-light-skin .bg-\[\#0d0d11\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0d0d11\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#0d0d11\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0d0d11\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#0d0d11\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0d0d11\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#0d0d11\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#0d0d11\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#0d0d11\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#0d0d11\], html:not(.dark) .canvas-light-skin .to-\[\#0d0d11\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#0d0d11\], html:not(.dark) .canvas-light-skin .via-\[\#0d0d11\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0e0e12\], html:not(.dark) .canvas-light-skin .bg-\[\#0e0e12\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0e0e12\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#0e0e12\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0e0e12\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#0e0e12\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#0e0e12\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#0e0e12\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#0e0e12\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#0e0e12\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#0e0e12\], html:not(.dark) .canvas-light-skin .to-\[\#0e0e12\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#0e0e12\], html:not(.dark) .canvas-light-skin .via-\[\#0e0e12\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121215\], html:not(.dark) .canvas-light-skin .bg-\[\#121215\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121215\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#121215\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121215\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#121215\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121215\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#121215\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#121215\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#121215\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#121215\], html:not(.dark) .canvas-light-skin .to-\[\#121215\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#121215\], html:not(.dark) .canvas-light-skin .via-\[\#121215\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121216\], html:not(.dark) .canvas-light-skin .bg-\[\#121216\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121216\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#121216\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121216\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#121216\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#121216\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#121216\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#121216\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#121216\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#121216\], html:not(.dark) .canvas-light-skin .to-\[\#121216\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#121216\], html:not(.dark) .canvas-light-skin .via-\[\#121216\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141417\], html:not(.dark) .canvas-light-skin .bg-\[\#141417\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141417\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#141417\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141417\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#141417\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141417\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#141417\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#141417\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#141417\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#141417\], html:not(.dark) .canvas-light-skin .to-\[\#141417\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#141417\], html:not(.dark) .canvas-light-skin .via-\[\#141417\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141418\], html:not(.dark) .canvas-light-skin .bg-\[\#141418\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141418\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#141418\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141418\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#141418\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141418\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#141418\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#141418\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#141418\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#141418\], html:not(.dark) .canvas-light-skin .to-\[\#141418\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#141418\], html:not(.dark) .canvas-light-skin .via-\[\#141418\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141419\], html:not(.dark) .canvas-light-skin .bg-\[\#141419\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141419\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#141419\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141419\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#141419\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#141419\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#141419\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#141419\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#141419\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#141419\], html:not(.dark) .canvas-light-skin .to-\[\#141419\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#141419\], html:not(.dark) .canvas-light-skin .via-\[\#141419\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#15151c\], html:not(.dark) .canvas-light-skin .bg-\[\#15151c\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#15151c\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#15151c\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#15151c\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#15151c\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#15151c\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#15151c\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#15151c\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#15151c\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#15151c\], html:not(.dark) .canvas-light-skin .to-\[\#15151c\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#15151c\], html:not(.dark) .canvas-light-skin .via-\[\#15151c\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161a\], html:not(.dark) .canvas-light-skin .bg-\[\#16161a\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161a\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#16161a\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161a\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#16161a\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161a\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#16161a\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#16161a\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#16161a\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#16161a\], html:not(.dark) .canvas-light-skin .to-\[\#16161a\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#16161a\], html:not(.dark) .canvas-light-skin .via-\[\#16161a\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161b\], html:not(.dark) .canvas-light-skin .bg-\[\#16161b\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161b\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#16161b\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161b\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#16161b\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#16161b\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#16161b\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#16161b\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#16161b\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#16161b\], html:not(.dark) .canvas-light-skin .to-\[\#16161b\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#16161b\], html:not(.dark) .canvas-light-skin .via-\[\#16161b\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#17171d\], html:not(.dark) .canvas-light-skin .bg-\[\#17171d\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#17171d\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#17171d\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#17171d\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#17171d\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#17171d\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#17171d\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#17171d\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#17171d\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#17171d\], html:not(.dark) .canvas-light-skin .to-\[\#17171d\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#17171d\], html:not(.dark) .canvas-light-skin .via-\[\#17171d\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#181615\], html:not(.dark) .canvas-light-skin .bg-\[\#181615\] { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#181615\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#181615\]\/85 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#181615\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#181615\]\/95 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#181615\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#181615\]\/60 { background-color: #DCD7CC }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#181615\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#181615\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#181615\], html:not(.dark) .canvas-light-skin .to-\[\#181615\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#181615\], html:not(.dark) .canvas-light-skin .via-\[\#181615\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#111114\], html:not(.dark) .canvas-light-skin .bg-\[\#111114\] { background-color: #E6E2DA }
+html:not(.dark) .canvas-light-skin.bg-\[\#111114\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#111114\]\/85 { background-color: #E6E2DA }
+html:not(.dark) .canvas-light-skin.bg-\[\#111114\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#111114\]\/95 { background-color: #E6E2DA }
+html:not(.dark) .canvas-light-skin.bg-\[\#111114\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#111114\]\/60 { background-color: #E6E2DA }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#111114\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#111114\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#111114\], html:not(.dark) .canvas-light-skin .to-\[\#111114\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#111114\], html:not(.dark) .canvas-light-skin .via-\[\#111114\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181c\], html:not(.dark) .canvas-light-skin .bg-\[\#18181c\] { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181c\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#18181c\]\/85 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181c\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#18181c\]\/95 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181c\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#18181c\]\/60 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#18181c\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#18181c\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#18181c\], html:not(.dark) .canvas-light-skin .to-\[\#18181c\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#18181c\], html:not(.dark) .canvas-light-skin .via-\[\#18181c\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181f\], html:not(.dark) .canvas-light-skin .bg-\[\#18181f\] { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181f\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#18181f\]\/85 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181f\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#18181f\]\/95 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#18181f\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#18181f\]\/60 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#18181f\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#18181f\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#18181f\], html:not(.dark) .canvas-light-skin .to-\[\#18181f\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#18181f\], html:not(.dark) .canvas-light-skin .via-\[\#18181f\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#181820\], html:not(.dark) .canvas-light-skin .bg-\[\#181820\] { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#181820\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#181820\]\/85 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#181820\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#181820\]\/95 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#181820\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#181820\]\/60 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#181820\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#181820\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#181820\], html:not(.dark) .canvas-light-skin .to-\[\#181820\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#181820\], html:not(.dark) .canvas-light-skin .via-\[\#181820\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a1f\], html:not(.dark) .canvas-light-skin .bg-\[\#1a1a1f\] { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a1f\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a1f\]\/85 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a1f\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a1f\]\/95 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a1f\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a1f\]\/60 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#1a1a1f\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#1a1a1f\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#1a1a1f\], html:not(.dark) .canvas-light-skin .to-\[\#1a1a1f\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#1a1a1f\], html:not(.dark) .canvas-light-skin .via-\[\#1a1a1f\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a20\], html:not(.dark) .canvas-light-skin .bg-\[\#1a1a20\] { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a20\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a20\]\/85 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a20\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a20\]\/95 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a20\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a20\]\/60 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#1a1a20\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#1a1a20\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#1a1a20\], html:not(.dark) .canvas-light-skin .to-\[\#1a1a20\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#1a1a20\], html:not(.dark) .canvas-light-skin .via-\[\#1a1a20\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a22\], html:not(.dark) .canvas-light-skin .bg-\[\#1a1a22\] { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a22\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a22\]\/85 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a22\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a22\]\/95 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1a1a22\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#1a1a22\]\/60 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#1a1a22\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#1a1a22\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#1a1a22\], html:not(.dark) .canvas-light-skin .to-\[\#1a1a22\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#1a1a22\], html:not(.dark) .canvas-light-skin .via-\[\#1a1a22\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#1b1b22\], html:not(.dark) .canvas-light-skin .bg-\[\#1b1b22\] { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1b1b22\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#1b1b22\]\/85 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1b1b22\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#1b1b22\]\/95 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.bg-\[\#1b1b22\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#1b1b22\]\/60 { background-color: #EBE7DF }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#1b1b22\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#1b1b22\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#1b1b22\], html:not(.dark) .canvas-light-skin .to-\[\#1b1b22\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#1b1b22\], html:not(.dark) .canvas-light-skin .via-\[\#1b1b22\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c21\], html:not(.dark) .canvas-light-skin .bg-\[\#1c1c21\] { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c21\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#1c1c21\]\/85 { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c21\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#1c1c21\]\/95 { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c21\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#1c1c21\]\/60 { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#1c1c21\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#1c1c21\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#1c1c21\], html:not(.dark) .canvas-light-skin .to-\[\#1c1c21\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#1c1c21\], html:not(.dark) .canvas-light-skin .via-\[\#1c1c21\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c22\], html:not(.dark) .canvas-light-skin .bg-\[\#1c1c22\] { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c22\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#1c1c22\]\/85 { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c22\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#1c1c22\]\/95 { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.bg-\[\#1c1c22\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#1c1c22\]\/60 { background-color: #F1EEE8 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#1c1c22\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#1c1c22\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#1c1c22\], html:not(.dark) .canvas-light-skin .to-\[\#1c1c22\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#1c1c22\], html:not(.dark) .canvas-light-skin .via-\[\#1c1c22\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#202026\], html:not(.dark) .canvas-light-skin .bg-\[\#202026\] { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#202026\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#202026\]\/85 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#202026\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#202026\]\/95 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#202026\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#202026\]\/60 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#202026\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#202026\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#202026\], html:not(.dark) .canvas-light-skin .to-\[\#202026\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#202026\], html:not(.dark) .canvas-light-skin .via-\[\#202026\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#222227\], html:not(.dark) .canvas-light-skin .bg-\[\#222227\] { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#222227\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#222227\]\/85 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#222227\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#222227\]\/95 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#222227\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#222227\]\/60 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#222227\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#222227\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#222227\], html:not(.dark) .canvas-light-skin .to-\[\#222227\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#222227\], html:not(.dark) .canvas-light-skin .via-\[\#222227\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#22222a\], html:not(.dark) .canvas-light-skin .bg-\[\#22222a\] { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#22222a\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#22222a\]\/85 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#22222a\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#22222a\]\/95 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#22222a\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#22222a\]\/60 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#22222a\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#22222a\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#22222a\], html:not(.dark) .canvas-light-skin .to-\[\#22222a\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#22222a\], html:not(.dark) .canvas-light-skin .via-\[\#22222a\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#24242b\], html:not(.dark) .canvas-light-skin .bg-\[\#24242b\] { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#24242b\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#24242b\]\/85 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#24242b\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#24242b\]\/95 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#24242b\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#24242b\]\/60 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#24242b\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#24242b\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#24242b\], html:not(.dark) .canvas-light-skin .to-\[\#24242b\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#24242b\], html:not(.dark) .canvas-light-skin .via-\[\#24242b\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252b\], html:not(.dark) .canvas-light-skin .bg-\[\#25252b\] { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252b\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#25252b\]\/85 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252b\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#25252b\]\/95 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252b\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#25252b\]\/60 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#25252b\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#25252b\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#25252b\], html:not(.dark) .canvas-light-skin .to-\[\#25252b\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#25252b\], html:not(.dark) .canvas-light-skin .via-\[\#25252b\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252c\], html:not(.dark) .canvas-light-skin .bg-\[\#25252c\] { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252c\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#25252c\]\/85 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252c\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#25252c\]\/95 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252c\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#25252c\]\/60 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#25252c\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#25252c\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#25252c\], html:not(.dark) .canvas-light-skin .to-\[\#25252c\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#25252c\], html:not(.dark) .canvas-light-skin .via-\[\#25252c\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252d\], html:not(.dark) .canvas-light-skin .bg-\[\#25252d\] { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252d\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#25252d\]\/85 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252d\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#25252d\]\/95 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.bg-\[\#25252d\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#25252d\]\/60 { background-color: #E4E0D7 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#25252d\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#25252d\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#25252d\], html:not(.dark) .canvas-light-skin .to-\[\#25252d\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#25252d\], html:not(.dark) .canvas-light-skin .via-\[\#25252d\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#2c2c36\], html:not(.dark) .canvas-light-skin .bg-\[\#2c2c36\] { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.bg-\[\#2c2c36\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#2c2c36\]\/85 { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.bg-\[\#2c2c36\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#2c2c36\]\/95 { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.bg-\[\#2c2c36\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#2c2c36\]\/60 { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#2c2c36\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#2c2c36\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#2c2c36\], html:not(.dark) .canvas-light-skin .to-\[\#2c2c36\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#2c2c36\], html:not(.dark) .canvas-light-skin .via-\[\#2c2c36\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#2d2d35\], html:not(.dark) .canvas-light-skin .bg-\[\#2d2d35\] { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.bg-\[\#2d2d35\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#2d2d35\]\/85 { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.bg-\[\#2d2d35\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#2d2d35\]\/95 { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.bg-\[\#2d2d35\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#2d2d35\]\/60 { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#2d2d35\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#2d2d35\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#2d2d35\], html:not(.dark) .canvas-light-skin .to-\[\#2d2d35\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#2d2d35\], html:not(.dark) .canvas-light-skin .via-\[\#2d2d35\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-\[\#2a2a36\], html:not(.dark) .canvas-light-skin .bg-\[\#2a2a36\] { background-color: #FAF8F4 }
+html:not(.dark) .canvas-light-skin.bg-\[\#2a2a36\]\/85, html:not(.dark) .canvas-light-skin .bg-\[\#2a2a36\]\/85 { background-color: #FAF8F4 }
+html:not(.dark) .canvas-light-skin.bg-\[\#2a2a36\]\/95, html:not(.dark) .canvas-light-skin .bg-\[\#2a2a36\]\/95 { background-color: #FAF8F4 }
+html:not(.dark) .canvas-light-skin.bg-\[\#2a2a36\]\/60, html:not(.dark) .canvas-light-skin .bg-\[\#2a2a36\]\/60 { background-color: #FAF8F4 }
+html:not(.dark) .canvas-light-skin.hover\:bg-\[\#2a2a36\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-\[\#2a2a36\]:hover { background-color: #DAD5CA }
+html:not(.dark) .canvas-light-skin.to-\[\#2a2a36\], html:not(.dark) .canvas-light-skin .to-\[\#2a2a36\] { --tw-gradient-to: #DCD7CC }
+html:not(.dark) .canvas-light-skin.via-\[\#2a2a36\], html:not(.dark) .canvas-light-skin .via-\[\#2a2a36\] { --tw-gradient-via: #DCD7CC }
+html:not(.dark) .canvas-light-skin.bg-stone-800, html:not(.dark) .canvas-light-skin .bg-stone-800 { background-color: #D6D1C6 }
+html:not(.dark) .canvas-light-skin.bg-stone-700, html:not(.dark) .canvas-light-skin .bg-stone-700 { background-color: #CCC7BC }
+html:not(.dark) .canvas-light-skin.bg-stone-600, html:not(.dark) .canvas-light-skin .bg-stone-600 { background-color: #C2BDB1 }
+html:not(.dark) .canvas-light-skin.hover\:bg-stone-700:hover, html:not(.dark) .canvas-light-skin .hover\:bg-stone-700:hover { background-color: #CCC7BC }
+html:not(.dark) .canvas-light-skin.bg-stone-900\/60, html:not(.dark) .canvas-light-skin .bg-stone-900\/60 { background-color: rgba(214,209,198,.75) }
+html:not(.dark) .canvas-light-skin.bg-white, html:not(.dark) .canvas-light-skin .bg-white { background-color: #FBF9F5 }
+html:not(.dark) .canvas-light-skin.hover\:bg-white:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white:hover { background-color: #FFFFFF }
+html:not(.dark) .canvas-light-skin.hover\:bg-stone-100:hover, html:not(.dark) .canvas-light-skin .hover\:bg-stone-100:hover { background-color: #E3DFD6 }
+html:not(.dark) .canvas-light-skin.bg-white\/90, html:not(.dark) .canvas-light-skin .bg-white\/90 { background-color: rgba(251,249,245,.92) }
+html:not(.dark) .canvas-light-skin .canvas-checkerboard { background-color:#E2DED5; background-image: linear-gradient(45deg,#D9D4CA 25%,transparent 25%), linear-gradient(-45deg,#D9D4CA 25%,transparent 25%), linear-gradient(45deg,transparent 75%,#D9D4CA 75%), linear-gradient(-45deg,transparent 75%,#D9D4CA 75%); }
+html:not(.dark) .canvas-light-skin.bg-white\/\[0\.015\], html:not(.dark) .canvas-light-skin .bg-white\/\[0\.015\] { background-color: rgba(60,50,40,0.035) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/\[0\.015\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/\[0\.015\]:hover { background-color: rgba(60,50,40,0.055) }
+html:not(.dark) .canvas-light-skin.bg-white\/\[0\.02\], html:not(.dark) .canvas-light-skin .bg-white\/\[0\.02\] { background-color: rgba(60,50,40,0.040) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/\[0\.02\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/\[0\.02\]:hover { background-color: rgba(60,50,40,0.060) }
+html:not(.dark) .canvas-light-skin.bg-white\/\[0\.03\], html:not(.dark) .canvas-light-skin .bg-white\/\[0\.03\] { background-color: rgba(60,50,40,0.050) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/\[0\.03\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(60,50,40,0.070) }
+html:not(.dark) .canvas-light-skin.bg-white\/\[0\.04\], html:not(.dark) .canvas-light-skin .bg-white\/\[0\.04\] { background-color: rgba(60,50,40,0.060) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/\[0\.04\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/\[0\.04\]:hover { background-color: rgba(60,50,40,0.080) }
+html:not(.dark) .canvas-light-skin.bg-white\/\[0\.06\], html:not(.dark) .canvas-light-skin .bg-white\/\[0\.06\] { background-color: rgba(60,50,40,0.080) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/\[0\.06\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/\[0\.06\]:hover { background-color: rgba(60,50,40,0.100) }
+html:not(.dark) .canvas-light-skin.bg-white\/\[0\.08\], html:not(.dark) .canvas-light-skin .bg-white\/\[0\.08\] { background-color: rgba(60,50,40,0.100) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/\[0\.08\]:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/\[0\.08\]:hover { background-color: rgba(60,50,40,0.120) }
+html:not(.dark) .canvas-light-skin.bg-white\/5, html:not(.dark) .canvas-light-skin .bg-white\/5 { background-color: rgba(60,50,40,0.05) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/5:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/5:hover { background-color: rgba(60,50,40,0.08) }
+html:not(.dark) .canvas-light-skin.bg-white\/10, html:not(.dark) .canvas-light-skin .bg-white\/10 { background-color: rgba(60,50,40,0.08) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/10:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/10:hover { background-color: rgba(60,50,40,0.11) }
+html:not(.dark) .canvas-light-skin.bg-white\/15, html:not(.dark) .canvas-light-skin .bg-white\/15 { background-color: rgba(60,50,40,0.12) }
+html:not(.dark) .canvas-light-skin.hover\:bg-white\/15:hover, html:not(.dark) .canvas-light-skin .hover\:bg-white\/15:hover { background-color: rgba(60,50,40,0.15) }
+html:not(.dark) .canvas-light-skin.bg-black\/40, html:not(.dark) .canvas-light-skin .bg-black\/40 { background-color: rgba(60,50,40,.14) }
+html:not(.dark) .canvas-light-skin.border-white\/\[0\.04\], html:not(.dark) .canvas-light-skin .border-white\/\[0\.04\] { border-color: rgba(60,50,40,0.08) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/\[0\.04\]:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/\[0\.04\]:hover { border-color: rgba(60,50,40,0.16) }
+html:not(.dark) .canvas-light-skin.divide-white\/\[0\.04\], html:not(.dark) .canvas-light-skin .divide-white\/\[0\.04\] { border-color: rgba(60,50,40,0.08) }
+html:not(.dark) .canvas-light-skin.border-white\/\[0\.06\], html:not(.dark) .canvas-light-skin .border-white\/\[0\.06\] { border-color: rgba(60,50,40,0.1) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/\[0\.06\]:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/\[0\.06\]:hover { border-color: rgba(60,50,40,0.18) }
+html:not(.dark) .canvas-light-skin.divide-white\/\[0\.06\], html:not(.dark) .canvas-light-skin .divide-white\/\[0\.06\] { border-color: rgba(60,50,40,0.1) }
+html:not(.dark) .canvas-light-skin.border-white\/\[0\.07\], html:not(.dark) .canvas-light-skin .border-white\/\[0\.07\] { border-color: rgba(60,50,40,0.1) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/\[0\.07\]:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/\[0\.07\]:hover { border-color: rgba(60,50,40,0.18) }
+html:not(.dark) .canvas-light-skin.divide-white\/\[0\.07\], html:not(.dark) .canvas-light-skin .divide-white\/\[0\.07\] { border-color: rgba(60,50,40,0.1) }
+html:not(.dark) .canvas-light-skin.border-white\/\[0\.08\], html:not(.dark) .canvas-light-skin .border-white\/\[0\.08\] { border-color: rgba(60,50,40,0.12) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/\[0\.08\]:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/\[0\.08\]:hover { border-color: rgba(60,50,40,0.20) }
+html:not(.dark) .canvas-light-skin.divide-white\/\[0\.08\], html:not(.dark) .canvas-light-skin .divide-white\/\[0\.08\] { border-color: rgba(60,50,40,0.12) }
+html:not(.dark) .canvas-light-skin.border-white\/\[0\.12\], html:not(.dark) .canvas-light-skin .border-white\/\[0\.12\] { border-color: rgba(60,50,40,0.16) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/\[0\.12\]:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/\[0\.12\]:hover { border-color: rgba(60,50,40,0.24) }
+html:not(.dark) .canvas-light-skin.divide-white\/\[0\.12\], html:not(.dark) .canvas-light-skin .divide-white\/\[0\.12\] { border-color: rgba(60,50,40,0.16) }
+html:not(.dark) .canvas-light-skin.border-white\/5, html:not(.dark) .canvas-light-skin .border-white\/5 { border-color: rgba(60,50,40,0.08) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/5:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/5:hover { border-color: rgba(60,50,40,0.16) }
+html:not(.dark) .canvas-light-skin.divide-white\/5, html:not(.dark) .canvas-light-skin .divide-white\/5 { border-color: rgba(60,50,40,0.08) }
+html:not(.dark) .canvas-light-skin.border-white\/10, html:not(.dark) .canvas-light-skin .border-white\/10 { border-color: rgba(60,50,40,0.13) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/10:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/10:hover { border-color: rgba(60,50,40,0.21) }
+html:not(.dark) .canvas-light-skin.divide-white\/10, html:not(.dark) .canvas-light-skin .divide-white\/10 { border-color: rgba(60,50,40,0.13) }
+html:not(.dark) .canvas-light-skin.border-white\/15, html:not(.dark) .canvas-light-skin .border-white\/15 { border-color: rgba(60,50,40,0.17) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/15:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/15:hover { border-color: rgba(60,50,40,0.25) }
+html:not(.dark) .canvas-light-skin.divide-white\/15, html:not(.dark) .canvas-light-skin .divide-white\/15 { border-color: rgba(60,50,40,0.17) }
+html:not(.dark) .canvas-light-skin.border-white\/20, html:not(.dark) .canvas-light-skin .border-white\/20 { border-color: rgba(60,50,40,0.22) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/20:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/20:hover { border-color: rgba(60,50,40,0.30) }
+html:not(.dark) .canvas-light-skin.divide-white\/20, html:not(.dark) .canvas-light-skin .divide-white\/20 { border-color: rgba(60,50,40,0.22) }
+html:not(.dark) .canvas-light-skin.border-white\/25, html:not(.dark) .canvas-light-skin .border-white\/25 { border-color: rgba(60,50,40,0.26) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/25:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/25:hover { border-color: rgba(60,50,40,0.34) }
+html:not(.dark) .canvas-light-skin.divide-white\/25, html:not(.dark) .canvas-light-skin .divide-white\/25 { border-color: rgba(60,50,40,0.26) }
+html:not(.dark) .canvas-light-skin.border-white\/30, html:not(.dark) .canvas-light-skin .border-white\/30 { border-color: rgba(60,50,40,0.3) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/30:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/30:hover { border-color: rgba(60,50,40,0.38) }
+html:not(.dark) .canvas-light-skin.divide-white\/30, html:not(.dark) .canvas-light-skin .divide-white\/30 { border-color: rgba(60,50,40,0.3) }
+html:not(.dark) .canvas-light-skin.border-white\/40, html:not(.dark) .canvas-light-skin .border-white\/40 { border-color: rgba(60,50,40,0.34) }
+html:not(.dark) .canvas-light-skin.hover\:border-white\/40:hover, html:not(.dark) .canvas-light-skin .hover\:border-white\/40:hover { border-color: rgba(60,50,40,0.42) }
+html:not(.dark) .canvas-light-skin.divide-white\/40, html:not(.dark) .canvas-light-skin .divide-white\/40 { border-color: rgba(60,50,40,0.34) }
+html:not(.dark) .canvas-light-skin.focus-within\:border-white\/\[0\.12\]:focus-within, html:not(.dark) .canvas-light-skin .focus-within\:border-white\/\[0\.12\]:focus-within { border-color: rgba(60,50,40,.30) }
+html:not(.dark) .canvas-light-skin.ring-white\/20, html:not(.dark) .canvas-light-skin .ring-white\/20 { --tw-ring-color: rgba(60,50,40,.20) }
+html:not(.dark) .canvas-light-skin.border-stone-600, html:not(.dark) .canvas-light-skin .border-stone-600 { border-color: #BDB8AC }
+html:not(.dark) .canvas-light-skin.text-white:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-white:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #2A2520 }
+html:not(.dark) .canvas-light-skin.text-stone-50:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-stone-50:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #2F2A25 }
+html:not(.dark) .canvas-light-skin.text-stone-100:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-stone-100:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #2F2A25 }
+html:not(.dark) .canvas-light-skin.text-stone-200:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-stone-200:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #3B352F }
+html:not(.dark) .canvas-light-skin.text-stone-300:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-stone-300:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #4A443D }
+html:not(.dark) .canvas-light-skin.text-stone-400:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-stone-400:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #6A635A }
+html:not(.dark) .canvas-light-skin.text-stone-500:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-stone-500:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #766F66 }
+html:not(.dark) .canvas-light-skin.text-stone-400\/90:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-stone-400\/90:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: #6A635A }
+html:not(.dark) .canvas-light-skin.hover\:text-white:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):hover, html:not(.dark) .canvas-light-skin .hover\:text-white:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):hover { color: #1C1917 }
+html:not(.dark) .canvas-light-skin.hover\:text-stone-200:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):hover, html:not(.dark) .canvas-light-skin .hover\:text-stone-200:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):hover { color: #1C1917 }
+html:not(.dark) .canvas-light-skin.group-hover\:text-white:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):is(.group:hover *, .group\/card:hover *), html:not(.dark) .canvas-light-skin .group-hover\:text-white:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):is(.group:hover *, .group\/card:hover *) { color: #1C1917 }
+html:not(.dark) .canvas-light-skin.group-hover\:text-stone-200:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):is(.group:hover *), html:not(.dark) .canvas-light-skin .group-hover\:text-stone-200:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):is(.group:hover *) { color: #1C1917 }
+html:not(.dark) .canvas-light-skin.text-white\/30:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]), html:not(.dark) .canvas-light-skin .text-white\/30:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]) { color: rgba(60,50,40,.45) }
+html:not(.dark) .canvas-light-skin.group-hover\:text-white\/60:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):is(.group:hover *), html:not(.dark) .canvas-light-skin .group-hover\:text-white\/60:not([class~="bg-black"]):not([class~="bg-stone-900"]):not([class~="bg-stone-950"]):not([class~="bg-[#10a37f]"]):not([class~="bg-amber-400"]):not([class~="bg-amber-500"]):not([class~="bg-amber-600"]):not([class~="bg-amber-700"]):not([class~="bg-purple-400"]):not([class~="bg-purple-500"]):not([class~="bg-purple-600"]):not([class~="bg-purple-700"]):not([class~="bg-rose-400"]):not([class~="bg-rose-500"]):not([class~="bg-rose-600"]):not([class~="bg-rose-700"]):not([class~="bg-emerald-400"]):not([class~="bg-emerald-500"]):not([class~="bg-emerald-600"]):not([class~="bg-emerald-700"]):not([class~="bg-sky-400"]):not([class~="bg-sky-500"]):not([class~="bg-sky-600"]):not([class~="bg-sky-700"]):not([class~="bg-blue-400"]):not([class~="bg-blue-500"]):not([class~="bg-blue-600"]):not([class~="bg-blue-700"]):not([class~="bg-red-400"]):not([class~="bg-red-500"]):not([class~="bg-red-600"]):not([class~="bg-red-700"]):not([class~="bg-orange-400"]):not([class~="bg-orange-500"]):not([class~="bg-orange-600"]):not([class~="bg-orange-700"]):not([class~="bg-indigo-400"]):not([class~="bg-indigo-500"]):not([class~="bg-indigo-600"]):not([class~="bg-indigo-700"]):not([class~="bg-green-400"]):not([class~="bg-green-500"]):not([class~="bg-green-600"]):not([class~="bg-green-700"]):is(.group:hover *) { color: rgba(60,50,40,.7) }
+html:not(.dark) .canvas-light-skin .placeholder\:text-stone-500::placeholder { color: #8C857B }
+html:not(.dark) .canvas-light-skin input::placeholder, html:not(.dark) .canvas-light-skin textarea::placeholder { color: #8C857B }
+html:not(.dark) .canvas-light-skin.text-amber-100, html:not(.dark) .canvas-light-skin .text-amber-100 { color: #78350F }
+html:not(.dark) .canvas-light-skin.text-amber-200, html:not(.dark) .canvas-light-skin .text-amber-200 { color: #92400E }
+html:not(.dark) .canvas-light-skin.text-amber-300, html:not(.dark) .canvas-light-skin .text-amber-300 { color: #A8500A }
+html:not(.dark) .canvas-light-skin.text-amber-400, html:not(.dark) .canvas-light-skin .text-amber-400 { color: #B45309 }
+html:not(.dark) .canvas-light-skin.text-emerald-300, html:not(.dark) .canvas-light-skin .text-emerald-300 { color: #047857 }
+html:not(.dark) .canvas-light-skin.text-emerald-400, html:not(.dark) .canvas-light-skin .text-emerald-400 { color: #047857 }
+html:not(.dark) .canvas-light-skin.text-rose-200, html:not(.dark) .canvas-light-skin .text-rose-200 { color: #9F1239 }
+html:not(.dark) .canvas-light-skin.text-rose-300, html:not(.dark) .canvas-light-skin .text-rose-300 { color: #BE123C }
+html:not(.dark) .canvas-light-skin.text-rose-400, html:not(.dark) .canvas-light-skin .text-rose-400 { color: #BE123C }
+html:not(.dark) .canvas-light-skin.text-red-200, html:not(.dark) .canvas-light-skin .text-red-200 { color: #9F1239 }
+html:not(.dark) .canvas-light-skin.text-purple-300, html:not(.dark) .canvas-light-skin .text-purple-300 { color: #7E22CE }
+html:not(.dark) .canvas-light-skin.text-purple-400, html:not(.dark) .canvas-light-skin .text-purple-400 { color: #7E22CE }
+html:not(.dark) .canvas-light-skin.text-\[\#c084fc\], html:not(.dark) .canvas-light-skin .text-\[\#c084fc\] { color: #7E22CE }
+html:not(.dark) .canvas-light-skin.text-sky-300, html:not(.dark) .canvas-light-skin .text-sky-300 { color: #0369A1 }
+html:not(.dark) .canvas-light-skin.text-sky-400, html:not(.dark) .canvas-light-skin .text-sky-400 { color: #0369A1 }
+html:not(.dark) .canvas-light-skin.text-blue-200, html:not(.dark) .canvas-light-skin .text-blue-200 { color: #1E40AF }
+html:not(.dark) .canvas-light-skin.text-blue-300, html:not(.dark) .canvas-light-skin .text-blue-300 { color: #1D4ED8 }
+html:not(.dark) .canvas-light-skin.text-blue-400, html:not(.dark) .canvas-light-skin .text-blue-400 { color: #1D4ED8 }
+html:not(.dark) .canvas-light-skin.text-orange-400, html:not(.dark) .canvas-light-skin .text-orange-400 { color: #C2410C }
+html:not(.dark) .canvas-light-skin.text-indigo-400, html:not(.dark) .canvas-light-skin .text-indigo-400 { color: #4338CA }
+
+/* ==========================================================================
+   CHAT LIGHT SKIN
+   ChatView di-hardcode gelap (bg-[#111114], text-stone-*, border-white/*), jadi
+   class `dark:` tidak berpengaruh dan saat tema terang bubble chat jadi putih
+   di atas frame gelap. Blok ini men-skin ulang chat ketika root diberi
+   .chat-light (isDarkMode === false). Mode gelap TIDAK terpengaruh sama sekali.
+   Blok bertanda .chat-keep-dark (code block, kartu AI Worker) sengaja tetap gelap.
+   ========================================================================== */
+.chat-light { background-color: #E2DFD8; color: #1C1917; color-scheme: light; }
+.chat-light .bg-\[\#111114\],
+.chat-light .bg-\[\#141418\],
+.chat-light .bg-\[\#141417\],
+.chat-light .bg-\[\#141417\]\/98,
+.chat-light .bg-\[\#141417\]\/95 { background-color: #ECE9E3; }
+.chat-light main.bg-\[\#141418\] { background-color: #E2DFD8; }
+.chat-light .bg-\[\#1C1C1F\] { background-color: #FFFFFF; }
+.chat-light .bg-\[\#1F1F24\],
+.chat-light .bg-\[\#202025\]\/95,
+.chat-light .bg-\[\#1a1a1f\]\/95 { background-color: #F8F7F4; }
+.chat-light .bg-\[\#25252b\] { background-color: #F3F1EC; }
+.chat-light .hover\:bg-\[\#2e2e36\]:hover,
+.chat-light .active\:bg-\[\#141418\]:active { background-color: #DAD5CA; }
+.chat-light .bg-stone-900,
+.chat-light .bg-stone-900\/90,
+.chat-light .bg-stone-800 { background-color: #D6D3D1; }
+.chat-light .hover\:bg-stone-800:hover { background-color: #C9C5BC; }
+.chat-light .text-stone-100 { color: #1C1917; }
+.chat-light .text-stone-200 { color: #292524; }
+.chat-light .text-stone-300 { color: #44403C; }
+.chat-light .text-stone-400 { color: #57534E; }
+.chat-light .hover\:text-stone-200:hover,
+.chat-light .hover\:text-white:hover,
+.chat-light .group-hover\:text-white { color: #1C1917; }
+.chat-light .text-white:where(:not([class*="bg-black"]):not([class*="bg-amber"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-red"]):not([class*="bg-purple"]):not([class*="bg-orange"]):not([class*="bg-sky"]):not([class*="bg-blue"]):not([class*="bg-violet"]):not([class*="bg-[#D95C32]"]):not([class*="bg-[#C24F27]"])) { color: #1C1917; }
+.chat-light .text-amber-300:not([class*="bg-black"]),
+.chat-light .text-amber-400:not([class*="bg-black"]) { color: #B45309; }
+.chat-light .bg-white\/5 { background-color: rgba(28, 25, 23, .05); }
+.chat-light .bg-white\/10 { background-color: rgba(28, 25, 23, .08); }
+.chat-light .bg-white\/15 { background-color: rgba(28, 25, 23, .11); }
+.chat-light .bg-white\/20 { background-color: rgba(28, 25, 23, .14); }
+.chat-light .hover\:bg-white\/10:hover { background-color: rgba(28, 25, 23, .08); }
+.chat-light .hover\:bg-white\/15:hover { background-color: rgba(28, 25, 23, .11); }
+.chat-light .hover\:bg-white\/20:hover { background-color: rgba(28, 25, 23, .14); }
+.chat-light .hover\:bg-white\/5:hover { background-color: rgba(28, 25, 23, .05); }
+.chat-light .border-white\/5 { border-color: rgba(60, 50, 40, .08); }
+.chat-light .border-white\/10 { border-color: rgba(60, 50, 40, .14); }
+.chat-light .border-white\/15 { border-color: rgba(60, 50, 40, .18); }
+.chat-light .border-white\/20 { border-color: rgba(60, 50, 40, .22); }
+.chat-light .hover\:border-white\/10:hover,
+.chat-light .hover\:border-white\/20:hover,
+.chat-light .focus\:border-white\/20:focus { border-color: rgba(60, 50, 40, .28); }
+/* Blok yang sengaja tetap gelap (code block, kartu AI Worker) */
+.chat-light .chat-keep-dark .text-stone-200,
+.chat-light .chat-keep-dark .hover\:text-white { color: #E7E5E4; }
+.chat-light .chat-keep-dark .text-stone-300 { color: #D6D3D1; }
+.chat-light .chat-keep-dark .text-stone-400 { color: #A8A29E; }
+.chat-light .chat-keep-dark .text-white { color: #FFFFFF; }
+.chat-light .chat-keep-dark .text-amber-300 { color: #FCD34D; }
+.chat-light .chat-keep-dark .text-amber-400 { color: #FBBF24; }
+.chat-light .chat-keep-dark .bg-white\/5 { background-color: rgba(255,255,255,.05); }
+.chat-light .chat-keep-dark .bg-white\/10 { background-color: rgba(255,255,255,.10); }
+.chat-light .chat-keep-dark .border-white\/5 { border-color: rgba(255,255,255,.05); }
+.chat-light .chat-keep-dark .border-white\/10 { border-color: rgba(255,255,255,.10); }
+.chat-light .chat-keep-dark { color: #E7E5E4; }
+
+/* --- Chat light skin: tambahan kartu AI (storyboard, produk, AI Worker, error) --- */
+.chat-light .text-emerald-200:not([class*="bg-black"]) { color: #065F46; }
+.chat-light .text-emerald-300:not([class*="bg-black"]) { color: #047857; }
+.chat-light .text-emerald-400:not([class*="bg-black"]) { color: #047857; }
+.chat-light .text-sky-300:not([class*="bg-black"]) { color: #0369A1; }
+.chat-light .text-sky-400:not([class*="bg-black"]) { color: #0369A1; }
+.chat-light .text-purple-300:not([class*="bg-black"]) { color: #7E22CE; }
+.chat-light .text-rose-200:not([class*="bg-black"]) { color: #BE123C; }
+.chat-light .text-rose-300:not([class*="bg-black"]) { color: #BE123C; }
+.chat-light .text-rose-400:not([class*="bg-black"]) { color: #BE123C; }
+.chat-light .text-blue-300:not([class*="bg-black"]) { color: #1D4ED8; }
+.chat-light .text-amber-300\/90:not([class*="bg-black"]) { color: #B45309; }
+.chat-light .hover\:text-amber-300:hover { color: #B45309; }
+.chat-light .bg-emerald-950\/20 { background-color: #ECFDF5; }
+.chat-light .bg-blue-950\/40 { background-color: #EFF6FF; }
+.chat-light .border-blue-800\/40 { border-color: #BFDBFE; }
+.chat-light .from-amber-500\/10.via-stone-900\/60 { background-image: linear-gradient(135deg,#FFFBEB 0%,#FFFFFF 100%); border-color:#FDE68A; }
+.chat-light .bg-stone-900\/40 { background-color: rgba(28,25,23,.04); }
+.chat-light .bg-stone-800\/80 { background-color: #E7E5E4; }
+.chat-light .hover\:bg-stone-800\/60:hover { background-color: rgba(28,25,23,.06); }
+.chat-light .hover\:bg-stone-700:hover { background-color: #C9C5BC; }
+.chat-light .border-stone-700,
+.chat-light .border-stone-700\/80,
+.chat-light .border-stone-700\/60,
+.chat-light .border-stone-800\/80,
+.chat-light .border-stone-800\/60 { border-color: rgba(60,50,40,.18); }
+.chat-light .bg-\[\#121318\]\/95 { background-color: #FFFBEB; border-color:#FDE68A; box-shadow: 0 8px 24px rgba(217,119,6,.10); }
+.chat-light .bg-\[\#171922\] { background-color: #FEF3C7; }
+.chat-light .bg-white\/\[0\.03\],
+.chat-light .bg-white\/\[0\.02\] { background-color: rgba(255,255,255,.75); }
+.chat-light .sb-card { background-image: linear-gradient(180deg,#FFFBEB 0%,#FFFFFF 100%); background-color:#FFFFFF; border-color:#FDE68A; box-shadow: 0 8px 24px rgba(217,119,6,.10); }
+.chat-light .sb-card .bg-amber-500\/12 { background-color: #FEF3C7; }
+.chat-light .sb-card .border-amber-500\/20 { border-color: #FDE68A; }
+.chat-light .sb-card .bg-black\/35,
+.chat-light .sb-card .bg-black\/40 { background-color: rgba(28,25,23,.05); }
+.chat-light .sb-card .bg-black\/60 { background-color: rgba(28,25,23,.06); }
+.chat-light .sb-card .bg-black\/80 { background-color: #F3F1EC; }
+.chat-light .sb-card .border-white\/6,
+.chat-light .sb-card .border-white\/8 { border-color: rgba(60,50,40,.14); }
+.chat-light .sb-card .bg-white\/\[0\.03\] { background-color: #FFFFFF; box-shadow: 0 1px 2px rgba(60,50,40,.06); }
+.chat-light .sb-card .bg-white\/\[0\.02\] { background-color: rgba(217,119,6,.06); }
+.chat-light .sb-card .bg-emerald-950\/20 { background-color: #ECFDF5; }
+.chat-light .sb-card .text-stone-500 { color: #78716C; }
+.chat-light .sb-card .text-white { color: #1C1917; }
+.chat-light .chat-keep-dark .text-emerald-300 { color: #6EE7B7; }
+.chat-light .chat-keep-dark .text-emerald-400 { color: #34D399; }
+.chat-light .chat-keep-dark .text-sky-300 { color: #7DD3FC; }
+.chat-light .chat-keep-dark .text-rose-200 { color: #FECDD3; }
+.chat-light .chat-keep-dark .text-rose-300 { color: #FDA4AF; }
+.chat-light .chat-keep-dark .text-rose-400 { color: #FB7185; }
+.chat-light .chat-keep-dark .bg-stone-900,
+.chat-light .chat-keep-dark .bg-stone-900\/90 { background-color: #1C1917; }
+.chat-light .chat-keep-dark .bg-stone-800 { background-color: #292524; }
+.chat-light .chat-keep-dark .hover\:bg-stone-700:hover { background-color: #44403C; }
+.chat-light .chat-keep-dark .hover\:text-white:hover,
+.chat-light .chat-keep-dark .group-hover\:text-white { color: #FFFFFF; }
+.chat-light .chat-keep-dark .text-stone-500 { color: #78716C; }
+
+/* root .chat-keep-dark yang juga membawa bg-stone-* (video player) */
+.chat-light .chat-keep-dark.bg-stone-900,
+.chat-light .chat-keep-dark.bg-stone-900\/90 { background-color: #1C1917; }

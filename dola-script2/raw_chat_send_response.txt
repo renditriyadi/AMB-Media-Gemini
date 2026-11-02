@@ -1,0 +1,12 @@
+id: 0
+event: SSE_HEARTBEAT
+data: {}
+
+id: 0
+event: STREAM_ERROR
+data: {"error_code":710022002,"error_msg":"We are experiencing high demand right now. Please try again later.","extra":{"ack":"1"}}
+
+id: 1
+event: SSE_REPLY_END
+data: {"end_type":3}
+

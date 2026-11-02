@@ -1,0 +1,418 @@
+{
+  "id": "6sRRBUf2tRNMJCN1kmL3OS",
+  "name": "untitled",
+  "owner": "07hrv9DxLvPbL0MrWfNrk73uwsE2",
+  "workspaceId": "34fb3e1d-e37a-42c5-bdad-438f9302f84d",
+  "organizationId": "1df7c394-d1b5-48f3-9f65-8f7abf89fd91",
+  "visibility": "private",
+  "sharedUsers": [],
+  "poster": "https://media.weavy.ai/image/upload/v1789176195/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/rcvmegqgdcnvggc79aau.png",
+  "userPoster": false,
+  "createdAt": "2026-08-26T10:10:53.516Z",
+  "updatedAt": "2026-09-12T01:23:16.922Z",
+  "publishedVersions": [],
+  "version": 1,
+  "nodes": [
+    {
+      "id": "dcd064c1-a6bb-4132-b77a-5449c051aee8",
+      "isModel": true,
+      "type": "custommodelV2",
+      "position": {
+        "x": 1040,
+        "y": 1140
+      },
+      "data": {
+        "kind": {
+          "type": "any_llm",
+          "model": {
+            "data": {
+              "type": "string",
+              "value": "google/gemini-3-pro"
+            },
+            "type": "value"
+          },
+          "images": [
+            [
+              "image",
+              {
+                "file": {
+                  "id": "687e88aa-578d-45dd-9a37-a3d3894c0fa4",
+                  "url": "https://media.weavy.ai/image/upload/v1789176124/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png",
+                  "name": "canvas_Nano_Banana_Pro_964665.png",
+                  "type": "image",
+                  "width": 3072,
+                  "height": 5504,
+                  "publicId": "uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn",
+                  "thumbnailUrl": "https://media.weavy.ai/image/upload/c_scale,w_150/v1/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png?_a=BAMAPqWO0"
+                },
+                "nodeId": "cc3ea856-0f63-4a83-8c5c-ddb3588b725b",
+                "outputId": "file"
+              }
+            ]
+          ],
+          "prompt": {
+            "nodeId": "2a5aa7fb-c4c0-459a-9958-f04c42290655",
+            "string": "tolong jelaskan dengan dtail gambar inih",
+            "outputId": "prompt"
+          },
+          "thinking": {
+            "data": {
+              "type": "boolean",
+              "value": false
+            },
+            "type": "value"
+          },
+          "temperature": {
+            "data": {
+              "type": "float",
+              "value": 0
+            },
+            "type": "value"
+          }
+        },
+        "menu": null,
+        "name": "Any LLM",
+        "color": "Yambo_Purple",
+        "label": null,
+        "model": {
+          "name": "any_llm"
+        },
+        "output": {
+          "text": {
+            "id": "4172b387-5850-45a2-9daf-63d557d4676e",
+            "type": "text",
+            "input": {
+              "model": "google/gemini-3-pro",
+              "images": "https://media.weavy.ai/image/upload/v1789176124/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png",
+              "prompt": "tolong jelaskan dengan dtail gambar inih",
+              "thinking": "false",
+              "temperature": "0"
+            },
+            "order": 0,
+            "value": "Tentu, berikut adalah penjelasan detail mengenai gambar tersebut:\n\n**1. Subjek Utama (Wanita):**\n*   **Penampilan Fisik:** Gambar ini menampilkan seorang wanita muda yang tampak memiliki garis keturunan Asia Timur. Ia berdiri tegak menghadap langsung ke arah kamera.\n*   **Wajah & Ekspresi:** Wajahnya menatap lurus dengan ekspresi yang tenang, netral, dan sedikit menyunggingkan senyum tipis yang ramah. Riasan wajahnya tampak sangat natural (flawless), dengan rona pipi yang samar dan warna bibir merah muda yang lembut.\n*   **Rambut:** Ia memiliki rambut berwarna hitam lurus dengan panjang sebahu. Ujung rambutnya sedikit melengkung ke luar. Ia juga memiliki poni depan (wispy bangs) yang menutupi dahinya namun tidak terlalu tebal.\n*   **Pose:** Posenya santai, berdiri tegak dengan kedua lengan lurus dan rileks di samping tubuhnya.\n\n**2. Pakaian:**\n*   **Atasan:** Ia mengenakan kaus lengan panjang dengan motif garis-garis horizontal. Warnanya adalah perpaduan antara garis putih dan merah marun (merah gelap). Kaus tersebut memiliki potongan yang longgar (*oversized*), dengan kerah berbentuk bundar (crew neck) yang list pinggirannya berwarna merah marun solid.\n*   **Bawahan:** Ia memakai celana panjang berwarna abu-abu muda. Celana ini juga berpotongan longgar dan terlihat berbahan kaus atau katun yang lembut, menyerupai celana santai (*sweatpants* atau *lounge pants*).\n\n**3. Latar Belakang & Lingkungan:**\n*   **Dinding:** Tepat di belakang wanita tersebut adalah dinding polos berwarna abu-abu terang yang terlihat bersih.\n*   **Lantai:** Lantainya menggunakan material dengan motif serat kayu (*wood laminate* atau *vinyl*) berwarna cokelat tua yang memberikan kontras dengan warna dinding dan pakaiannya. Terdapat lis lantai (*skirting board*) berwarna gelap di sudut pertemuan dinding dan lantai.\n*   **Perabotan (Sisi Kanan):** Di sebelah kanan gambar, agak di belakang, terdapat sebuah kabinet atau laci berwarna hitam mengkilap. Di atasnya terdapat sebuah televisi layar datar berwarna hitam. Layar TV tersebut memantulkan bayangan ruangan, yang sepertinya adalah bayangan tempat tidur dengan seprai putih, mengindikasikan bahwa foto ini kemungkinan diambil di dalam kamar tidur.\n\n**4. Pencahayaan & Kesan Keseluruhan:**\n*   **Pencahayaan:** Pencahayaannya terlihat sangat lembut, merata, dan terang, menyorot wajah dan tubuh subjek tanpa menghasilkan bayangan yang keras. Hal ini memberikan kesan foto studio atau penggunaan pencahayaan alami dari jendela besar di depan subjek.\n*   **Kesan:** Secara keseluruhan, gambar ini memberikan kesan kasual, santai (*homey*), bersih, dan rapi.",
+            "params": {},
+            "batchId": "1041aaf5-8c6b-4464-a668-56a332083f27",
+            "secondaryOrder": 0
+          }
+        },
+        "params": {
+          "model": "google/gemini-3-pro",
+          "temperature": 0
+        },
+        "result": [
+          {
+            "id": "4172b387-5850-45a2-9daf-63d557d4676e",
+            "type": "text",
+            "input": {
+              "model": "google/gemini-3-pro",
+              "images": "https://media.weavy.ai/image/upload/v1789176124/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png",
+              "prompt": "tolong jelaskan dengan dtail gambar inih",
+              "thinking": "false",
+              "temperature": "0"
+            },
+            "order": 0,
+            "value": "Tentu, berikut adalah penjelasan detail mengenai gambar tersebut:\n\n**1. Subjek Utama (Wanita):**\n*   **Penampilan Fisik:** Gambar ini menampilkan seorang wanita muda yang tampak memiliki garis keturunan Asia Timur. Ia berdiri tegak menghadap langsung ke arah kamera.\n*   **Wajah & Ekspresi:** Wajahnya menatap lurus dengan ekspresi yang tenang, netral, dan sedikit menyunggingkan senyum tipis yang ramah. Riasan wajahnya tampak sangat natural (flawless), dengan rona pipi yang samar dan warna bibir merah muda yang lembut.\n*   **Rambut:** Ia memiliki rambut berwarna hitam lurus dengan panjang sebahu. Ujung rambutnya sedikit melengkung ke luar. Ia juga memiliki poni depan (wispy bangs) yang menutupi dahinya namun tidak terlalu tebal.\n*   **Pose:** Posenya santai, berdiri tegak dengan kedua lengan lurus dan rileks di samping tubuhnya.\n\n**2. Pakaian:**\n*   **Atasan:** Ia mengenakan kaus lengan panjang dengan motif garis-garis horizontal. Warnanya adalah perpaduan antara garis putih dan merah marun (merah gelap). Kaus tersebut memiliki potongan yang longgar (*oversized*), dengan kerah berbentuk bundar (crew neck) yang list pinggirannya berwarna merah marun solid.\n*   **Bawahan:** Ia memakai celana panjang berwarna abu-abu muda. Celana ini juga berpotongan longgar dan terlihat berbahan kaus atau katun yang lembut, menyerupai celana santai (*sweatpants* atau *lounge pants*).\n\n**3. Latar Belakang & Lingkungan:**\n*   **Dinding:** Tepat di belakang wanita tersebut adalah dinding polos berwarna abu-abu terang yang terlihat bersih.\n*   **Lantai:** Lantainya menggunakan material dengan motif serat kayu (*wood laminate* atau *vinyl*) berwarna cokelat tua yang memberikan kontras dengan warna dinding dan pakaiannya. Terdapat lis lantai (*skirting board*) berwarna gelap di sudut pertemuan dinding dan lantai.\n*   **Perabotan (Sisi Kanan):** Di sebelah kanan gambar, agak di belakang, terdapat sebuah kabinet atau laci berwarna hitam mengkilap. Di atasnya terdapat sebuah televisi layar datar berwarna hitam. Layar TV tersebut memantulkan bayangan ruangan, yang sepertinya adalah bayangan tempat tidur dengan seprai putih, mengindikasikan bahwa foto ini kemungkinan diambil di dalam kamar tidur.\n\n**4. Pencahayaan & Kesan Keseluruhan:**\n*   **Pencahayaan:** Pencahayaannya terlihat sangat lembut, merata, dan terang, menyorot wajah dan tubuh subjek tanpa menghasilkan bayangan yang keras. Hal ini memberikan kesan foto studio atau penggunaan pencahayaan alami dari jendela besar di depan subjek.\n*   **Kesan:** Secara keseluruhan, gambar ini memberikan kesan kasual, santai (*homey*), bersih, dan rapi.",
+            "params": {},
+            "batchId": "1041aaf5-8c6b-4464-a668-56a332083f27",
+            "secondaryOrder": 0
+          }
+        ],
+        "schema": {
+          "model": {
+            "type": "enum",
+            "order": 0,
+            "title": "Model Name",
+            "default": "google/gemini-3-pro",
+            "options": [
+              "anthropic/claude-opus-5",
+              "anthropic/claude-sonnet-5",
+              "anthropic/claude-opus-4-7",
+              "anthropic/claude-opus-4-6",
+              "anthropic/claude-sonnet-4-6",
+              "anthropic/claude-haiku-4-5",
+              "google/gemini-3.1-pro",
+              "google/gemini-3.6-flash",
+              "google/gemini-3.5-flash-lite",
+              "google/gemini-3-pro",
+              "google/gemini-2.5-flash",
+              "google/gemini-2.5-flash-lite",
+              "openai/gpt-5.6-sol",
+              "openai/gpt-5.6-terra",
+              "openai/gpt-5.6-luna",
+              "openai/gpt-4o",
+              "openai/gpt-4.1",
+              "meta-llama/llama-4-maverick",
+              "meta-llama/llama-4-scout"
+            ],
+            "description": "Name of the model to use"
+          },
+          "thinking": {
+            "type": "boolean",
+            "order": 5,
+            "title": "Thinking",
+            "default": false,
+            "required": false,
+            "description": "Enhanced reasoning capabilities for complex task (For supported models only)"
+          },
+          "temperature": {
+            "max": 2,
+            "min": 0,
+            "type": "number",
+            "title": "Temperature",
+            "default": 0,
+            "description": "This setting influences the variety in the model’s responses. Lower values lead to more predictable and typical responses, while higher values encourage more diverse and less common responses. At 0, the model always gives the same response for a given input."
+          }
+        },
+        "handles": {
+          "input": {
+            "image": {
+              "type": "image",
+              "label": "image 1",
+              "order": 2,
+              "format": "uri",
+              "required": false,
+              "description": "Image to analyse"
+            },
+            "prompt": {
+              "type": "text",
+              "order": 0,
+              "format": "text",
+              "required": true,
+              "description": "Describe your request from the model"
+            },
+            "system_prompt": {
+              "type": "text",
+              "order": 1,
+              "format": "text",
+              "required": false,
+              "description": "Describe the purpose of the model (e.g \"you are a prompt generator\")"
+            }
+          },
+          "output": {
+            "text": {
+              "type": "text",
+              "order": 0,
+              "format": "text",
+              "description": "The LLM response"
+            }
+          }
+        },
+        "version": 3,
+        "dark_color": "Yambo_Purple_Dark",
+        "description": "Run any large language model.",
+        "generations": [
+          {
+            "kind": {
+              "id": "4172b387-5850-45a2-9daf-63d557d4676e",
+              "type": "text",
+              "value": "Tentu, berikut adalah penjelasan detail mengenai gambar tersebut:\n\n**1. Subjek Utama (Wanita):**\n*   **Penampilan Fisik:** Gambar ini menampilkan seorang wanita muda yang tampak memiliki garis keturunan Asia Timur. Ia berdiri tegak menghadap langsung ke arah kamera.\n*   **Wajah & Ekspresi:** Wajahnya menatap lurus dengan ekspresi yang tenang, netral, dan sedikit menyunggingkan senyum tipis yang ramah. Riasan wajahnya tampak sangat natural (flawless), dengan rona pipi yang samar dan warna bibir merah muda yang lembut.\n*   **Rambut:** Ia memiliki rambut berwarna hitam lurus dengan panjang sebahu. Ujung rambutnya sedikit melengkung ke luar. Ia juga memiliki poni depan (wispy bangs) yang menutupi dahinya namun tidak terlalu tebal.\n*   **Pose:** Posenya santai, berdiri tegak dengan kedua lengan lurus dan rileks di samping tubuhnya.\n\n**2. Pakaian:**\n*   **Atasan:** Ia mengenakan kaus lengan panjang dengan motif garis-garis horizontal. Warnanya adalah perpaduan antara garis putih dan merah marun (merah gelap). Kaus tersebut memiliki potongan yang longgar (*oversized*), dengan kerah berbentuk bundar (crew neck) yang list pinggirannya berwarna merah marun solid.\n*   **Bawahan:** Ia memakai celana panjang berwarna abu-abu muda. Celana ini juga berpotongan longgar dan terlihat berbahan kaus atau katun yang lembut, menyerupai celana santai (*sweatpants* atau *lounge pants*).\n\n**3. Latar Belakang & Lingkungan:**\n*   **Dinding:** Tepat di belakang wanita tersebut adalah dinding polos berwarna abu-abu terang yang terlihat bersih.\n*   **Lantai:** Lantainya menggunakan material dengan motif serat kayu (*wood laminate* atau *vinyl*) berwarna cokelat tua yang memberikan kontras dengan warna dinding dan pakaiannya. Terdapat lis lantai (*skirting board*) berwarna gelap di sudut pertemuan dinding dan lantai.\n*   **Perabotan (Sisi Kanan):** Di sebelah kanan gambar, agak di belakang, terdapat sebuah kabinet atau laci berwarna hitam mengkilap. Di atasnya terdapat sebuah televisi layar datar berwarna hitam. Layar TV tersebut memantulkan bayangan ruangan, yang sepertinya adalah bayangan tempat tidur dengan seprai putih, mengindikasikan bahwa foto ini kemungkinan diambil di dalam kamar tidur.\n\n**4. Pencahayaan & Kesan Keseluruhan:**\n*   **Pencahayaan:** Pencahayaannya terlihat sangat lembut, merata, dan terang, menyorot wajah dan tubuh subjek tanpa menghasilkan bayangan yang keras. Hal ini memberikan kesan foto studio atau penggunaan pencahayaan alami dari jendela besar di depan subjek.\n*   **Kesan:** Secara keseluruhan, gambar ini memberikan kesan kasual, santai (*homey*), bersih, dan rapi."
+            },
+            "input": [
+              [
+                "model",
+                "google/gemini-3-pro"
+              ],
+              [
+                "images",
+                "https://media.weavy.ai/image/upload/v1789176124/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png"
+              ],
+              [
+                "prompt",
+                "tolong jelaskan dengan dtail gambar inih"
+              ],
+              [
+                "thinking",
+                "false"
+              ],
+              [
+                "temperature",
+                "0"
+              ]
+            ],
+            "order": 0,
+            "batchId": "1041aaf5-8c6b-4464-a668-56a332083f27",
+            "parameters": [],
+            "secondaryOrder": 0
+          }
+        ],
+        "renderWidth": 1024,
+        "border_color": "Yambo_Purple_Stroke",
+        "cameraLocked": false,
+        "renderHeight": 1024,
+        "selectedIndex": 0,
+        "selectedOutput": 0
+      },
+      "createdAt": "2026-09-12T01:21:44.760Z",
+      "dragHandle": ".node-header",
+      "originalName": "Any LLM"
+    },
+    {
+      "id": "cc3ea856-0f63-4a83-8c5c-ddb3588b725b",
+      "isModel": false,
+      "type": "import",
+      "position": {
+        "x": 390,
+        "y": 1420
+      },
+      "data": {
+        "menu": null,
+        "name": "File",
+        "color": "Yambo_Blue",
+        "files": [
+          {
+            "id": "687e88aa-578d-45dd-9a37-a3d3894c0fa4",
+            "url": "https://media.weavy.ai/image/upload/v1789176124/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png",
+            "name": "canvas_Nano_Banana_Pro_964665.png",
+            "type": "image",
+            "width": 3072,
+            "height": 5504,
+            "publicId": "uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn",
+            "thumbnailUrl": "https://media.weavy.ai/image/upload/c_scale,w_150/v1/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png?_a=BAMAPqWO0",
+            "insertionOrder": 0
+          }
+        ],
+        "label": null,
+        "width": 1024,
+        "height": 1024,
+        "output": {
+          "file": {
+            "id": "687e88aa-578d-45dd-9a37-a3d3894c0fa4",
+            "url": "https://media.weavy.ai/image/upload/v1789176124/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png",
+            "name": "canvas_Nano_Banana_Pro_964665.png",
+            "type": "image",
+            "width": 3072,
+            "height": 5504,
+            "publicId": "uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn",
+            "thumbnailUrl": "https://media.weavy.ai/image/upload/c_scale,w_150/v1/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png?_a=BAMAPqWO0",
+            "insertionOrder": 0
+          }
+        },
+        "params": null,
+        "result": {
+          "id": "687e88aa-578d-45dd-9a37-a3d3894c0fa4",
+          "url": "https://media.weavy.ai/image/upload/v1789176124/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png",
+          "name": "canvas_Nano_Banana_Pro_964665.png",
+          "type": "image",
+          "width": 3072,
+          "height": 5504,
+          "publicId": "uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn",
+          "thumbnailUrl": "https://media.weavy.ai/image/upload/c_scale,w_150/v1/uploads/07hrv9DxLvPbL0MrWfNrk73uwsE2/thxxlfkz1mcrb9fycpkn.png?_a=BAMAPqWO0",
+          "insertionOrder": 0
+        },
+        "schema": null,
+        "handles": {
+          "output": {
+            "file": {
+              "type": "any",
+              "label": "File",
+              "order": 0,
+              "format": "uri",
+              "description": "The uploaded file"
+            }
+          }
+        },
+        "version": 3,
+        "dark_color": "Yambo_Blue_Dark",
+        "description": null,
+        "border_color": "Yambo_Blue_Stroke",
+        "cameraLocked": false,
+        "selectedIndex": 0
+      },
+      "createdAt": "2026-09-12T01:21:49.295Z",
+      "dragHandle": ".node-header",
+      "originalName": "File"
+    },
+    {
+      "id": "2a5aa7fb-c4c0-459a-9958-f04c42290655",
+      "isModel": false,
+      "type": "promptV3",
+      "position": {
+        "x": 390,
+        "y": 970
+      },
+      "data": {
+        "menu": null,
+        "name": "Prompt",
+        "color": "Yambo_Green",
+        "label": "prompt",
+        "output": {
+          "type": "text",
+          "prompt": "tolong jelaskan dengan dtail gambar inih"
+        },
+        "params": null,
+        "prompt": "tolong jelaskan dengan dtail gambar inih",
+        "result": {
+          "prompt": "tolong jelaskan dengan dtail gambar inih"
+        },
+        "schema": null,
+        "handles": {
+          "input": [],
+          "output": {
+            "prompt": {
+              "type": "text",
+              "order": 0,
+              "format": "text",
+              "description": "Text prompt"
+            }
+          }
+        },
+        "version": 3,
+        "dark_color": "Yambo_Green_Dark",
+        "inputNodes": [],
+        "description": null,
+        "displayMode": "source-value",
+        "border_color": "Yambo_Green_Stroke"
+      },
+      "createdAt": "2026-09-12T01:22:00.010Z",
+      "dragHandle": ".node-header",
+      "originalName": "Prompt"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ce8eaa85-f3da-404b-aa8a-16681823dafd",
+      "data": {
+        "sourceColor": "Yambo_Blue",
+        "targetColor": "Yambo_Purple",
+        "sourceHandleType": "any",
+        "targetHandleType": "image"
+      },
+      "type": "custom",
+      "source": "cc3ea856-0f63-4a83-8c5c-ddb3588b725b",
+      "target": "dcd064c1-a6bb-4132-b77a-5449c051aee8",
+      "selected": false,
+      "sourceHandle": "cc3ea856-0f63-4a83-8c5c-ddb3588b725b-output-file",
+      "targetHandle": "dcd064c1-a6bb-4132-b77a-5449c051aee8-input-image"
+    },
+    {
+      "id": "f37d9fe3-e1a8-49f5-8b46-b536d2d7ef65",
+      "data": {
+        "sourceColor": "Yambo_Green",
+        "targetColor": "Yambo_Purple",
+        "sourceHandleType": "text",
+        "targetHandleType": "text"
+      },
+      "type": "custom",
+      "source": "2a5aa7fb-c4c0-459a-9958-f04c42290655",
+      "target": "dcd064c1-a6bb-4132-b77a-5449c051aee8",
+      "selected": false,
+      "sourceHandle": "2a5aa7fb-c4c0-459a-9958-f04c42290655-output-prompt",
+      "targetHandle": "dcd064c1-a6bb-4132-b77a-5449c051aee8-input-prompt"
+    }
+  ],
+  "latestVersion": {
+    "version": 1,
+    "createdAt": "2026-08-26T10:10:53.516Z"
+  },
+  "latestPublishedVersion": null,
+  "showcaseOrder": null,
+  "showcase": null,
+  "designAppMetadata": null,
+  "v3": true,
+  "batchRuns": [],
+  "folderId": null,
+  "scope": "PERSONAL",
+  "isDeleted": false,
+  "resolvedAssets": {},
+  "redirectToToolId": null
+}

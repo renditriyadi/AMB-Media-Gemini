@@ -1,0 +1,42 @@
+[
+  {
+    "id": "chat_1793489301709_mcz0z",
+    "title": "tes masuk bor?",
+    "messages": [
+      {
+        "id": "msg_user_1793489309609",
+        "role": "user",
+        "content": "tes masuk bor?",
+        "timestamp": "06:28 AM",
+        "attachments": []
+      },
+      {
+        "id": "msg_ai_1793489309609",
+        "role": "assistant",
+        "content": "Masuk jelas, bro. Siap eksekusi storyboard, prompt visual Weavy, atau bedah video.",
+        "timestamp": "06:28 AM",
+        "model": "openai/gpt-5.6-sol",
+        "modelDisplayName": "GPT-5.6 Sol",
+        "attachments": []
+      }
+    ],
+    "createdAt": "2026-10-31T23:28:21.709Z",
+    "updatedAt": "2026-10-31T23:28:35.979Z",
+    "model": "openai/gpt-5.6-sol",
+    "mode": "chat",
+    "metadata": {
+      "projectMemory": {
+        "product": "",
+        "audience": "",
+        "campaign": "",
+        "visualStyle": "",
+        "constraints": [],
+        "brandRules": [],
+        "decisions": [],
+        "assets": [],
+        "updatedAt": "2026-10-31T23:28:29.655Z"
+      },
+      "storyboardCopilotEnabled": false
+    }
+  }
+]

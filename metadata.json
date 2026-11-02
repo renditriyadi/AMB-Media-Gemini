@@ -1,0 +1,8 @@
+{
+  "name": "Remix AMB V3",
+  "description": "An elegant Hello World web application featuring dual light/dark themes, custom greeting inputs, language selector, and interactive appreciation counter.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

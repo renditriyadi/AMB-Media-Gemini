@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dola Video Downloader - Side Panel</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="panel-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M23 7l-7 5 7 5V7z"></path>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Dola Video Grabber</h1>
+          <div class="status-indicator">
+            <span class="status-dot online"></span>
+            <span id="tab-status-text">Mendeteksi tab Dola...</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-scan" class="action-btn" title="Scan ulang video di halaman Dola">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Scan
+        </button>
+        <button id="btn-clear" class="action-btn danger" title="Bersihkan riwayat panel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Info Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Video Terdeteksi:</span>
+        <span id="video-count-badge" class="stat-value">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="badge-tag">1080p CDN (No Watermark)</span>
+      </div>
+    </div>
+
+    <!-- Search / Filter Box -->
+    <div class="search-box-container">
+      <input type="text" id="search-input" placeholder="Cari ID video atau kata kunci prompt..." />
+    </div>
+
+    <!-- Video List Container -->
+    <main id="video-list" class="video-list">
+      <!-- Diisi secara dinamis oleh sidepanel.js -->
+    </main>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polygon points="10 8 16 12 10 16 10 8"></polygon>
+        </svg>
+      </div>
+      <h3>Belum Ada Video Terdeteksi</h3>
+      <p>Buka halaman <strong style="color: #38bdf8;">dola.com/chat</strong> di tab sebelah kiri.</p>
+      <p class="empty-subtext">Setiap kali video baru selesai digenerate atau percakapan dibuka, ekstensi ini otomatis menangkap link CDN aslinya tanpa watermark.</p>
+      <button id="btn-open-dola" class="btn-primary" style="margin-top: 14px;">
+        Buka Dola Chat
+      </button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

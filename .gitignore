@@ -1,0 +1,23 @@
+# Secrets and local credentials
+.env
+.env.*
+!.env.example
+google-service-account.json
+**/google-service-account*.json
+**/*service-account*.json
+**/credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local browser profiles may contain authenticated sessions
+.playwright-profiles/
+playwright-browsers/
+
+# Local dependencies and generated output
+node_modules/
+dist/
+media-cache/
+.tmp-smoke/
+*.log
