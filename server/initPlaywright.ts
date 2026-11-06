@@ -26,14 +26,22 @@ export function resolveLocalPlaywrightExecutable(): string | undefined {
       .sort((a, b) => b.name.localeCompare(a.name));
 
     for (const cDir of chromiumDirs) {
-      const candidateWin = path.join(localBrowsersDir, cDir.name, 'chrome-win', 'chrome.exe');
-      const candidateLinux = path.join(localBrowsersDir, cDir.name, 'chrome-linux64', 'chrome');
-      const candidate = isWin ? candidateWin : candidateLinux;
-      if (fs.existsSync(candidate)) {
-        try {
-          if (!isWin) fs.chmodSync(candidate, 0o755);
-        } catch (_) {}
-        return candidate;
+      const winCandidates = [
+        path.join(localBrowsersDir, cDir.name, 'chrome-win64', 'chrome.exe'),
+        path.join(localBrowsersDir, cDir.name, 'chrome-win', 'chrome.exe'),
+      ];
+      const linuxCandidates = [
+        path.join(localBrowsersDir, cDir.name, 'chrome-linux64', 'chrome'),
+        path.join(localBrowsersDir, cDir.name, 'chrome-linux', 'chrome'),
+      ];
+      const candidates = isWin ? winCandidates : linuxCandidates;
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          try {
+            if (!isWin) fs.chmodSync(candidate, 0o755);
+          } catch (_) {}
+          return candidate;
+        }
       }
     }
 

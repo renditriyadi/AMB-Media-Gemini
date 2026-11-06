@@ -3,6 +3,7 @@ import {
   autoSyncGeminiAccountCredits,
   buildGeminiPayloadAccounts,
   handleGeminiExhaustedAccounts,
+  markGeminiAccountSessionInvalid,
 } from './geminiAccountManager';
 import { safeFetchJson } from '../utils';
 
@@ -211,6 +212,16 @@ export async function executeGeminiVideoWithAutoSwitchAndRetry({
       throw new Error('Status Gemini tidak memberikan respons JSON yang valid. Polling task dihentikan.');
     }
 
+    if (pollData?.accountSessionInvalid) {
+      markGeminiAccountSessionInvalid(activeAccount, pollData?.statusMessage || 'EXPIRED');
+    }
+
+    if (pollData?.statusUnknown && pollData?.pollingLimitReached) {
+      throw new Error(
+        'Status video tetap belum diketahui setelah batas percobaan. Pemantauan dihentikan, tetapi akun tetap dikunci untuk mencegah generate duplikat. Periksa kembali status task sebelum mencoba lagi.',
+      );
+    }
+
     if (pollData?.failureSource === 'status_poll') {
       const message = getResponseError(
         pollData,
@@ -239,7 +250,7 @@ export async function executeGeminiVideoWithAutoSwitchAndRetry({
       typeof pollData?.remainingCredits === 'number'
         ? pollData.remainingCredits
         : pollData?.userRemainingCredits;
-    if (typeof remainingCredits === 'number') {
+    if (typeof remainingCredits === 'number' && !pollData?.accountSessionInvalid) {
       autoSyncGeminiAccountCredits(activeAccount, remainingCredits);
     }
 

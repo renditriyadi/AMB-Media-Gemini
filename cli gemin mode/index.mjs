@@ -66,7 +66,7 @@ async function request(path, { method = 'GET', body, timeoutMs = 30_000, authent
     if (!data || typeof data !== 'object') {
       throw new Error(`Respons server tidak valid (HTTP ${response.status}).`);
     }
-    if (!response.ok || (data.success === false && !allowFailure)) {
+    if ((!response.ok || data.success === false) && !allowFailure) {
       throw new Error(data.error || data.errorMessage || `Request gagal (HTTP ${response.status}).`);
     }
     return data;
@@ -206,6 +206,7 @@ async function synchronizeAccount(account = selectedAccount) {
     method: 'POST',
     body: {},
     timeoutMs: 180_000,
+    allowFailure: true,
   });
   console.log(
     `Status: ${result.accountStatus || 'unknown'} | Kredit: ${result.remainingCredits ?? 0}/${result.totalCredits ?? 2} | ` +
@@ -224,13 +225,12 @@ async function synchronizeAccount(account = selectedAccount) {
 
 async function selectAndSync(account = selectedAccount) {
   const chosenAccount = account || await chooseAccount();
-  if (!chosenAccount) return false;
+  if (!chosenAccount) return null;
   try {
-    const result = await synchronizeAccount(chosenAccount);
-    return result?.success === true && result.ledgerKnown === true && result.accountStatus === 'active';
+    return await synchronizeAccount(chosenAccount);
   } catch (error) {
     console.log(`Sinkronisasi gagal: ${error.message}`);
-    return false;
+    return null;
   }
 }
 
@@ -290,8 +290,31 @@ async function generateVideo() {
     selectedAccount = await chooseAccount();
     if (!selectedAccount) return;
   }
-  if (!(await selectAndSync(selectedAccount))) return;
-  if (selectedAccount.creditSyncStatus !== 'synced') {
+  const syncResult = await selectAndSync(selectedAccount);
+  if (!syncResult) return;
+
+  let allowInvalidSessionTest = false;
+  if (syncResult.accountStatus === 'expired') {
+    console.log(
+      '\nSesi akun terkonfirmasi tidak valid. Uji ini hanya akan meminta server memverifikasi ulang ' +
+      'dan menolak sesi sebelum task dibuat; video tidak akan digenerate.'
+    );
+    const confirmation = await ask('Ketik UJI untuk melanjutkan satu percobaan validasi sesi: ');
+    if (confirmation !== 'UJI') {
+      console.log('Percobaan uji sesi invalid dibatalkan.');
+      return;
+    }
+    allowInvalidSessionTest = true;
+  } else if (
+    syncResult.success !== true ||
+    syncResult.accountStatus !== 'active' ||
+    syncResult.ledgerKnown !== true
+  ) {
+    console.log('Generate diblokir: sesi harus aktif dan saldo ledger harus diketahui.');
+    return;
+  }
+
+  if (!allowInvalidSessionTest && selectedAccount.creditSyncStatus !== 'synced') {
     console.log('Generate diblokir: saldo harus tersinkron sebelum testing.');
     return;
   }
@@ -324,21 +347,39 @@ async function generateVideo() {
     { label: '720p', value: '720p' },
   ]);
 
-  const confirm = (await ask(
-    `\nMode test CLI: generate dengan akun ${selectedAccount.email || selectedAccount.name} meski saldo internal ${selectedAccount.credits}/2? ` +
-    'Kredit internal tidak dipotong, tetapi kuota Google tetap berlaku. [y/N]: '
-  )).toLowerCase();
-  if (confirm !== 'y' && confirm !== 'yes') {
-    console.log('Generate dibatalkan.');
-    return;
+  if (!allowInvalidSessionTest) {
+    const confirm = (await ask(
+      `\nMode test CLI: generate dengan akun ${selectedAccount.email || selectedAccount.name} meski saldo internal ${selectedAccount.credits}/2? ` +
+      'Kredit internal tidak dipotong, tetapi kuota Google tetap berlaku. [y/N]: '
+    )).toLowerCase();
+    if (confirm !== 'y' && confirm !== 'yes') {
+      console.log('Generate dibatalkan.');
+      return;
+    }
   }
 
   try {
     const result = await request('/cli/gemini/generate-video', {
       method: 'POST',
-      body: { accountId: selectedAccount.id, prompt, aspectRatio, duration, resolution },
+      body: {
+        accountId: selectedAccount.id,
+        prompt,
+        aspectRatio,
+        duration,
+        resolution,
+        allowInvalidSessionTest,
+      },
       timeoutMs: 210_000,
+      allowFailure: allowInvalidSessionTest,
     });
+    if (allowInvalidSessionTest) {
+      if (result.failureSource === 'invalid_session_test' && result.accountStatus === 'expired') {
+        console.log(`\nUji sesi berhasil: server menolak akun invalid sebelum task dibuat. ${result.error || ''}`);
+      } else {
+        console.log(`\nUji sesi tidak dapat memastikan akun invalid: ${result.error || result.errorMessage || 'respons server tidak sesuai.'}`);
+      }
+      return;
+    }
     console.log(result.message || 'Task generate diterima server.');
     if (result.creditBypassed) {
       console.log('Mode test CLI aktif: kredit internal tidak dipotong.');

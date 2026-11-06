@@ -111,7 +111,7 @@ interface CanvasViewProps {
 }
 
 // Tipe node yang punya aksi "Run" (dipakai oleh Run Selected)
-const RUNNABLE_NODE_TYPES: string[] = ['aiWorker', 'storyboard', 'promptEnhancer', 'anyLLM', 'imageModel', 'geminiVideo', 'videoStitcher'];
+const RUNNABLE_NODE_TYPES: string[] = ['aiWorker', 'storyboard', 'promptEnhancer', 'anyLLM', 'imageModel', 'geminiVideo', 'vidsVideo', 'videoStitcher'];
 
 const getAiWorkerAnalysisSignature = (
   node: CanvasNode,
@@ -148,6 +148,7 @@ const RESETTABLE_NODE_TYPES: string[] = [
   'anyLLM',
   'imageModel',
   'geminiVideo',
+  'vidsVideo',
   'videoStitcher',
   'imageViewer',
 ];
@@ -187,6 +188,17 @@ const getResetNodeData = (node: CanvasNode): any => {
         resultUrl: undefined,
         videoUrl: undefined,
         operationName: undefined,
+        naturalWidth: undefined,
+        naturalHeight: undefined,
+      };
+    case 'vidsVideo':
+      return {
+        ...d,
+        ...clearRun,
+        inputPrompt: undefined,
+        outputVideo: undefined,
+        resultUrl: undefined,
+        videoUrl: undefined,
         naturalWidth: undefined,
         naturalHeight: undefined,
       };
@@ -400,7 +412,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     setSelectedNodeIds(id ? [id] : []);
     if (id) {
       const node = recipe.nodes.find((n) => n.id === id);
-      if (node?.type === 'imageModel' || node?.type === 'geminiVideo' || node?.type === 'videoStitcher' || node?.type === 'anyLLM' || node?.type === 'promptEnhancer' || node?.type === 'storyboard') {
+      if (node?.type === 'imageModel' || node?.type === 'geminiVideo' || node?.type === 'vidsVideo' || node?.type === 'videoStitcher' || node?.type === 'anyLLM' || node?.type === 'promptEnhancer' || node?.type === 'storyboard') {
         setIsInspectorOpen(true);
       }
     } else {
@@ -423,6 +435,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         node &&
         (node.type === 'imageModel' ||
           node.type === 'geminiVideo' ||
+          node.type === 'vidsVideo' ||
           node.type === 'videoStitcher' ||
           node.type === 'anyLLM' ||
           node.type === 'promptEnhancer' ||
@@ -915,7 +928,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   // Node CRUD operations
   const handleAddNode = (
-    type: 'prompt' | 'imageInput' | 'imageModel' | 'imageViewer' | 'promptEnhancer' | 'anyLLM' | 'note' | 'geminiVideo' | 'storyboard' | 'aiWorker' | 'videoStitcher',
+    type: CanvasNodeType,
     positionOverride?: { x: number; y: number }
   ) => {
     recordHistory();
@@ -1012,6 +1025,28 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           duration: '10s',
           aspectRatio: '9:16',
           creditsCost: 0,
+          status: 'idle',
+          progress: 0,
+        },
+      };
+    } else if (type === 'vidsVideo') {
+      newNode = {
+        id,
+        type: 'vidsVideo',
+        title: 'Google Vids Omni',
+        subtitle: 'Video generation · Google Vids',
+        colorTheme: 'blue',
+        position: { x, y },
+        inputs: [
+          { id: 'input-prompt', name: 'prompt', type: 'text', label: 'Prompt', required: true },
+        ],
+        outputs: [
+          { id: 'output-video', name: 'video', type: 'video', label: 'Google Vids Video' },
+        ],
+        data: {
+          modelDisplayName: 'Google Vids Omni',
+          aspectRatio: '9:16',
+          resolution: '720p',
           status: 'idle',
           progress: 0,
         },
@@ -1641,6 +1676,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             node &&
             (node.type === 'imageModel' ||
               node.type === 'geminiVideo' ||
+              node.type === 'vidsVideo' ||
               node.type === 'videoStitcher' ||
               node.type === 'anyLLM' ||
               node.type === 'promptEnhancer' ||
@@ -1671,6 +1707,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
               single &&
               (single.type === 'imageModel' ||
                 single.type === 'geminiVideo' ||
+                single.type === 'vidsVideo' ||
                 single.type === 'videoStitcher' ||
                 single.type === 'anyLLM' ||
                 single.type === 'promptEnhancer' ||
@@ -1690,6 +1727,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           node &&
           (node.type === 'imageModel' ||
             node.type === 'geminiVideo' ||
+            node.type === 'vidsVideo' ||
             node.type === 'videoStitcher' ||
             node.type === 'anyLLM' ||
             node.type === 'promptEnhancer' ||
@@ -1765,6 +1803,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           node &&
           (node.type === 'imageModel' ||
             node.type === 'geminiVideo' ||
+            node.type === 'vidsVideo' ||
             node.type === 'videoStitcher' ||
             node.type === 'anyLLM' ||
             node.type === 'promptEnhancer' ||
@@ -2092,6 +2131,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             node &&
             (node.type === 'imageModel' ||
               node.type === 'geminiVideo' ||
+              node.type === 'vidsVideo' ||
               node.type === 'anyLLM' ||
               node.type === 'promptEnhancer' ||
               node.type === 'storyboard')
@@ -5119,6 +5159,329 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
     }
   };
 
+  const handleRunVidsVideoNode = async (videoNodeId: string) => {
+    const targetNode = recipeRef.current.nodes.find((node) => node.id === videoNodeId);
+    if (!targetNode || targetNode.type !== 'vidsVideo') return;
+
+    const { prompt: connectedPrompt } = resolveModelInputs(
+      videoNodeId,
+      recipeRef.current.nodes,
+      recipeRef.current.edges
+    );
+    const effectivePrompt = (
+      targetNode.data?.promptOverride ||
+      connectedPrompt ||
+      targetNode.data?.inputPrompt ||
+      ''
+    ).trim();
+    const connectedViewerNodeIds = getConnectedViewerIds(videoNodeId);
+
+    if (!effectivePrompt) {
+      const errorMessage = 'Hubungkan node Prompt atau isi prompt di pengaturan Vids Omni.';
+      setStatusMessage(errorMessage);
+      setRecipe((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((node) =>
+          node.id === videoNodeId
+            ? { ...node, data: { ...node.data, status: 'error', errorMessage, progress: 0 } }
+            : node
+        ),
+      }));
+      return;
+    }
+
+    setIsExecuting(true);
+    setExecutingProgress(5);
+    setExecutingNodeId(videoNodeId);
+    setExecutingNodeIds((prev) => [...prev.filter((id) => id !== videoNodeId), videoNodeId]);
+    setStatusMessage('Mengirim permintaan ke Google Vids...');
+
+    const startedAt = Date.now();
+    updateAndPersistRecipe((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((node) =>
+        node.id === videoNodeId || connectedViewerNodeIds.includes(node.id)
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                status: 'running',
+                progress: 5,
+                ...(node.id === videoNodeId ? { startedAt, errorMessage: undefined } : {}),
+              },
+            }
+          : node
+      ),
+    }));
+
+    let progress = 5;
+    const progressInterval = window.setInterval(() => {
+      progress = Math.min(progress + 1, 90);
+      setExecutingProgress(progress);
+      setStatusMessage(`Google Vids sedang merender video... ${progress}%`);
+      setRecipe((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((node) =>
+          node.id === videoNodeId || connectedViewerNodeIds.includes(node.id)
+            ? { ...node, data: { ...node.data, status: 'running', progress } }
+            : node
+        ),
+      }));
+    }, 2500);
+
+    try {
+      const rawAccounts = localStorage.getItem('vids_accounts');
+      const accounts = rawAccounts ? JSON.parse(rawAccounts) : [];
+      if (!Array.isArray(accounts)) {
+        throw new Error('Daftar akun Google Vids di Settings tidak valid.');
+      }
+
+      const nodeAccountId = targetNode.data?.accountId;
+      const selectedAccount = nodeAccountId
+        ? accounts.find((account: any) => account.id === nodeAccountId || account.email === nodeAccountId)
+        : undefined;
+      const account = selectedAccount || accounts.find((item: any) => item.isActive) || accounts[0];
+      if (!account) {
+        throw new Error('Tidak ada akun Google Vids. Tambahkan akun terlebih dahulu di Settings.');
+      }
+
+      const aspectRatio = targetNode.data?.aspectRatio === '16:9' ? '16:9' : '9:16';
+      const resolution = aspectRatio === '16:9'
+        ? '720p'
+        : targetNode.data?.resolution === '1080p'
+        ? '1080p'
+        : '720p';
+      const response = await fetch('/api/vids/generate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: effectivePrompt,
+          aspectRatio,
+          duration: 10,
+          resolution,
+          email: account.email,
+          cookies: account.cookies || account.token,
+          docId: account.docId || account.flixDocId,
+          flixDocId: account.flixDocId || account.docId,
+          serverToken: account.serverToken,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.success || !result.videoUrl) {
+        throw new Error(result?.error || `Google Vids gagal (HTTP ${response.status}).`);
+      }
+
+      if (typeof result.quota?.remaining === 'number') {
+        const updatedAccounts = accounts.map((item: any) =>
+          (account.id ? item.id === account.id : item.email === account.email)
+            ? { ...item, credits: result.quota.remaining }
+            : item
+        );
+        localStorage.setItem('vids_accounts', JSON.stringify(updatedAccounts));
+        window.dispatchEvent(new Event('vids_accounts_updated'));
+        window.dispatchEvent(new Event('accounts-updated'));
+      }
+
+      const videoUrl = result.videoUrl as string;
+      updateAndPersistRecipe((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((node) => {
+          if (node.id === videoNodeId) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                outputVideo: videoUrl,
+                videoUrl,
+                resultUrl: videoUrl,
+                accountId: account.id,
+                accountEmail: account.email,
+                status: 'completed',
+                progress: 100,
+                errorMessage: undefined,
+              },
+            };
+          }
+          if (connectedViewerNodeIds.includes(node.id)) {
+            return {
+              ...node,
+              title: 'Google Vids Omni',
+              data: {
+                ...node.data,
+                resultUrl: videoUrl,
+                outputVideo: videoUrl,
+                aspectRatio,
+                status: 'completed',
+                progress: 100,
+                errorMessage: undefined,
+              },
+            };
+          }
+          return node;
+        }),
+      }));
+
+      const historyItem: GenerationItem = {
+        id: `gen_canvas_vids_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        mode: 'video',
+        title: effectivePrompt.length > 50 ? `${effectivePrompt.slice(0, 50)}...` : effectivePrompt,
+        prompt: effectivePrompt,
+        createdAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toISOString(),
+        aspectRatio,
+        resolution,
+        duration: '10s',
+        status: 'completed',
+        mediaUrl: videoUrl,
+        thumbnailUrl: videoUrl,
+        model: 'Google Vids Omni',
+        provider: 'vids',
+        providerName: 'Google Vids Omni',
+        progress: 100,
+      };
+      try {
+        const rawHistory = localStorage.getItem('weavy_generations');
+        const history = rawHistory ? JSON.parse(rawHistory) : [];
+        if (Array.isArray(history)) {
+          localStorage.setItem('weavy_generations', JSON.stringify([historyItem, ...history]));
+        }
+      } catch (error) {
+        console.error('[Canvas Vids] Gagal menyimpan video ke riwayat lokal:', error);
+      }
+      window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'weavy_generations' } }));
+      onAddGeneration?.(historyItem);
+
+      setExecutingProgress(100);
+      setStatusMessage('✓ Video Google Vids Omni berhasil dibuat.');
+    } catch (error) {
+      console.error('[Canvas Vids Execution Error]:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setStatusMessage(`Google Vids gagal: ${errorMessage}`);
+      setRecipe((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((node) =>
+          node.id === videoNodeId || connectedViewerNodeIds.includes(node.id)
+            ? {
+                ...node,
+                data: { ...node.data, status: 'error', errorMessage, progress: 0 },
+              }
+            : node
+        ),
+      }));
+    } finally {
+      window.clearInterval(progressInterval);
+      setExecutingProgress(0);
+      setExecutingNodeIds((prev) => {
+        const next = prev.filter((id) => id !== videoNodeId);
+        if (next.length === 0) {
+          setIsExecuting(false);
+          setExecutingNodeId(null);
+        } else {
+          setExecutingNodeId(next[next.length - 1]);
+        }
+        return next;
+      });
+    }
+  };
+
+  const handleRemoveVidsWatermark = async (videoNodeId: string) => {
+    const targetNode = recipeRef.current.nodes.find((node) => node.id === videoNodeId);
+    if (!targetNode || (targetNode.type !== 'vidsVideo' && targetNode.type !== 'videoStitcher')) {
+      throw new Error('Node video tidak ditemukan.');
+    }
+
+    const originalVideoUrl = targetNode.data?.outputVideo || targetNode.data?.videoUrl || targetNode.data?.resultUrl;
+    if (!/^\/media-cache\/(?:vids|stitched)_[^/]+\.mp4$/i.test(originalVideoUrl || '')) {
+      throw new Error('Video Google Vids atau hasil Video Stitcher ini tidak mendukung proses remove watermark.');
+    }
+    if (/_nowm\.mp4$/i.test(originalVideoUrl)) {
+      throw new Error('Watermark video ini sudah pernah dihapus.');
+    }
+
+    setStatusMessage(
+      targetNode.type === 'videoStitcher'
+        ? 'Memproses remove watermark untuk hasil Video Stitcher...'
+        : 'Memproses remove watermark untuk video Google Vids...'
+    );
+    const response = await fetch('/api/vids/remove-watermark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoUrl: originalVideoUrl }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(errorBody.error || `Permintaan gagal (HTTP ${response.status}).`);
+    }
+    if (!response.body) {
+      throw new Error('Server tidak mengirim log proses remove watermark.');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let processedVideoUrl: string | undefined;
+    const handleEvent = (line: string) => {
+      if (!line.trim()) return;
+      const event = JSON.parse(line) as { type: string; message?: string; videoUrl?: string };
+      if (event.type === 'log' && event.message) {
+        setStatusMessage(event.message);
+      } else if (event.type === 'complete' && event.videoUrl) {
+        processedVideoUrl = event.videoUrl;
+      } else if (event.type === 'error') {
+        throw new Error(event.message || 'Proses remove watermark gagal.');
+      }
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) handleEvent(line);
+      if (done) break;
+    }
+    handleEvent(buffer);
+    if (!processedVideoUrl) {
+      throw new Error('Proses berakhir tanpa mengembalikan file hasil.');
+    }
+
+    const connectedViewerNodeIds = getConnectedViewerIds(videoNodeId);
+    updateAndPersistRecipe((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((node) =>
+        node.id === videoNodeId || connectedViewerNodeIds.includes(node.id)
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                outputVideo: processedVideoUrl,
+                videoUrl: processedVideoUrl,
+                resultUrl: processedVideoUrl,
+              },
+            }
+          : node
+      ),
+    }));
+
+    try {
+      const rawHistory = localStorage.getItem('weavy_generations');
+      const history = rawHistory ? JSON.parse(rawHistory) : [];
+      if (Array.isArray(history)) {
+        const updatedHistory = history.map((item: GenerationItem) =>
+          item.mediaUrl === originalVideoUrl
+            ? { ...item, mediaUrl: processedVideoUrl, thumbnailUrl: processedVideoUrl }
+            : item
+        );
+        localStorage.setItem('weavy_generations', JSON.stringify(updatedHistory));
+      }
+    } catch (error) {
+      console.error('[Canvas Vids] Gagal memperbarui riwayat setelah remove watermark:', error);
+    }
+    window.dispatchEvent(new CustomEvent('storage', { detail: { key: 'weavy_generations' } }));
+    setStatusMessage('✓ Remove watermark selesai. Preview video diperbarui.');
+  };
+
   // Execution Engine: Run Video Stitcher Node (FFmpeg Multi-Scene Concat)
   const handleRunVideoStitcherNode = async (stitcherNodeId: string) => {
     const targetNode = recipeRef.current.nodes.find((n) => n.id === stitcherNodeId);
@@ -5584,6 +5947,10 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
 
     if (targetNode.type === 'geminiVideo') {
       return handleRunGeminiVideoNode(modelNodeId, plannedAccountId);
+    }
+
+    if (targetNode.type === 'vidsVideo') {
+      return handleRunVidsVideoNode(modelNodeId);
     }
 
     if (targetNode.type === 'videoStitcher') {
@@ -6537,7 +6904,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
           }
 
           // Resolve model inputs & scene metadata for model/video nodes
-          const resolvedModel = (node.type === 'geminiVideo' || node.type === 'imageModel')
+          const resolvedModel = (node.type === 'geminiVideo' || node.type === 'vidsVideo' || node.type === 'imageModel')
             ? resolveModelInputs(node.id, recipe.nodes, recipe.edges)
             : null;
 
@@ -6669,7 +7036,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
     </div>
 
       {/* Side Inspector Panel (For Model, Video, Stitcher, LLM, and Storyboard nodes) */}
-      {selectedNode && selectedNodeIds.length === 1 && (selectedNode.type === 'imageModel' || selectedNode.type === 'anyLLM' || selectedNode.type === 'promptEnhancer' || selectedNode.type === 'geminiVideo' || selectedNode.type === 'videoStitcher' || selectedNode.type === 'storyboard') && isInspectorOpen && (
+      {selectedNode && selectedNodeIds.length === 1 && (selectedNode.type === 'imageModel' || selectedNode.type === 'anyLLM' || selectedNode.type === 'promptEnhancer' || selectedNode.type === 'geminiVideo' || selectedNode.type === 'vidsVideo' || selectedNode.type === 'videoStitcher' || selectedNode.type === 'storyboard') && isInspectorOpen && (
         <CanvasInspectorPanel
           key={selectedNode.id}
           selectedNode={selectedNode}
@@ -6681,6 +7048,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
             const plannedAccountId = geminiAccountAssignments.get(nodeId)?.accountId;
             return handleRunModelNode(nodeId, plannedAccountId);
           }}
+          onRemoveWatermark={handleRemoveVidsWatermark}
           onDeleteNode={handleDeleteNode}
           isExecuting={executingNodeIds.includes(selectedNode.id) || (isExecuting && executingNodeId === selectedNode.id)}
           executingProgress={executingProgress}
@@ -6689,7 +7057,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
           connectedPrompt={
             selectedNode.type === 'storyboard' || selectedNode.type === 'anyLLM' || selectedNode.type === 'promptEnhancer'
               ? resolveEnhancerInputs(selectedNode.id, recipe.nodes, recipe.edges).prompt
-              : (selectedNode.type === 'geminiVideo' || selectedNode.type === 'imageModel')
+              : (selectedNode.type === 'geminiVideo' || selectedNode.type === 'vidsVideo' || selectedNode.type === 'imageModel')
               ? resolveModelInputs(selectedNode.id, recipe.nodes, recipe.edges).prompt
               : undefined
           }

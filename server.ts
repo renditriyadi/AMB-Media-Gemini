@@ -1,4 +1,3 @@
-import './server/initPlaywright';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -24,6 +23,7 @@ import geminiRouter from './server/providers/gemini';
 import chatSessionsRouter from './server/routes/chatSessions';
 import studioRouter from './server/routes/studio';
 import flowRouter from './server/providers/flow';
+import vidsRouter from './server/providers/vids';
 import resolveLinkRouter from './server/routes/resolveLink';
 import stitchVideoRouter from './server/routes/stitchVideo';
 import { ensureFfmpegBinary } from './scripts/ensure-ffmpeg';
@@ -225,6 +225,7 @@ async function startServer() {
   // Google Gemini Provider Router: MURNI menggunakan input sesi cURL bash / cookies akun Google pengguna (BUKAN API Key)
   app.use('/api', geminiRouter);
   app.use('/api', flowRouter);
+  app.use('/api', vidsRouter);
   app.use('/api', chatSessionsRouter);
   app.use('/api', studioRouter);
   app.use('/api', resolveLinkRouter);

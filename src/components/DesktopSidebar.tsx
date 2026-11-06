@@ -30,6 +30,8 @@ interface DesktopSidebarProps {
   kieAccounts?: ProviderAccount[];
   flowAccountsCount?: number;
   flowAccounts?: ProviderAccount[];
+  vidsAccountsCount?: number;
+  vidsAccounts?: ProviderAccount[];
   runninghubAccountsCount?: number;
   runninghubAccounts?: ProviderAccount[];
   settings?: GenerationSettings;
@@ -46,6 +48,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   geminiAccounts = [],
   flowAccountsCount = 0,
   flowAccounts = [],
+  vidsAccountsCount = 0,
+  vidsAccounts = [],
   roboneoAccountsCount = 0,
   roboneoAccounts = [],
   galleri5AccountsCount = 0,
@@ -60,6 +64,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const activeProviderId: AIProvider = activeProvider.id;
   const isGeminiActive = activeProviderId === 'gemini';
   const isFlowActive = activeProviderId === 'flow';
+  const isVidsActive = activeProviderId === 'vids';
   const isRunningHubActive = activeProviderId === 'runninghub';
   const isRoboneoActive = activeProviderId === 'roboneo';
   const isGalleri5Active = activeProviderId === 'galleri5';
@@ -78,10 +83,18 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     totalCredits: typeof a.totalCredits === 'number' && a.totalCredits > 0 ? a.totalCredits : 50,
   }));
 
+  const normalizedVidsAccounts = vidsAccounts.map((a) => ({
+    ...a,
+    credits: typeof a.credits === 'number' ? Math.max(0, a.credits) : (a.credits ?? 450),
+    totalCredits: typeof a.totalCredits === 'number' && a.totalCredits > 0 ? a.totalCredits : 500,
+  }));
+
   const accs = isGeminiActive
     ? normalizedGeminiAccounts
     : isFlowActive
     ? normalizedFlowAccounts
+    : isVidsActive
+    ? normalizedVidsAccounts
     : isRunningHubActive
     ? runninghubAccounts
     : isKieActive
@@ -331,6 +344,32 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
               <button
                 type="button"
+                onClick={() => onSelectProvider('vids')}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium border transition-colors duration-100 cursor-pointer ${
+                  activeTab === 'settings' && activeProviderId === 'vids'
+                    ? 'bg-amber-100/60 dark:bg-stone-800/90 border-amber-500/20 dark:border-white/10 text-amber-800 dark:text-amber-300 font-semibold'
+                    : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100/50 dark:hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <img
+                    src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+                    alt="Google Vids"
+                    className="w-4.5 h-4.5 rounded object-contain shrink-0"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = 'https://ssl.gstatic.com/docs/doclist/images/mediatype/icon_1_flix_x32.png';
+                    }}
+                  />
+                  <span>Google Vids</span>
+                </div>
+                <span className="text-xs font-mono font-medium text-stone-500 dark:text-stone-400">
+                  {vidsAccountsCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => onSelectProvider('runninghub')}
                 className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium border transition-colors duration-100 cursor-pointer ${
                   activeTab === 'settings' && activeProviderId === 'runninghub'
@@ -412,6 +451,13 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                   src="https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg"
                   alt={isFlowActive ? "Google Flow" : "Google Gemini"}
                   className="w-5 h-5 object-contain shrink-0"
+                  referrerPolicy="no-referrer"
+                />
+              ) : isVidsActive ? (
+                <img
+                  src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+                  alt="Google Vids"
+                  className="w-5 h-5 object-contain shrink-0 rounded"
                   referrerPolicy="no-referrer"
                 />
               ) : isRunningHubActive ? (

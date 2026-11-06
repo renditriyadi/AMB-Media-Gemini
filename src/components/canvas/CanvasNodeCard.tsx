@@ -86,6 +86,21 @@ export const ModelBadgeIcon: React.FC<{ model?: string; className?: string }> = 
     );
   }
 
+  // Google Vids uses a different product icon from Gemini.
+  if (m.includes('google vids') || m.includes('vids omni')) {
+    return (
+      <img
+        src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+        alt="Google Vids"
+        className={`${className} object-contain shrink-0`}
+        referrerPolicy="no-referrer"
+        onError={(event) => {
+          event.currentTarget.src = 'https://ssl.gstatic.com/docs/doclist/images/mediatype/icon_1_flix_x32.png';
+        }}
+      />
+    );
+  }
+
   // 2. Google / Gemini
   if (m.includes('gemini') || m.includes('google') || m.includes('omni flash')) {
     return (
@@ -614,7 +629,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (node.type !== 'geminiVideo' || node.data?.status !== 'running' || !node.data?.startedAt) {
+    if ((node.type !== 'geminiVideo' && node.type !== 'vidsVideo') || node.data?.status !== 'running' || !node.data?.startedAt) {
       setGeminiElapsedSeconds(0);
       return;
     }
@@ -686,13 +701,13 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
             label: 'Image',
           },
         ]
-      : node.type === 'geminiVideo' || node.type === 'videoStitcher'
+      : node.type === 'geminiVideo' || node.type === 'vidsVideo' || node.type === 'videoStitcher'
       ? [
           {
             id: 'output-video',
             name: 'video',
             type: 'video' as const,
-            label: node.type === 'videoStitcher' ? 'Stitched Video' : 'Video',
+            label: node.type === 'videoStitcher' ? 'Stitched Video' : node.type === 'vidsVideo' ? 'Google Vids Video' : 'Video',
           },
         ]
       : node.type === 'promptEnhancer' || node.type === 'anyLLM'
@@ -752,6 +767,15 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
           text: 'text-stone-900 dark:text-stone-100',
           badge: 'bg-stone-500/15 text-stone-600 dark:text-stone-300',
           dot: 'bg-stone-400',
+          icon: Video,
+        };
+      case 'vidsVideo':
+        return {
+          bg: 'bg-stone-50 dark:bg-[#16161b]',
+          border: 'border-stone-200/80 dark:border-white/[0.07]',
+          text: 'text-stone-900 dark:text-stone-100',
+          badge: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+          dot: 'bg-blue-500',
           icon: Video,
         };
       case 'videoStitcher':
@@ -1132,6 +1156,21 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
               />
               <span className="text-xs font-semibold text-white tracking-tight truncate max-w-[210px]">
                 Gemini Omni Flash
+              </span>
+            </>
+          ) : node.type === 'vidsVideo' ? (
+            <>
+              <img
+                src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+                alt="Google Vids"
+                className="w-3.5 h-3.5 object-contain rounded shrink-0"
+                referrerPolicy="no-referrer"
+                onError={(event) => {
+                  event.currentTarget.src = 'https://ssl.gstatic.com/docs/doclist/images/mediatype/icon_1_flix_x32.png';
+                }}
+              />
+              <span className="text-xs font-semibold text-white tracking-tight truncate max-w-[210px]">
+                Google Vids Omni
               </span>
             </>
           ) : node.type === 'imageModel' ? (
@@ -1891,7 +1930,95 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
           </div>
         )}
 
-        {/* TYPE 3C: VIDEO STITCHER NODE */}
+        {/* TYPE 3C: GOOGLE VIDS VIDEO NODE */}
+        {node.type === 'vidsVideo' && (
+          <div className="space-y-2.5">
+            <div
+              className="relative w-full rounded-xl overflow-hidden border border-white/[0.06] bg-[#0d0d11]"
+              style={getViewerAspectStyle(node.data?.aspectRatio || '9:16', node.data?.naturalWidth, node.data?.naturalHeight)}
+            >
+              {node.data?.status === 'running' || isExecuting ? (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-40 canvas-checkerboard pointer-events-none" />
+                  <div className="relative flex items-center justify-center z-10 mb-2">
+                    <Loader2 className="w-10 h-10 text-blue-400 animate-spin stroke-[1.8]" />
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-blue-300">
+                      {`${Math.floor(geminiElapsedSeconds / 60).toString().padStart(2, '0')}:${(geminiElapsedSeconds % 60).toString().padStart(2, '0')}`}
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-stone-200 z-10">
+                    Membuat video Google Vids Omni...
+                  </span>
+                  <span className="text-[10px] text-stone-400 mt-1 max-w-[220px] z-10">
+                    {node.data?.resolution || '720p'} · {node.data?.aspectRatio || '9:16'}
+                  </span>
+                </div>
+              ) : node.data?.status === 'error' ? (
+                <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-rose-500/5 border border-rose-500/20">
+                  <div className="w-7 h-7 rounded-full bg-rose-500/15 text-rose-400 flex items-center justify-center mb-1.5 shrink-0">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                  </div>
+                  <h4 className="text-xs font-semibold text-rose-300 mb-0.5">Generate Vids Gagal</h4>
+                  <p className="text-[10px] text-rose-400/90 line-clamp-3 leading-relaxed max-w-[230px] mb-2 break-words px-1">
+                    {node.data?.errorMessage || 'Terjadi kesalahan saat membuat video.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateData(node.id, { ...node.data, status: 'idle', errorMessage: undefined })}
+                    className="px-2.5 py-1 rounded-md text-[10px] font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 cursor-pointer"
+                  >
+                    Reset Status
+                  </button>
+                </div>
+              ) : (node.data?.outputVideo || node.data?.videoUrl || node.data?.resultUrl) ? (
+                <CanvasMediaPreview
+                  url={node.data.outputVideo || node.data.videoUrl || node.data.resultUrl}
+                  aspectRatio={node.data?.aspectRatio || '9:16'}
+                  naturalWidth={node.data?.naturalWidth}
+                  naturalHeight={node.data?.naturalHeight}
+                  onToast={onToast}
+                  onOpenFullPreview={onOpenFullPreview}
+                  previewTitle="Google Vids Omni"
+                  model="Google Vids Omni"
+                  onDimensionsDetected={(width, height) => {
+                    if (node.data?.naturalWidth !== width || node.data?.naturalHeight !== height) {
+                      onUpdateData(node.id, { ...node.data, naturalWidth: width, naturalHeight: height });
+                    }
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full canvas-checkerboard select-none" />
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-[10px] text-stone-400 truncate">
+                Google Vids Omni · {node.data?.resolution || '720p'} · {node.data?.aspectRatio || '9:16'}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRunNode && onRunNode(node.id)}
+                disabled={isExecuting || node.data?.status === 'running'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[#24242b] border border-white/[0.12] hover:bg-[#2c2c36] text-stone-200 whitespace-nowrap shrink-0 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                title="Generate video dengan Google Vids Omni"
+              >
+                {isExecuting || node.data?.status === 'running' ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400 shrink-0" />
+                    <span>Running...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-3.5 h-3.5 stroke-[2] shrink-0" />
+                    <span>Generate</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TYPE 3D: VIDEO STITCHER NODE */}
         {node.type === 'videoStitcher' && (
           <div className="space-y-2.5">
             {/* Center Viewport / Output Video Preview Area */}

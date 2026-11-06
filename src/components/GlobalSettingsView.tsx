@@ -39,6 +39,7 @@ import {
   LayoutGrid,
   ExternalLink,
   LogIn,
+  Globe,
 } from 'lucide-react';
 import { GenerationSettings, AppUser, ProviderAccount } from '../types';
 import { exchangeRefreshTokenAndGetInfo } from '../lib/weavy';
@@ -75,7 +76,7 @@ function ensureSingleActiveAccount(
 export interface ProviderInfo {
   id: string;
   name: string;
-  logoType: 'weavy' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub' | 'openai' | 'google' | 'gemini';
+  logoType: 'weavy' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub' | 'openai' | 'google' | 'gemini' | 'flow' | 'vids';
   accounts: ProviderAccount[];
 }
 
@@ -151,6 +152,56 @@ const GeminiTokenTutorial: React.FC = () => {
               </p>
               <p className="text-[11px] leading-relaxed text-stone-600 dark:text-stone-400">
                 Buka <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 font-bold underline">aistudio.google.com/apikey</a> → <b>Create API Key</b> → copy dan paste di form Tambah Akun.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const VidsTokenTutorial: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border border-stone-200/80 dark:border-white/10 bg-stone-50/80 dark:bg-[#141418] rounded-2xl overflow-hidden transition-all duration-200 shadow-2xs">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 flex items-center justify-between text-left cursor-pointer hover:bg-stone-100 dark:hover:bg-[#1E1E26] transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <span className="text-xs font-bold text-stone-900 dark:text-stone-100">Panduan Tambah Akun Google Vids (cURL Bash)</span>
+        </div>
+        <div className="flex items-center gap-2 text-stone-400">
+          <span className="text-xs font-medium">{isOpen ? 'Tutup' : 'Buka Panduan'}</span>
+          <ChevronDown className={`w-4 h-4 text-indigo-600 dark:text-indigo-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="px-4 pb-4 pt-1 space-y-3.5 text-xs text-stone-700 dark:text-stone-300 border-t border-stone-200/80 dark:border-white/10 bg-white/80 dark:bg-[#141418]">
+          <div className="pt-2 space-y-3">
+            <p className="leading-relaxed">
+              1. Buka <a href="https://docs.google.com/videos" target="_blank" rel="noopener noreferrer" className="font-bold text-indigo-600 dark:text-indigo-400 underline">docs.google.com/videos</a> atau buka dokumen Vids (.flix) Anda yang sudah login.
+            </p>
+            <p className="leading-relaxed">
+              2. Tekan <strong className="font-bold">F12</strong> (Developer Tools) → buka tab <strong className="font-bold">Network</strong>.
+            </p>
+            <p className="leading-relaxed">
+              3. Refresh halaman (<kbd className="px-1.5 py-0.5 bg-stone-200 dark:bg-stone-700 rounded text-[10px]">F5</kbd>) atau klik di dokumen Vids, cari request apapun ke <code>docs.google.com</code>, <code>appsgenaiserver</code>, atau <code>waa-pa</code>, klik kanan → <strong className="font-bold">Copy → Copy as cURL (bash)</strong>.
+            </p>
+            <p className="leading-relaxed">
+              4. Paste perintah cURL tersebut di form Tambah Akun di bawah. Email, Doc ID, Token Sesi, dan Cookie akan diekstrak otomatis. Setiap akun mendapatkan <strong className="font-bold">500 kuota kredit</strong> (~11 video per siklus)!
+            </p>
+            <div className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <span>⚠️ Catatan Penting HttpOnly:</span>
+              </p>
+              <p>
+                Jangan mengambil cookie lewat console/bookmarklet biasa karena cookie penting Google (<code>HSID</code> & <code>SSID</code>) dilindungi <strong>HttpOnly</strong>. Gunakan <strong>Copy as cURL (bash)</strong> dari tab Network agar seluruh cookie tersalin lengkap dan terverifikasi 100%.
               </p>
             </div>
           </div>
@@ -640,6 +691,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     let savedWeavyAccounts: ProviderAccount[] = [];
     let savedGeminiAccounts: ProviderAccount[] = [];
     let savedFlowAccounts: ProviderAccount[] = [];
+    let savedVidsAccounts: ProviderAccount[] = [];
     let savedRoboneoAccounts: ProviderAccount[] = [];
     let savedGalleri5Accounts: ProviderAccount[] = [];
     let savedKieAccounts: ProviderAccount[] = [];
@@ -687,6 +739,15 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
       if (itemKie) savedKieAccounts = JSON.parse(itemKie);
       const itemRunninghub = localStorage.getItem('runninghub_accounts');
       if (itemRunninghub) savedRunninghubAccounts = JSON.parse(itemRunninghub);
+
+      savedVidsAccounts = [];
+      const itemVids = localStorage.getItem('vids_accounts');
+      if (itemVids) {
+        try {
+          const parsed = JSON.parse(itemVids);
+          if (Array.isArray(parsed)) savedVidsAccounts = parsed;
+        } catch (_) {}
+      }
     } catch (e) {
       console.warn('Failed to parse saved accounts:', e);
     }
@@ -709,6 +770,12 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         name: 'Google Flow',
         logoType: 'flow',
         accounts: savedFlowAccounts,
+      },
+      {
+        id: 'vids',
+        name: 'Google Vids',
+        logoType: 'vids',
+        accounts: savedVidsAccounts,
       },
       {
         id: 'runninghub',
@@ -742,10 +809,11 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         const resp = await fetch(`/api/providers/accounts?userId=${encodeURIComponent(currentUser.userId)}`);
         const data = await resp.json();
         if (resp.ok && data.success && data.accounts && isMounted) {
-          const { weavy, gemini, flow, roboneo, galleri5, kie, runninghub } = data.accounts;
+          const { weavy, gemini, flow, vids, roboneo, galleri5, kie, runninghub } = data.accounts;
           const activeGeminiId = localStorage.getItem('gemini_active_account_id');
           const activeWeavyId = localStorage.getItem('weavy_active_account_id');
           const activeFlowId = localStorage.getItem('flow_active_account_id');
+          const activeVidsId = localStorage.getItem('vids_active_account_id');
           const activeRunninghubId = localStorage.getItem('runninghub_active_account_id');
           const activeRoboneoId = localStorage.getItem('roboneo_active_account_id');
           const activeKieId = localStorage.getItem('kie_active_account_id');
@@ -799,6 +867,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
           );
           const sanitizedWeavy = sanitizeAccountsList(weavy, activeWeavyId, 'weavy_accounts', 150);
           const sanitizedFlow = sanitizeAccountsList(flow, activeFlowId, 'flow_accounts', 50);
+          const sanitizedVids = sanitizeAccountsList(vids, activeVidsId, 'vids_accounts', 500);
           const sanitizedRunninghub = sanitizeAccountsList(runninghub, activeRunninghubId, 'runninghub_accounts', 600);
           const sanitizedRoboneo = sanitizeAccountsList(roboneo, activeRoboneoId, 'roboneo_accounts', 100);
           const sanitizedKie = sanitizeAccountsList(kie, activeKieId, 'kie_accounts', 80);
@@ -821,6 +890,12 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               name: 'Google Flow',
               logoType: 'flow',
               accounts: sanitizedFlow,
+            },
+            {
+              id: 'vids',
+              name: 'Google Vids',
+              logoType: 'vids',
+              accounts: sanitizedVids,
             },
             {
               id: 'runninghub',
@@ -907,6 +982,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         let savedWeavy: ProviderAccount[] = [];
         let savedGemini: ProviderAccount[] = [];
         let savedFlow: ProviderAccount[] = [];
+        let savedVids: ProviderAccount[] = [];
         let savedRoboneo: ProviderAccount[] = [];
         let savedGalleri5: ProviderAccount[] = [];
         let savedKie: ProviderAccount[] = [];
@@ -926,6 +1002,13 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               totalCredits: 50,
             }));
           }
+        }
+        const itemVids = localStorage.getItem('vids_accounts');
+        if (itemVids) {
+          try {
+            const parsed = JSON.parse(itemVids);
+            if (Array.isArray(parsed)) savedVids = parsed;
+          } catch (_) {}
         }
         const itemRoboneo = localStorage.getItem('roboneo_accounts');
         if (itemRoboneo) savedRoboneo = JSON.parse(itemRoboneo);
@@ -954,6 +1037,12 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
             name: 'Google Flow',
             logoType: 'flow',
             accounts: Array.isArray(savedFlow) ? savedFlow : [],
+          },
+          {
+            id: 'vids',
+            name: 'Google Vids',
+            logoType: 'vids',
+            accounts: Array.isArray(savedVids) ? savedVids : [],
           },
           {
             id: 'runninghub',
@@ -1049,6 +1138,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
 
     window.addEventListener('gemini_accounts_updated', handleAccountsUpdated);
     window.addEventListener('flow_accounts_updated', handleAccountsUpdated);
+    window.addEventListener('vids_accounts_updated', handleAccountsUpdated);
     window.addEventListener('weavy_accounts_updated', handleAccountsUpdated);
     window.addEventListener('kie_accounts_updated', handleAccountsUpdated);
     window.addEventListener('galleri5_accounts_updated', handleAccountsUpdated);
@@ -1058,6 +1148,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     return () => {
       window.removeEventListener('gemini_accounts_updated', handleAccountsUpdated);
       window.removeEventListener('flow_accounts_updated', handleAccountsUpdated);
+      window.removeEventListener('vids_accounts_updated', handleAccountsUpdated);
       window.removeEventListener('weavy_accounts_updated', handleAccountsUpdated);
       window.removeEventListener('kie_accounts_updated', handleAccountsUpdated);
       window.removeEventListener('galleri5_accounts_updated', handleAccountsUpdated);
@@ -1197,6 +1288,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [openingGeminiBrowserAccountId, setOpeningGeminiBrowserAccountId] = useState<string | null>(null);
 
   // Rename / Edit account profile & nickname handler
   const handleSaveAccountNickname = async (e: React.FormEvent) => {
@@ -2222,6 +2314,81 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         return;
       }
 
+      if (targetProviderId === 'vids') {
+        const customNickname = nicknameInput.trim();
+        const resp = await fetch('/api/vids/accounts/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: cleanToken,
+            email: customNickname || undefined,
+            nickname: customNickname || undefined,
+          }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.success) {
+          throw new Error(data.error || 'cURL atau Cookie Google Vids tidak valid.');
+        }
+
+        const finalEmail = cleanEmailArtifacts(data.email || (customNickname.includes('@') ? customNickname : `vids_${Date.now()}@google.com`));
+        const finalName = cleanEmailArtifacts(customNickname || data.displayName || data.name || (finalEmail ? finalEmail.split('@')[0] : 'Google Vids User'));
+
+        const prov = providers.find((p) => p.id === 'vids');
+        const existingAccounts = prov ? [...prov.accounts] : [];
+
+        const newAccount: ProviderAccount = {
+          id: `acc-vids-${Date.now()}`,
+          email: finalEmail,
+          name: finalName,
+          displayName: finalName,
+          isActive: existingAccounts.length === 0,
+          hasRefreshToken: true,
+          refreshToken: data.cookies || cleanToken,
+          token: data.cookies || cleanToken,
+          cookies: data.cookies || cleanToken,
+          docId: data.docId,
+          serverToken: data.serverToken,
+          flixDocId: data.docId,
+          credits: typeof data.credits === 'number' ? data.credits : 450,
+          totalCredits: typeof data.totalCredits === 'number' ? data.totalCredits : 500,
+        };
+
+        const existingIdx = existingAccounts.findIndex(
+          (a) => a.email && a.email.toLowerCase() === finalEmail.toLowerCase()
+        );
+        if (existingIdx >= 0) {
+          existingAccounts[existingIdx] = {
+            ...existingAccounts[existingIdx],
+            ...newAccount,
+            id: existingAccounts[existingIdx].id,
+            isActive: existingAccounts[existingIdx].isActive || newAccount.isActive,
+          };
+        } else {
+          existingAccounts.push(newAccount);
+        }
+
+        if (existingAccounts.length > 0 && !existingAccounts.some((a) => a.isActive)) {
+          existingAccounts[0].isActive = true;
+        }
+
+        const finalVidsAccounts = [...existingAccounts];
+        setProviders((prev) =>
+          prev.map((p) => (p.id === 'vids' ? { ...p, accounts: finalVidsAccounts } : p))
+        );
+
+        localStorage.setItem('vids_accounts', JSON.stringify(finalVidsAccounts));
+        window.dispatchEvent(new Event('accounts-updated'));
+        window.dispatchEvent(new Event('vids_accounts_updated'));
+        await saveProviderAccountsToSheet('vids', finalVidsAccounts);
+
+        setTokenInput('');
+        setNicknameInput('');
+        setIsAddModalOpen(false);
+        setSuccessMsg(`Berhasil menambahkan akun Google Vids "${finalName}" (${finalEmail})!`);
+        setTimeout(() => setSuccessMsg(null), 3000);
+        return;
+      }
+
       if (targetProviderId === 'gemini') {
         const customNickname = nicknameInput.trim();
         const shortKey = cleanToken.length >= 8 ? `${cleanToken.slice(0, 4)}...${cleanToken.slice(-4)}` : cleanToken;
@@ -2618,6 +2785,32 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     setReloginAccount(account);
   };
 
+  const handleOpenGeminiAccountBrowser = async (account: ProviderAccount) => {
+    if (!account.email) {
+      window.alert('Email akun Gemini tidak tersedia untuk membuka browser.');
+      return;
+    }
+    if (openingGeminiBrowserAccountId) return;
+
+    setOpeningGeminiBrowserAccountId(account.id);
+    try {
+      const response = await fetch('/api/gemini/playwright/profile/open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: account.email }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Gagal membuka browser akun Gemini.');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Gagal membuka browser akun Gemini.';
+      window.alert(message);
+    } finally {
+      setOpeningGeminiBrowserAccountId(null);
+    }
+  };
+
   // Helper to refresh a single account data from provider backend
   const refreshSingleAccount = async (acc: ProviderAccount, providerId: string): Promise<ProviderAccount> => {
     const hasAuth = Boolean(
@@ -2739,6 +2932,43 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         }
 
         const errInfo = classifyError(resp.status || 401, data.error || data.message || 'Sesi Cookie / cURL Google Flow tidak valid atau kedaluwarsa');
+        return {
+          ...acc,
+          credits: 0,
+          isActive: false,
+          accountStatus: errInfo.accountStatus,
+          statusMessage: errInfo.statusMessage,
+          lastChecked: nowIso,
+        };
+      } else if (providerId === 'vids') {
+        const tokenToSend = (acc.cookies || acc.token || acc.refreshToken || '').trim();
+        const resp = await fetch('/api/vids/accounts/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cookies: tokenToSend,
+            email: acc.email,
+          }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok && data.success) {
+          return {
+            ...acc,
+            email: data.email || acc.email,
+            token: data.cookies || tokenToSend,
+            cookies: data.cookies || tokenToSend,
+            docId: data.docId || acc.docId,
+            serverToken: data.serverToken || acc.serverToken,
+            flixDocId: data.docId || acc.flixDocId,
+            credits: typeof data.credits === 'number' ? data.credits : (typeof acc.credits === 'number' ? acc.credits : 0),
+            totalCredits: typeof data.totalCredits === 'number' ? data.totalCredits : (typeof acc.totalCredits === 'number' ? acc.totalCredits : 500),
+            accountStatus: 'active',
+            statusMessage: undefined,
+            lastChecked: nowIso,
+          };
+        }
+
+        const errInfo = classifyError(resp.status || 401, data.error || data.message || 'Cookie / sesi Google Vids tidak valid atau kedaluwarsa');
         return {
           ...acc,
           credits: 0,
@@ -3016,6 +3246,23 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     return results;
   };
 
+  const deleteVidsPersistentSessions = async (accountsToDelete: ProviderAccount[]) => {
+    const emails = [...new Set(accountsToDelete.map((account) => account.email?.trim().toLowerCase()).filter(Boolean))];
+    await Promise.all(
+      emails.map(async (email) => {
+        const response = await fetch('/api/vids/accounts/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || `Gagal menghapus sesi Google Vids untuk ${email}.`);
+        }
+      })
+    );
+  };
+
   // Delete selected accounts
   const handleDeleteSelected = async () => {
     if (!selectedProviderId || selectedAccountIds.length === 0 || isDeletingSelected) return;
@@ -3034,6 +3281,8 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     try {
       if (targetProviderId === 'gemini') {
         await deleteGeminiPersistentProfiles(accountsToDelete);
+      } else if (targetProviderId === 'vids') {
+        await deleteVidsPersistentSessions(accountsToDelete);
       }
       await saveProviderAccountsToSheet(targetProviderId, newAccounts, true);
 
@@ -3078,6 +3327,8 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     try {
       if (targetProviderId === 'gemini') {
         await deleteGeminiPersistentProfiles(deadAccounts);
+      } else if (targetProviderId === 'vids') {
+        await deleteVidsPersistentSessions(deadAccounts);
       }
       await saveProviderAccountsToSheet(targetProviderId, aliveAccounts, true);
 
@@ -3118,6 +3369,8 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     try {
       if (providerId === 'gemini') {
         await deleteGeminiPersistentProfiles([accountToDelete]);
+      } else if (providerId === 'vids') {
+        await deleteVidsPersistentSessions([accountToDelete]);
       }
       await saveProviderAccountsToSheet(providerId, newAccounts, true);
 
@@ -3137,7 +3390,19 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
   };
 
   // Render provider logo helper
-  const renderProviderLogo = (logoType: 'weavy' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub' | 'openai' | 'google' | 'gemini' | 'flow') => {
+  const renderProviderLogo = (logoType: 'weavy' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub' | 'openai' | 'google' | 'gemini' | 'flow' | 'vids') => {
+    if (logoType === 'vids') {
+      return (
+        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20 shadow-2xs overflow-hidden p-1">
+          <img
+            src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+            alt="Google Vids"
+            className="w-5 h-5 rounded object-contain"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      );
+    }
     if (logoType === 'flow') {
       return (
         <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-black text-base shrink-0 border border-emerald-500/20">
@@ -3283,11 +3548,13 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               addMode === 'single'
                 ? currentProvider.id === 'flow'
                   ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                  : currentProvider.id === 'vids'
+                  ? 'bg-indigo-600 text-white shadow-2xs font-bold'
                   : 'bg-white dark:bg-[#141418] text-stone-900 dark:text-stone-100 shadow-2xs font-bold'
                 : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
             }`}
           >
-            {currentProvider.id === 'flow' ? 'cURL Bash (Disarankan)' : 'Single Token / Key'}
+            {currentProvider.id === 'flow' ? 'cURL Bash (Disarankan)' : currentProvider.id === 'vids' ? 'Cookie / cURL Vids' : 'Single Token / Key'}
           </button>
           {currentProvider.id === 'weavy' && (
             <button
@@ -3401,8 +3668,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         ) : addMode === 'single' ? (
           <form onSubmit={handleAddAccount} className="space-y-4">
             {currentProvider.id === 'flow' ? (
-              /* DEDICATED cURL BASH INPUT FOR GOOGLE FLOW */
-              <div className="space-y-2">
+              /* DEDICATED cURL BASH INPUT FOR GOOGLE FLOW */              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                     <span>Perintah cURL (bash) flow.google.com</span>
@@ -3464,6 +3730,75 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                     ) : (
                       <span className="text-amber-600 dark:text-amber-400 font-medium">
                         Pastikan menyalin seluruh perintah cURL lengkap dengan Cookie (-b) dan Authorization (-H)
+                      </span>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : currentProvider.id === 'vids' ? (
+              /* DEDICATED Cookie / cURL INPUT FOR GOOGLE VIDS */
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                    <span>Cookie / cURL Google Vids</span>
+                    <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                      ~11 Video / 500 Kuota
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const clip = await navigator.clipboard.readText();
+                        if (clip) {
+                          setTokenInput(clip);
+                          setErrorMsg(null);
+                        }
+                      } catch (e) {
+                        alert('Silakan tekan Ctrl+V / Cmd+V pada kotak teks untuk paste.');
+                      }
+                    }}
+                    className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 bg-indigo-500/10 hover:bg-indigo-500/20 active:scale-95 px-2.5 py-1 rounded-lg border border-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Tempel dari Clipboard</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <textarea
+                    rows={6}
+                    value={tokenInput}
+                    onChange={(e) => {
+                      setTokenInput(e.target.value);
+                      setErrorMsg(null);
+                    }}
+                    placeholder={`curl --url 'https://docs.google.com/videos/...' \\\n  -H 'authorization: SAPISIDHASH ...' \\\n  -H 'x-server-token: ...' \\\n  -b 'HSID=...; SSID=...; SID=...; SAPISID=...' ...\n\n(Cukup salin 'Copy as cURL (bash)' dari tab Network DevTools, email & kuota 500 kredit akan terdeteksi otomatis)`}
+                    required
+                    disabled={isSubmitting}
+                    className="w-full p-3.5 bg-white dark:bg-[#181820] border border-stone-300 dark:border-white/10 rounded-xl text-xs text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all font-mono leading-relaxed custom-scrollbar shadow-inner"
+                  />
+                  {tokenInput && (
+                    <button
+                      type="button"
+                      onClick={() => setTokenInput('')}
+                      className="absolute top-2.5 right-2.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 px-2 py-1 bg-stone-100 dark:bg-stone-800 rounded-lg text-[10px] font-sans font-semibold cursor-pointer"
+                    >
+                      Bersihkan
+                    </button>
+                  )}
+                </div>
+
+                {tokenInput.trim() ? (
+                  <div className="flex items-center gap-2 text-[11px] pt-0.5">
+                    {tokenInput.includes('SAPISID') || tokenInput.includes('SID=') || tokenInput.includes('curl') ? (
+                      <span className="text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1.5">
+                        <Check className="w-4 h-4 text-indigo-500" />
+                        <span>Format cURL / Cookie Google Vids Terdeteksi</span>
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                        Pastikan menyalin seluruh Cookie atau cURL lengkap dengan SID, SAPISID
                       </span>
                     )}
                   </div>
@@ -3554,6 +3889,16 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                   Cookie dan SAPISIDHASH akan diekstrak secara otomatis. Akun langsung aktif dengan kuota <b>50 kredit harian</b> untuk render video di Google Flow.
                 </p>
               </div>
+            ) : currentProvider.id === 'vids' ? (
+              <div className="p-3 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[11px] text-stone-600 dark:text-stone-300 space-y-1.5">
+                <p className="font-bold text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 fill-current" />
+                  <span>Verifikasi Otomatis Google Vids</span>
+                </p>
+                <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                  Cookie Google Vids akan diverifikasi dan kuota akun langsung ditampilkan. Kuota standar <b>500 kredit</b> (~11 video per siklus).
+                </p>
+              </div>
             ) : (
               <div className="flex items-start gap-2.5 p-3 bg-stone-100/70 dark:bg-[#181820] rounded-xl border border-stone-200/80 dark:border-white/5 text-xs text-stone-500 dark:text-stone-400">
                 <Lock className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
@@ -3578,6 +3923,8 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                 className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   currentProvider.id === 'flow'
                     ? 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white disabled:bg-stone-400'
+                    : currentProvider.id === 'vids'
+                    ? 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white disabled:bg-stone-400'
                     : 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 dark:text-stone-950 disabled:bg-stone-400 text-white'
                 }`}
               >
@@ -3590,6 +3937,8 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                   <span>
                     {currentProvider.id === 'flow'
                       ? 'Simpan Akun Flow (50 Kredit)'
+                      : currentProvider.id === 'vids'
+                      ? 'Simpan Akun Vids (~500 Kuota)'
                       : 'Simpan Akun'}
                   </span>
                 )}
@@ -3861,6 +4210,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
             {currentProvider?.id === 'galleri5' && <Galleri5TokenTutorial />}
             {currentProvider?.id === 'kie' && <KieApiKeyTutorial />}
             {currentProvider?.id === 'runninghub' && <RunningHubTutorial />}
+            {currentProvider?.id === 'vids' && <VidsTokenTutorial />}
 
             {/* Dead Accounts Alert & Quick 1-Click Action Bar (Mobile) */}
             {currentProvider && currentProvider.accounts.some((a) => a.accountStatus && a.accountStatus !== 'active') && (
@@ -4133,6 +4483,21 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                                       <span>Login ke Tab Weavy</span>
                                     </button>
                                   )}
+                                  {currentProvider.id === 'gemini' && (
+                                    <button
+                                      onClick={() => {
+                                        void handleOpenGeminiAccountBrowser(acc);
+                                        setActiveMenuAccountId(null);
+                                      }}
+                                      disabled={Boolean(openingGeminiBrowserAccountId)}
+                                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-amber-500/10 disabled:opacity-60 text-amber-700 dark:text-amber-300 font-medium text-left cursor-pointer"
+                                    >
+                                      {openingGeminiBrowserAccountId === acc.id
+                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        : <Globe className="w-3.5 h-3.5" />}
+                                      <span>Buka Browser Gemini</span>
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => {
                                       handleRefreshCredits(acc);
@@ -4298,6 +4663,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
           {currentProvider?.id === 'galleri5' && <Galleri5TokenTutorial />}
           {currentProvider?.id === 'kie' && <KieApiKeyTutorial />}
           {currentProvider?.id === 'runninghub' && <RunningHubTutorial />}
+          {currentProvider?.id === 'vids' && <VidsTokenTutorial />}
 
           {/* Search & Action Buttons Bar */}
           {currentProvider && currentProvider.accounts.length > 0 && (
@@ -4611,6 +4977,11 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                     const numC = typeof c === 'number' ? Math.min(50, Math.max(0, c)) : 50;
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 50;
                     creditLabel = `${numC} / ${numT} Credits`;
+                  } else if (currentProvider?.id === 'vids') {
+                    const numC = typeof c === 'number' ? Math.max(0, c) : 0;
+                    const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 500;
+                    const estVideos = Math.floor(numC / 40);
+                    creditLabel = `${numC} / ${numT} Credits (~${estVideos} Video)`;
                   } else if (currentProvider?.id === 'roboneo') {
                     creditLabel = `${typeof c === 'number' ? c.toLocaleString() : c} Credits`;
                   } else {
@@ -4790,6 +5161,23 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  void handleOpenGeminiAccountBrowser(acc);
+                                }}
+                                disabled={Boolean(openingGeminiBrowserAccountId)}
+                                title="Buka Browser Gemini dengan profil akun ini"
+                                className="p-1.5 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                {openingGeminiBrowserAccountId === acc.id
+                                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  : <Globe className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+                              </button>
+                            )}
+
+                            {currentProvider.id === 'gemini' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   handleGeminiRelogin(acc);
                                 }}
                                 disabled={Boolean(reloginAccount) || isRefreshing}
@@ -4856,6 +5244,11 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                     const numC = typeof c === 'number' ? Math.min(50, Math.max(0, c)) : 50;
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 50;
                     creditLabel = `${numC} / ${numT} Credits`;
+                  } else if (currentProvider?.id === 'vids') {
+                    const numC = typeof c === 'number' ? Math.max(0, c) : 0;
+                    const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 500;
+                    const estVideos = Math.floor(numC / 40);
+                    creditLabel = `${numC} / ${numT} Credits (~${estVideos} Video)`;
                   } else if (currentProvider?.id === 'roboneo') {
                     creditLabel = `${typeof c === 'number' ? c.toLocaleString() : c} Credits`;
                   } else {
@@ -4978,6 +5371,23 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                                 className="p-1.5 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer"
                               >
                                 <ExternalLink className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                              </button>
+                            )}
+
+                            {currentProvider.id === 'gemini' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleOpenGeminiAccountBrowser(acc);
+                                }}
+                                disabled={Boolean(openingGeminiBrowserAccountId)}
+                                title="Buka Browser Gemini dengan profil akun ini"
+                                className="p-1.5 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                {openingGeminiBrowserAccountId === acc.id
+                                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  : <Globe className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
                               </button>
                             )}
 

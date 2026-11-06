@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { createRequire } from 'module';
 import {
   getProviderAccountsFromSheet,
   invalidateProviderAccountsCache,
@@ -7,9 +8,15 @@ import {
 import { AuthenticatedUser, verifyUserSessionToken } from '../utils/userSession';
 import { GEMINI_VIDEO_CREDIT_LIMIT } from '../utils/geminiCreditLedger';
 import { isCliGeminiTestTask, issueCliGeminiTestPermit } from '../utils/cliGeminiTestMode';
-import { geminiPlaywrightManager } from '../services/geminiPlaywright';
 
+const require = createRequire(import.meta.url);
 const router = express.Router();
+type GeminiPlaywrightManager = typeof import('../services/geminiPlaywright').geminiPlaywrightManager;
+
+function getGeminiPlaywrightManager(): GeminiPlaywrightManager {
+  return require('../services/geminiPlaywright').geminiPlaywrightManager;
+}
+
 const allowedAspectRatios = new Set(['16:9', '9:16', '1:1', '4:3', '3:4']);
 const allowedDurations = new Set(['5s', '6s', '8s', '10s']);
 const allowedResolutions = new Set(['1080p', '720p']);
@@ -147,7 +154,7 @@ async function persistBatchResults(req: Request, userId: string, results: any[])
 function getOwnedPlaywrightSession(userId: string, sessionId: string) {
   const owner = playwrightSessions.get(sessionId);
   if (!owner || owner.userId !== userId) return null;
-  return { owner, session: geminiPlaywrightManager.getSession(sessionId) };
+  return { owner, session: getGeminiPlaywrightManager().getSession(sessionId) };
 }
 
 function retainPlaywrightSession(sessionId: string, owner: { userId: string; expectedEmail: string; accountId?: string }) {
@@ -303,7 +310,7 @@ router.post('/cli/gemini/settings/playwright/start', async (req, res) => {
         error: 'Email ini sudah terdaftar. Gunakan relogin dari akun yang dipilih.',
       });
     }
-    const started = await geminiPlaywrightManager.startLogin({ email, password });
+    const started = await getGeminiPlaywrightManager().startLogin({ email, password });
     retainPlaywrightSession(started.sessionId, { userId: user.userId, expectedEmail: email });
     return res.json({ success: true, ...started });
   } catch (error: any) {
@@ -325,7 +332,7 @@ router.post('/cli/gemini/settings/playwright/relogin', async (req, res) => {
     const suppliedPassword = String(req.body?.password || '');
     const savedCredentials = suppliedPassword
       ? null
-      : await geminiPlaywrightManager.getSavedCredentials(account.email);
+      : await getGeminiPlaywrightManager().getSavedCredentials(account.email);
     const password = suppliedPassword || savedCredentials?.password;
     if (!password) {
       return res.status(409).json({
@@ -334,7 +341,7 @@ router.post('/cli/gemini/settings/playwright/relogin', async (req, res) => {
         error: 'Password profil Playwright belum tersimpan. Masukkan password Google untuk relogin.',
       });
     }
-    const started = await geminiPlaywrightManager.startLogin({
+    const started = await getGeminiPlaywrightManager().startLogin({
       email: account.email,
       password,
       customLabel: account.displayName || account.name,
@@ -364,7 +371,7 @@ router.post('/cli/gemini/settings/playwright/batch', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Daftar email valid dan password batch wajib diisi.' });
     }
     const accounts = await getProviderAccountsFromSheet(user.userId, 'gemini', true, true);
-    const started = await geminiPlaywrightManager.startBatchLogin({
+    const started = await getGeminiPlaywrightManager().startBatchLogin({
       emails,
       password,
       existingEmails: accounts.map((account: any) => account.email).filter(Boolean),
@@ -427,7 +434,7 @@ router.post('/cli/gemini/settings/playwright/session/:sessionId/2fa', async (req
       return res.status(404).json({ success: false, error: 'Sesi Playwright tidak ditemukan atau bukan milik user ini.' });
     }
     if (!code) return res.status(400).json({ success: false, error: 'Kode verifikasi wajib diisi.' });
-    await geminiPlaywrightManager.submit2FA(sessionId, code);
+    await getGeminiPlaywrightManager().submit2FA(sessionId, code);
     return res.json({ success: true });
   } catch (error: any) {
     console.error('[CLI Gemini Playwright 2FA Error]:', error);
@@ -442,7 +449,7 @@ router.post('/cli/gemini/settings/playwright/session/:sessionId/cancel', async (
   const owned = getOwnedPlaywrightSession(user.userId, sessionId);
   if (!owned?.session) return res.status(404).json({ success: false, error: 'Sesi tidak ditemukan atau bukan milik user ini.' });
   try {
-    await geminiPlaywrightManager.cancelSession(sessionId);
+    await getGeminiPlaywrightManager().cancelSession(sessionId);
     return res.json({ success: true });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || 'Gagal membatalkan sesi.' });
@@ -456,7 +463,7 @@ router.get('/cli/gemini/settings/playwright/batch/:batchId', async (req, res) =>
   try {
     const batchId = String(req.params.batchId || '');
     const owner = playwrightBatches.get(batchId);
-    const batch = owner?.userId === user.userId ? geminiPlaywrightManager.getBatch(batchId) : undefined;
+    const batch = owner?.userId === user.userId ? getGeminiPlaywrightManager().getBatch(batchId) : undefined;
     if (!owner || !batch) {
       return res.status(404).json({ success: false, error: 'Batch tidak ditemukan, kedaluwarsa, atau bukan milik user ini.' });
     }
@@ -501,7 +508,7 @@ router.post('/cli/gemini/settings/playwright/batch/:batchId/cancel', async (req,
     return res.status(404).json({ success: false, error: 'Batch tidak ditemukan atau bukan milik user ini.' });
   }
   try {
-    await geminiPlaywrightManager.cancelBatch(batchId);
+    await getGeminiPlaywrightManager().cancelBatch(batchId);
     return res.json({ success: true });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || 'Gagal membatalkan batch.' });
@@ -561,7 +568,7 @@ router.get('/cli/gemini/settings/scripts', async (req, res) => {
   const user = getAuthenticatedUser(req);
   if (!user) return sendUnauthorized(res);
   try {
-    return res.json({ success: true, ...geminiPlaywrightManager.getLocalPlaywrightScripts() });
+    return res.json({ success: true, ...getGeminiPlaywrightManager().getLocalPlaywrightScripts() });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || 'Gagal mengambil Script Runner Lokal.' });
   }
@@ -628,12 +635,46 @@ router.post('/cli/gemini/generate-video', async (req, res) => {
     if (!account) {
       return res.status(404).json({ success: false, error: 'Akun Gemini tidak ditemukan untuk user yang sedang login.' });
     }
-    if (account.creditSyncStatus !== 'synced' || typeof account.credits !== 'number') {
-      return res.status(409).json({ success: false, error: 'Saldo akun belum tersinkron. Sinkronkan akun sebelum generate.' });
-    }
     const credential = getAccountCredential(account);
     if (!credential) {
       return res.status(409).json({ success: false, error: 'Kredensial sesi akun tidak tersedia. Perbarui akun melalui Settings.' });
+    }
+
+    // Uji sesi tidak valid: tujuannya melihat kegagalan SESUNGGUHNYA di jalur generator,
+    // jadi pre-check hanya mendiagnosis — request tetap diteruskan ke
+    // /gemini/generate-video (dulu jalur ini selalu return di awal dan generator tidak pernah jalan).
+    let invalidSessionPreflight: {
+      status: number;
+      accountStatus?: string;
+      error?: string;
+    } | null = null;
+
+    if (req.body?.allowInvalidSessionTest === true) {
+      const sessionCheck = await callInternalApi(req, '/gemini/accounts/sync-daily', {
+        token: credential,
+        email: account.email,
+      }, 180_000);
+      invalidSessionPreflight = {
+        status: sessionCheck.status,
+        accountStatus: sessionCheck.data?.accountStatus,
+        error: sessionCheck.data?.error,
+      };
+
+      if (sessionCheck.data?.success === true && sessionCheck.data?.accountStatus === 'active') {
+        return res.status(409).json({
+          success: false,
+          error: 'Sesi akun masih aktif. Percobaan khusus sesi invalid dibatalkan; gunakan generate test normal.',
+        });
+      }
+
+      console.warn(
+        `[CLI Gemini Invalid Session Test] Pre-check: status=${sessionCheck.status} accountStatus=${sessionCheck.data?.accountStatus}. ` +
+        'Melanjutkan ke generator untuk melihat kegagalan yang sebenarnya.'
+      );
+    }
+
+    if (!invalidSessionPreflight && (account.creditSyncStatus !== 'synced' || typeof account.credits !== 'number')) {
+      return res.status(409).json({ success: false, error: 'Saldo akun belum tersinkron. Sinkronkan akun sebelum generate.' });
     }
 
     const testPermit = issueCliGeminiTestPermit(account.id, account.email || '');
@@ -654,6 +695,12 @@ router.post('/cli/gemini/generate-video', async (req, res) => {
     return res.status(result.status).json({
       ...sanitizeGenerationResponse(result.data),
       creditBypassed: result.data.creditBypassed === true,
+      ...(invalidSessionPreflight
+        ? {
+            failureSource: result.data?.failureSource || 'invalid_session_test',
+            sessionPrecheck: invalidSessionPreflight,
+          }
+        : {}),
     });
   } catch (error: any) {
     console.error('[CLI Gemini Generate Error]:', error);

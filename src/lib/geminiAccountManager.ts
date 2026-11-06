@@ -562,6 +562,61 @@ export function autoSyncGeminiAccountCredits(targetAcc: any, remainingCredits?: 
   }
 }
 
+export function markGeminiAccountSessionInvalid(
+  targetAcc: Partial<Pick<GeminiAccount, 'id' | 'email' | 'token' | 'refreshToken' | 'apiKey' | 'cookies'>>,
+  statusMessage = 'EXPIRED',
+): void {
+  try {
+    const raw = localStorage.getItem('gemini_accounts');
+    if (!raw) return;
+    const accounts = JSON.parse(raw);
+    if (!Array.isArray(accounts)) return;
+
+    const targetId = targetAcc.id;
+    const targetEmail = targetAcc.email?.toLowerCase();
+    const targetToken = targetAcc.token || targetAcc.refreshToken || targetAcc.apiKey || targetAcc.cookies;
+    let matched = false;
+    const updated = accounts.map((account: GeminiAccount) => {
+      const isTarget =
+        (targetId && account.id === targetId) ||
+        (targetEmail && account.email?.toLowerCase() === targetEmail) ||
+        (targetToken &&
+          [account.token, account.refreshToken, account.apiKey, account.cookies].includes(targetToken));
+      if (!isTarget) return account;
+      matched = true;
+      return {
+        ...account,
+        credits: 0,
+        creditsUsed: GEMINI_MAX_CREDITS,
+        isActive: false,
+        accountStatus: 'expired' as const,
+        statusMessage,
+      };
+    });
+    if (!matched) return;
+
+    const activeId = localStorage.getItem('gemini_active_account_id');
+    const invalidatedActiveAccount = updated.some(
+      (account: GeminiAccount) => account.id === activeId && account.accountStatus === 'expired',
+    );
+    if (invalidatedActiveAccount) {
+      const nextActive = updated.find(
+        (account: GeminiAccount) => !account.accountStatus || account.accountStatus === 'active',
+      );
+      for (const account of updated) account.isActive = account.id === nextActive?.id;
+      if (nextActive) localStorage.setItem('gemini_active_account_id', nextActive.id);
+      else localStorage.removeItem('gemini_active_account_id');
+    }
+
+    localStorage.setItem('gemini_accounts', JSON.stringify(updated));
+    window.dispatchEvent(new Event('gemini_accounts_updated'));
+    window.dispatchEvent(new Event('accounts-updated'));
+    void syncGeminiAccountsToSheet(updated);
+  } catch (error) {
+    console.warn('[GeminiAccountManager] Could not mark expired session:', error);
+  }
+}
+
 // 7. Terapkan switch akun jika server merotasi akun
 export function applyGeminiAccountSwitch(usedAccount: any): void {
   try {

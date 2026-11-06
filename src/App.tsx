@@ -465,6 +465,29 @@ export default function App() {
     return getFlowAccounts().length;
   };
 
+  const getVidsAccounts = (): ProviderAccount[] => {
+    try {
+      const item = localStorage.getItem('vids_accounts');
+      if (!item) return [];
+      const parsed = JSON.parse(item);
+      if (Array.isArray(parsed)) {
+        return parsed.map((a: any) => ({
+          ...a,
+          credits: typeof a.credits === 'number' ? Math.max(0, a.credits) : (a.credits ?? 450),
+          totalCredits: typeof a.totalCredits === 'number' && a.totalCredits > 0 ? a.totalCredits : 500,
+        }));
+      }
+      console.error('[Google Vids] Saved account list is not an array.');
+    } catch (error) {
+      console.error('[Google Vids] Could not read saved accounts:', error);
+    }
+    return [];
+  };
+
+  const getVidsAccountsCount = () => {
+    return getVidsAccounts().length;
+  };
+
   const getGeminiAccounts = (): ProviderAccount[] => {
     try {
       const item = localStorage.getItem('gemini_accounts');
@@ -502,6 +525,16 @@ export default function App() {
         videoDuration: '10 seconds',
         videoResolution: '1080p',
         imageModel: 'Google Imagen 3 Pro',
+      }));
+    } else if (providerId === 'vids') {
+      setSettings((prev) => ({
+        ...prev,
+        provider: 'vids',
+        videoModel: 'Google Vids Omni',
+        videoAspectRatio: '9:16 (Vertical)',
+        videoDuration: '10 seconds',
+        videoResolution: '720p',
+        imageModel: '-',
       }));
     } else if (providerId === 'flow') {
       setSettings((prev) => ({
@@ -2406,6 +2439,60 @@ export default function App() {
     }
   };
 
+  const autoSyncVidsAccountCredits = async (email?: string) => {
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (!normalizedEmail) {
+      console.warn('[Google Vids] Cannot refresh quota without the selected account email.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/vids/quota?email=${encodeURIComponent(normalizedEmail)}`);
+      const quota = await response.json().catch(() => ({}));
+      if (!response.ok || !quota.success) {
+        throw new Error(quota.error || `Quota refresh failed (HTTP ${response.status}).`);
+      }
+      if (quota.quotaLive !== true || typeof quota.credits !== 'number' || typeof quota.totalCredits !== 'number') {
+        console.warn(`[Google Vids] Live quota unavailable for ${normalizedEmail}; stored quota was not changed.`);
+        return;
+      }
+
+      const raw = localStorage.getItem('vids_accounts');
+      if (!raw) {
+        console.warn('[Google Vids] No saved account list is available to update.');
+        return;
+      }
+      const accs = JSON.parse(raw);
+      if (!Array.isArray(accs)) {
+        throw new Error('Saved Google Vids accounts are not a list.');
+      }
+
+      let matchedAccount = false;
+      const updated = accs.map((account: any) => {
+        if (account.email?.trim().toLowerCase() !== normalizedEmail) return account;
+        matchedAccount = true;
+        return {
+          ...account,
+          credits: quota.credits,
+          totalCredits: quota.totalCredits,
+          lastChecked: quota.lastChecked || new Date().toISOString(),
+          quotaLive: true,
+        };
+      });
+      if (!matchedAccount) {
+        console.warn(`[Google Vids] Account ${normalizedEmail} was not found in the saved account list.`);
+        return;
+      }
+
+      localStorage.setItem('vids_accounts', JSON.stringify(updated));
+      window.dispatchEvent(new Event('vids_accounts_updated'));
+      window.dispatchEvent(new Event('accounts-updated'));
+      await syncProviderAccountsToSheet('vids', updated);
+    } catch (error) {
+      console.warn('[Google Vids] Live quota refresh failed:', error);
+    }
+  };
+
   const updateDirectGalleri5AccountCredits = (targetAccount: any, newCredits: number) => {
     if (!targetAccount || typeof newCredits !== 'number' || isNaN(newCredits)) return;
     try {
@@ -3213,6 +3300,7 @@ export default function App() {
     const activeProvider = resolveActiveProviderId(settings, activeTab, externalProviderId);
     const isGeminiModel = activeProvider === 'gemini';
     const isFlowModel = activeProvider === 'flow';
+    const isVidsModel = activeProvider === 'vids' || settings.videoModel === 'Google Vids Omni';
     const isRunningHubModel = activeProvider === 'runninghub';
     const isGalleri5Model = activeProvider === 'galleri5';
     const isKieModel = activeProvider === 'kie';
@@ -3228,7 +3316,7 @@ export default function App() {
       return;
     }
 
-    if (!isKlingMotion && !isMiniMax && !((isGeminiModel || isFlowModel) && (imgItem || attachedMedia.some((m) => m.type === 'image' || (!m.type && !m.name?.match(/\.(mp4|mov|webm)$/i))))) && !prompt.trim()) return;
+    if (!isKlingMotion && !isMiniMax && !isVidsModel && !((isGeminiModel || isFlowModel) && (imgItem || attachedMedia.some((m) => m.type === 'image' || (!m.type && !m.name?.match(/\.(mp4|mov|webm)$/i))))) && !prompt.trim()) return;
 
     if (isKlingMotion && (!imgItem?.url || !vidItem?.url)) {
       alert(`${getCleanModelName(settings.videoModel)} memerlukan 1 Foto Referensi dan 1 Video Motion Control. Silakan unggah keduanya melalui tombol (+).`);
@@ -3240,13 +3328,18 @@ export default function App() {
       return;
     }
 
+    if (isVidsModel && !prompt.trim()) {
+      alert('Google Vids Omni memerlukan teks prompt untuk membuat video.');
+      return;
+    }
+
     if ((isGeminiModel || isFlowModel) && !imgItem && !prompt.trim()) {
       alert(`${isFlowModel ? 'Google Flow' : 'Google Gemini'} memerlukan teks prompt (untuk Text-to-Video) atau foto referensi (untuk Image-to-Video).`);
       return;
     }
 
-    const isWeavyKling = !isRoboneoModel && !isKieModel && !isGalleri5Model && !isRunningHubModel && !isGeminiModel && !isFlowModel && (isKlingMotion || (isVideo && settings.videoModel.toLowerCase().includes('kling')));
-    const requiredCredits = isRunningHubModel || isRoboneoModel || isKieModel || isGalleri5Model || isGeminiModel || isFlowModel
+    const isWeavyKling = !isRoboneoModel && !isKieModel && !isGalleri5Model && !isRunningHubModel && !isGeminiModel && !isFlowModel && !isVidsModel && (isKlingMotion || (isVideo && settings.videoModel.toLowerCase().includes('kling')));
+    const requiredCredits = isRunningHubModel || isRoboneoModel || isKieModel || isGalleri5Model || isGeminiModel || isFlowModel || isVidsModel
       ? 1
       : isWeavyKling
       ? 50
@@ -3264,6 +3357,7 @@ export default function App() {
       geminiLease = null;
     };
     let flowAcc: any = null;
+    let vidsAcc: any = null;
     let roboneoAcc: any = null;
     let kieAcc: any = null;
     let galleri5Acc: any = null;
@@ -3302,6 +3396,15 @@ export default function App() {
       if (typeof flowAcc.credits === 'number' && flowAcc.credits <= 0) {
         setIsSubmittingTask(false);
         alert('Akun Google Flow telah mencapai batas kredit harian (3/3 kredit). Silakan coba lagi besok.');
+        return;
+      }
+    } else if (isVidsModel) {
+      const vidsAccs = getVidsAccounts();
+      vidsAcc = vidsAccs.find((a) => a.isActive) || vidsAccs[0];
+      if (!vidsAcc) {
+        setIsSubmittingTask(false);
+        alert('Tidak ada akun Google Vids yang terhubung di Settings. Silakan tambahkan akun Google Vids di tab Settings.');
+        setActiveTab('settings');
         return;
       }
     } else if (isRunningHubModel) {
@@ -3392,6 +3495,8 @@ export default function App() {
       defaultMotionTitle = 'Kling 3.0 Pro Motion Control';
     } else if (isGeminiModel) {
       defaultMotionTitle = isVideo ? (imgItem ? 'Gemini Image to Video' : 'Google Gemini Video') : 'Google Gemini Image';
+    } else if (isVidsModel) {
+      defaultMotionTitle = 'Google Vids Omni';
     } else if (isRunningHubModel) {
       defaultMotionTitle = settings.videoModel === 'MiniMax H3 Turbo Video'
         ? 'MiniMax H3 Turbo Video'
@@ -3402,7 +3507,7 @@ export default function App() {
 
     const derivedTitle = cleanPrompt.length > 0
       ? (cleanPrompt.length > 28 ? `${cleanPrompt.slice(0, 28)}...` : cleanPrompt)
-      : (isKlingMotion || isMiniMax || isGeminiModel ? defaultMotionTitle : 'Untitled Generation');
+      : (isKlingMotion || isMiniMax || isGeminiModel || isVidsModel ? defaultMotionTitle : 'Untitled Generation');
 
     const refImage =
       imgItem?.previewUrl ||
@@ -3417,6 +3522,10 @@ export default function App() {
       ? { id: 'runninghub', name: 'RunningHub' }
       : isGeminiModel
       ? { id: 'gemini', name: 'Google Gemini' }
+      : isFlowModel
+      ? { id: 'flow', name: 'Google Flow' }
+      : isVidsModel
+      ? { id: 'vids', name: 'Google Vids' }
       : isGalleri5Model
       ? { id: 'galleri5', name: 'Galleri5' }
       : isKieModel
@@ -3551,6 +3660,8 @@ export default function App() {
         ? (isVideoMode ? '/api/gemini/generate-video' : '/api/gemini/generate-image')
         : isFlowModel
         ? '/api/flow/generate-video'
+        : isVidsModel
+        ? '/api/vids/generate-video'
         : isRunningHubModel
         ? '/api/runninghub/generate'
         : isGalleri5Model
@@ -3628,6 +3739,18 @@ export default function App() {
             referenceImageUrl: refImages[0]?.url || attachedMedia[0]?.url,
             referenceImageData: resolvedRefImageData,
           }
+        : isVidsModel
+        ? {
+            prompt: cleanPrompt,
+            aspectRatio: isVideo ? settings.videoAspectRatio : '9:16 (Vertical)',
+            duration: 10,
+            resolution: settings.videoResolution,
+            email: vidsAcc?.email,
+            cookies: vidsAcc?.cookies || vidsAcc?.token,
+            docId: vidsAcc?.docId || vidsAcc?.flixDocId,
+            flixDocId: vidsAcc?.flixDocId || vidsAcc?.docId,
+            serverToken: vidsAcc?.serverToken,
+          }
         : isRunningHubModel
         ? {
             apiKey: runninghubAcc?.refreshToken || runninghubAcc?.accessToken || runninghubAcc?.idToken || runninghubAcc?.email,
@@ -3697,7 +3820,7 @@ export default function App() {
       let genResponseOk = false;
       let genResponseData: any = null;
 
-      const isWeavyModel = !isGeminiModel && !isFlowModel && !isRunningHubModel && !isGalleri5Model && !isKieModel && !isRoboneoModel;
+      const isWeavyModel = !isGeminiModel && !isFlowModel && !isVidsModel && !isRunningHubModel && !isGalleri5Model && !isKieModel && !isRoboneoModel;
 
       // 1. Eksekusi Weavy langsung via Chrome Extension Bridge jika terhubung (100% Bebas 403 & Cloudflare WAF)
       if (isWeavyModel && extensionBridge.getStatus().isConnected && activeAcc) {
@@ -3726,7 +3849,7 @@ export default function App() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           },
-          (isGeminiModel || isFlowModel) ? 0 : 2
+          (isGeminiModel || isFlowModel || isVidsModel) ? 0 : 2
         );
         genResponseOk = ok;
         genResponseData = data;
@@ -3852,7 +3975,7 @@ export default function App() {
           genResponseData?.errorMessage ||
           genResponseData?.error ||
           genResponseData?.text ||
-          `Generasi ${isGeminiModel ? 'Google Gemini' : isFlowModel ? 'Google Flow' : isRunningHubModel ? 'RunningHub' : isGalleri5Model ? 'Galleri5' : isKieModel ? 'Kie.ai' : isRoboneoModel ? 'Kling Motion Control RoboNeo' : 'Weavy'} gagal (respons bukan hasil video generate).`;
+          `Generasi ${isGeminiModel ? 'Google Gemini' : isFlowModel ? 'Google Flow' : isVidsModel ? 'Google Vids' : isRunningHubModel ? 'RunningHub' : isGalleri5Model ? 'Galleri5' : isKieModel ? 'Kie.ai' : isRoboneoModel ? 'Kling Motion Control RoboNeo' : 'Weavy'} gagal (respons bukan hasil video generate).`;
         setGenerations((prev) =>
           prev.map((g) =>
             g.id === activeItem.id
@@ -3867,13 +3990,15 @@ export default function App() {
         );
         if (isGeminiModel) {
           handleGeminiExhaustedAccounts(genResponseData, errMessage, geminiAcc);
+        } else if (isVidsModel) {
+          await autoSyncVidsAccountCredits(vidsAcc?.email);
         } else if (isRunningHubModel) {
           autoSyncRunningHubAccountCredits(runninghubAcc?.refreshToken || runninghubAcc?.accessToken || runninghubAcc?.idToken || runninghubAcc?.email);
         } else if (isKieModel) {
           autoSyncKieAccountCredits(kieAcc?.refreshToken || kieAcc?.accessToken);
         } else if (isGalleri5Model) {
           autoSyncGalleri5AccountCredits(galleri5Acc?.refreshToken || galleri5Acc?.accessToken || galleri5Acc?.idToken);
-        } else if (!isRoboneoModel && !isGeminiModel && !isFlowModel) {
+        } else if (!isRoboneoModel && !isGeminiModel && !isFlowModel && !isVidsModel) {
           autoSyncActiveAccountCredits();
         }
         releaseGeminiLease();
@@ -3907,11 +4032,13 @@ export default function App() {
         }
       }
 
-      if (isGeminiModel || isGalleri5Model || isFlowModel) {
+      if (isGeminiModel || isGalleri5Model || isFlowModel || isVidsModel) {
         const directMediaUrl = data.videoUrl || data.imageUrl || data.mediaUrl || data.resultUrl;
         if (directMediaUrl) {
           if (isGalleri5Model) {
             autoSyncGalleri5AccountCredits(galleri5Acc?.refreshToken || galleri5Acc?.accessToken || galleri5Acc?.idToken);
+          } else if (isVidsModel) {
+            await autoSyncVidsAccountCredits(vidsAcc?.email);
           }
           clearInterval(timerInterval);
 
@@ -4675,9 +4802,11 @@ export default function App() {
             : g
         )
       );
-      if (isKieModel) {
+      if (isVidsModel) {
+        await autoSyncVidsAccountCredits(vidsAcc?.email);
+      } else if (isKieModel) {
         autoSyncKieAccountCredits(kieAcc?.refreshToken || kieAcc?.accessToken);
-      } else if (!isRoboneoModel && !isGalleri5Model) {
+      } else if (!isRoboneoModel && !isGalleri5Model && !isVidsModel) {
         autoSyncActiveAccountCredits();
       }
     }
@@ -4825,6 +4954,8 @@ export default function App() {
           geminiAccounts={getGeminiAccounts()}
           flowAccountsCount={getFlowAccountsCount()}
           flowAccounts={getFlowAccounts()}
+          vidsAccountsCount={getVidsAccountsCount()}
+          vidsAccounts={getVidsAccounts()}
           roboneoAccountsCount={getRoboneoAccountsCount()}
           roboneoAccounts={getRoboneoAccounts()}
           galleri5AccountsCount={getGalleri5AccountsCount()}
@@ -5137,6 +5268,13 @@ export default function App() {
         onSendAsReference={handleSendAsReference}
         onReuseItem={handleReuseGeneration}
         onSendExtractedFrameAsReference={handleSendExtractedFrameAsReference}
+        onMediaUpdated={(id, mediaUrl) => {
+          setGenerations((current) =>
+            current.map((generation) =>
+              generation.id === id ? { ...generation, mediaUrl } : generation
+            )
+          );
+        }}
       />
 
       {/* Theme Transition Slide Overlay */}

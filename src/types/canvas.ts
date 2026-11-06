@@ -6,6 +6,7 @@ export type CanvasNodeType =
   | 'imageInput'
   | 'imageModel'
   | 'geminiVideo'
+  | 'vidsVideo'
   | 'videoStitcher'
   | 'imageViewer'
   | 'promptEnhancer'
@@ -151,6 +152,25 @@ export interface GeminiVideoNodeData {
   sceneTitle?: string;
   visualDescription?: string;
   videoPrompt?: string;
+}
+
+export interface VidsVideoNodeData {
+  modelDisplayName: 'Google Vids Omni' | string;
+  aspectRatio: '16:9' | '9:16' | string;
+  resolution: '720p' | '1080p' | string;
+  promptOverride?: string;
+  inputPrompt?: string;
+  outputVideo?: string;
+  resultUrl?: string;
+  videoUrl?: string;
+  status?: 'idle' | 'running' | 'completed' | 'error';
+  progress?: number;
+  errorMessage?: string;
+  startedAt?: number;
+  accountId?: string;
+  accountEmail?: string;
+  naturalWidth?: number;
+  naturalHeight?: number;
 }
 
 export interface StoryboardNodeData {
@@ -587,6 +607,7 @@ export const getNodeWidth = (
   if (node.type === 'promptEnhancer' || node.type === 'anyLLM') return 340;
   if (node.type === 'imageModel') return 340;
   if (node.type === 'geminiVideo') return 340;
+  if (node.type === 'vidsVideo') return 340;
   if (node.type === 'videoStitcher') return 340;
   if (node.type !== 'imageViewer' && node.type !== 'imageInput') return 340;
   if (node.data?.cardWidth && typeof node.data.cardWidth === 'number') {
@@ -725,12 +746,12 @@ export function getAiWorkerPortValue(node: CanvasNode, outputId?: string): { tex
 
 /**
  * Returns the exact top pixel offset of a port container inside a CanvasNodeCard.
- * For imageModel, geminiVideo, and LLM nodes, spacing is 40px starting at 62px.
+ * For imageModel, video, and LLM nodes, spacing is 40px starting at 62px.
  * For storyboard nodes, spacing is 36px starting at 62px.
  * For standard nodes, spacing is 36px starting at 62px.
  */
 export const getPortOffsetTop = (nodeType: string, portIndex: number): number => {
-  if (nodeType === 'imageModel' || nodeType === 'geminiVideo' || nodeType === 'videoStitcher' || nodeType === 'promptEnhancer' || nodeType === 'anyLLM') {
+  if (nodeType === 'imageModel' || nodeType === 'geminiVideo' || nodeType === 'vidsVideo' || nodeType === 'videoStitcher' || nodeType === 'promptEnhancer' || nodeType === 'anyLLM') {
     return 62 + portIndex * 40;
   }
   if (nodeType === 'storyboard') {
@@ -792,13 +813,13 @@ export const getPortCoordinate = (
               label: 'Image',
             },
           ]
-        : node.type === 'geminiVideo' || node.type === 'videoStitcher'
+        : node.type === 'geminiVideo' || node.type === 'vidsVideo' || node.type === 'videoStitcher'
         ? [
             {
               id: 'output-video',
               name: 'video',
               type: 'video' as const,
-              label: node.type === 'videoStitcher' ? 'Stitched Video' : 'Video',
+              label: node.type === 'videoStitcher' ? 'Stitched Video' : node.type === 'vidsVideo' ? 'Google Vids Video' : 'Video',
             },
           ]
         : [];

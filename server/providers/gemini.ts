@@ -37,7 +37,6 @@ import multer from 'multer';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 import { GoogleGenAI } from '@google/genai';
-import { geminiPlaywrightManager } from '../services/geminiPlaywright';
 import {
   GEMINI_USAGE_FILE,
   GEMINI_VIDEO_CREDIT_LIMIT,
@@ -58,6 +57,11 @@ import {
 } from '../utils/cliGeminiTestMode';
 
 const router = Router();
+type GeminiPlaywrightManager = typeof import('../services/geminiPlaywright').geminiPlaywrightManager;
+
+function getGeminiPlaywrightManager(): GeminiPlaywrightManager {
+  return require('../services/geminiPlaywright').geminiPlaywrightManager;
+}
 
 const mediaCacheDir = path.join(process.cwd(), 'media-cache');
 if (!fs.existsSync(mediaCacheDir)) {
@@ -95,9 +99,147 @@ const webVideoTaskTracker = new Map<
   }
 >();
 const MAX_GEMINI_VIDEO_TASK_AGE_MS = 8 * 60 * 1000;
+const MAX_GEMINI_VIDEO_UNKNOWN_STATUS_POLLS = 20;
+const MAX_GEMINI_SESSION_VALIDATION_ATTEMPTS = 2;
+const GEMINI_SESSION_VALIDATION_RETRY_MS = 30 * 1000;
 const geminiVideoCreditReservations = new Map<string, number>();
 const GEMINI_VIDEO_LOCK_DIR = path.join(process.cwd(), 'data', 'gemini_video_locks');
 
+type GeminiVideoSessionValidationResult = 'valid' | 'invalid' | 'unknown';
+
+interface GeminiVideoSessionValidationState {
+  createdAt: number;
+  lastAttemptAt: number;
+  attempts: number;
+  result?: GeminiVideoSessionValidationResult;
+  inFlight?: Promise<void>;
+  consecutiveUnknownPolls: number;
+}
+
+const geminiVideoSessionValidation = new Map<string, GeminiVideoSessionValidationState>();
+
+function getGeminiVideoSessionValidationState(operationName: string): GeminiVideoSessionValidationState {
+  const now = Date.now();
+  for (const [key, state] of geminiVideoSessionValidation) {
+    if (!state.inFlight && now - state.createdAt > 30 * 60 * 1000) {
+      geminiVideoSessionValidation.delete(key);
+    }
+  }
+  let state = geminiVideoSessionValidation.get(operationName);
+  if (!state) {
+    state = { createdAt: now, lastAttemptAt: 0, attempts: 0, consecutiveUnknownPolls: 0 };
+    geminiVideoSessionValidation.set(operationName, state);
+  }
+  return state;
+}
+
+async function validateGeminiWebSessionForVideoPoll(
+  cookies: string | undefined,
+): Promise<GeminiVideoSessionValidationResult> {
+  if (!cookies?.trim()) return 'unknown';
+  if (!/(?:__Secure-1PSID|(?:^|;\s*)SID=|(?:^|;\s*)SAPISID=)/i.test(cookies)) {
+    return 'invalid';
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: GeminiVideoSessionValidationResult) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    const req = https.request(
+      {
+        hostname: 'gemini.google.com',
+        path: '/app',
+        method: 'GET',
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          Cookie: cookies,
+        },
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => {
+          if (body.length < 1_000_000) body += chunk;
+        });
+        res.on('end', () => {
+          const location = String(res.headers.location || '').toLowerCase();
+          if (
+            res.statusCode === 401 ||
+            (res.statusCode !== undefined &&
+              res.statusCode >= 300 &&
+              res.statusCode < 400 &&
+              location.includes('servicelogin'))
+          ) {
+            finish('invalid');
+            return;
+          }
+
+          const hasAuthenticatedToken =
+            /"SNlM0e"\s*:\s*"[^"]+"/.test(body) ||
+            /window\.WIZ_global_data\s*=\s*\{[\s\S]*?\bSNlM0e\s*:\s*["'][^"']+["']/.test(body);
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300 && hasAuthenticatedToken) {
+            finish('valid');
+            return;
+          }
+
+          const hasLoginPrompt =
+            /accounts\.google\.com\/ServiceLogin/i.test(body) ||
+            /name=["']Passwd["']|identifierId/i.test(body);
+          finish(hasLoginPrompt && !hasAuthenticatedToken ? 'invalid' : 'unknown');
+        });
+      },
+    );
+
+    req.on('error', () => finish('unknown'));
+    req.setTimeout(8000, () => {
+      req.destroy();
+      finish('unknown');
+    });
+    req.end();
+  });
+}
+
+function scheduleGeminiVideoSessionValidation(
+  operationName: string,
+  cookies: string | undefined,
+): GeminiVideoSessionValidationState {
+  const state = getGeminiVideoSessionValidationState(operationName);
+  const now = Date.now();
+  if (state.result === 'valid' || state.result === 'invalid' || state.inFlight) return state;
+  if (
+    state.attempts >= MAX_GEMINI_SESSION_VALIDATION_ATTEMPTS ||
+    (state.attempts > 0 && now - state.lastAttemptAt < GEMINI_SESSION_VALIDATION_RETRY_MS)
+  ) {
+    return state;
+  }
+
+  state.attempts += 1;
+  state.lastAttemptAt = now;
+  state.inFlight = validateGeminiWebSessionForVideoPoll(cookies)
+    .then((result) => {
+      state.result = result;
+      console.info(
+        `[Gemini Video Session Check] ${operationName}: ${result} ` +
+          `(attempt ${state.attempts}/${MAX_GEMINI_SESSION_VALIDATION_ATTEMPTS}).`,
+      );
+    })
+    .catch((error: unknown) => {
+      state.result = 'unknown';
+      console.warn(
+        `[Gemini Video Session Check] ${operationName}: validation failed ambiguously:`,
+        error instanceof Error ? error.message : String(error),
+      );
+    })
+    .finally(() => {
+      state.inFlight = undefined;
+    });
+  return state;
+}
 interface GeminiVideoAccountLockRecord {
   lockId: string;
   accountKey: string;
@@ -1159,12 +1301,26 @@ function isTemporaryGeminiCapacityText(text?: string | null): boolean {
 router.post('/gemini/playwright/profile/delete', async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim();
-    await geminiPlaywrightManager.deleteProfile(email);
+    await getGeminiPlaywrightManager().deleteProfile(email);
     return res.json({ success: true });
   } catch (err: any) {
     return res.status(400).json({
       success: false,
       error: err.message || 'Gagal menghapus profil browser Gemini.',
+    });
+  }
+});
+
+// POST /api/gemini/playwright/profile/open
+router.post('/gemini/playwright/profile/open', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    await getGeminiPlaywrightManager().openBrowserProfile(email);
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      error: err.message || 'Gagal membuka profil browser Gemini.',
     });
   }
 });
@@ -1181,7 +1337,7 @@ router.post('/gemini/playwright/start', async (req, res) => {
       });
     }
 
-    const startRes = await geminiPlaywrightManager.startLogin({
+    const startRes = await getGeminiPlaywrightManager().startLogin({
       email: String(email).trim(),
       password: String(password),
       recoveryEmail: recoveryEmail ? String(recoveryEmail).trim() : undefined,
@@ -1208,7 +1364,7 @@ router.post('/gemini/playwright/relogin', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Alamat email Google tidak valid.' });
     }
 
-    const credentials = await geminiPlaywrightManager.getSavedCredentials(email);
+    const credentials = await getGeminiPlaywrightManager().getSavedCredentials(email);
     if (!credentials) {
       return res.status(404).json({
         success: false,
@@ -1216,7 +1372,7 @@ router.post('/gemini/playwright/relogin', async (req, res) => {
       });
     }
 
-    const startRes = await geminiPlaywrightManager.startLogin({
+    const startRes = await getGeminiPlaywrightManager().startLogin({
       email,
       password: credentials.password,
     });
@@ -1261,7 +1417,7 @@ router.post('/gemini/playwright/start-batch', async (req, res) => {
       ? req.body.existingEmails.map((e: any) => String(e).trim()).filter(Boolean)
       : undefined;
 
-    const batchResult = await geminiPlaywrightManager.startBatchLogin({
+    const batchResult = await getGeminiPlaywrightManager().startBatchLogin({
       emails: rawEmails,
       password,
       recoveryEmail,
@@ -1283,7 +1439,7 @@ router.post('/gemini/playwright/start-batch', async (req, res) => {
 
 // GET /api/gemini/playwright/batch-status/:batchId
 router.get('/gemini/playwright/batch-status/:batchId', (req, res) => {
-  const batch = geminiPlaywrightManager.getBatch(req.params.batchId);
+  const batch = getGeminiPlaywrightManager().getBatch(req.params.batchId);
   if (!batch) {
     return res.status(404).json({ success: false, error: 'Sesi batch Playwright tidak ditemukan atau kedaluwarsa.' });
   }
@@ -1294,7 +1450,7 @@ router.get('/gemini/playwright/batch-status/:batchId', (req, res) => {
 router.get('/gemini/playwright/status/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const session = geminiPlaywrightManager.getSession(sessionId);
+    const session = getGeminiPlaywrightManager().getSession(sessionId);
 
     if (!session) {
       return res.status(404).json({
@@ -1332,7 +1488,7 @@ router.post('/gemini/playwright/submit-2fa', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Session ID wajib disertakan.' });
     }
 
-    await geminiPlaywrightManager.submit2FA(sessionId, String(code || '').trim(), customLabel);
+    await getGeminiPlaywrightManager().submit2FA(sessionId, String(code || '').trim(), customLabel);
 
     return res.json({
       success: true,
@@ -1351,7 +1507,7 @@ router.post('/gemini/playwright/cancel', async (req, res) => {
   try {
     const { sessionId } = req.body || {};
     if (sessionId) {
-      await geminiPlaywrightManager.cancelSession(sessionId);
+      await getGeminiPlaywrightManager().cancelSession(sessionId);
     }
     return res.json({ success: true, message: 'Sesi Playwright telah dibatalkan.' });
   } catch (err: any) {
@@ -1362,7 +1518,7 @@ router.post('/gemini/playwright/cancel', async (req, res) => {
 // GET /api/gemini/playwright/scripts
 router.get('/gemini/playwright/scripts', async (_req, res) => {
   try {
-    const scripts = geminiPlaywrightManager.getLocalPlaywrightScripts();
+    const scripts = getGeminiPlaywrightManager().getLocalPlaywrightScripts();
     return res.json({ success: true, ...scripts });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2122,7 +2278,7 @@ router.post('/gemini/generate-video', async (req, res) => {
       });
     }
 
-    const exhaustedAccounts: { id: string; email?: string; name?: string; reason: string; isQuotaExhausted?: boolean }[] = [];
+    const exhaustedAccounts: { id: string; email?: string; name?: string; reason: string; isQuotaExhausted?: boolean; failureSource?: string }[] = [];
     const primaryAccountId = candidateAccounts[0]?.id;
     let finalSuccessData: any = null;
     let lastCandidateErrorMessage = '';
@@ -2138,8 +2294,18 @@ router.post('/gemini/generate-video', async (req, res) => {
       (candidate) => getGeminiAccountUsageKeys(candidate.email, candidate.cookies || candidate.token),
     );
 
+    // Menunggu akun yang sedang dipakai proses video lain. Tanpa batas waktu, request
+    // bisa menggantung tak terbatas kalau lock tidak pernah dilepas.
+    const busyWaitDeadline = Date.now() + 10 * 60 * 1000;
     let retryBusyAccounts = true;
     while (!finalSuccessData && retryBusyAccounts && !req.aborted && !res.destroyed) {
+      if (Date.now() > busyWaitDeadline) {
+        console.warn('[Gemini Video Account Lock] ⏱️ Batas tunggu akun busy (10 menit) tercapai.');
+        lastCandidateErrorMessage =
+          lastCandidateErrorMessage ||
+          'Semua akun Google Gemini yang tersedia sedang menjalankan proses video lain. Coba lagi beberapa saat lagi.';
+        break;
+      }
       retryBusyAccounts = false;
       accountsSkippedForBusy = 0;
       for (let accIdx = 0; accIdx < accountsToTry.length; accIdx++) {
@@ -2213,7 +2379,23 @@ router.post('/gemini/generate-video', async (req, res) => {
       if (curCookies) {
         try {
           const { GeminiWebClient, isRefusalOrErrorText, isQuotaExhaustedText } = require('../../script-gemini/gemini_chat.cjs');
-          const client = new GeminiWebClient(curCookies);
+          const {
+            readGeminiClientContext,
+            summarizeGeminiClientContext,
+          } = require('../utils/geminiClientContext');
+          const clientContext = readGeminiClientContext(accKey);
+          if (clientContext) {
+            console.log(
+              `[Gemini Client Context] Menggunakan cache tanpa menjalankan browser — ${summarizeGeminiClientContext(clientContext)}`,
+            );
+          } else {
+            console.log(
+              '[Gemini Client Context] Cache tidak tersedia/kedaluwarsa; generate memakai payload native tanpa meluncurkan Playwright.',
+            );
+          }
+          console.log('[Gemini Video Transport] Menggunakan Gemini Web RPC langsung via HTTPS.');
+          const client = new GeminiWebClient(clientContext?.cookies || curCookies);
+          if (clientContext) client.setClientContext(clientContext);
           await client.initSession();
 
           // Upload reference images (up to 5) and reference video (up to 1) to Google Scotty
@@ -2449,17 +2631,21 @@ router.post('/gemini/generate-video', async (req, res) => {
           }
 
           if (webConvId && !videoResultUrl && !videoGenerationStarted) {
+            const failureSource = clientContext
+              ? 'cached_context_no_video_confirmation'
+              : 'missing_cached_context';
             const failureMessage =
               `Gemini membuat percakapan ${webConvId}, tetapi tidak mengonfirmasi proses generate video dimulai. ` +
-              'Task dihentikan tanpa polling render.';
+              'Task dihentikan tanpa polling render; request dikirim melalui Gemini Web RPC langsung tanpa menjalankan browser.';
             if (!cliTestMode) recordFailedGeminiVideoGenerate(accKey, webConvId);
             lastCandidateErrorMessage = failureMessage;
-            console.warn(`[Gemini Video Not Started for ${candidate.name || candidate.id}]:`, failureMessage);
+            console.warn(`[Gemini Video Not Started for ${candidate.name || candidate.id}] (${failureSource}):`, failureMessage);
             exhaustedAccounts.push({
               id: candidate.id,
               email: candidate.email,
               name: candidate.name,
               reason: failureMessage,
+              failureSource,
             });
             continue;
           }
@@ -2658,12 +2844,37 @@ router.post('/gemini/video-status', async (req, res) => {
     // If it's a web conversation task
     if (targetOp.startsWith('web_')) {
       const convId = targetOp.replace('web_', '');
+      const sessionValidation = geminiVideoSessionValidation.get(targetOp);
+      if (sessionValidation?.result === 'invalid') {
+        completeGeminiVideoTask(targetOp);
+        const refundedUsage = refundAccountDailyUsage(accKey, targetOp);
+        console.warn(
+          `[Gemini Video Status] ❌ Sesi akun ${emailToUse || 'unknown'} terkonfirmasi expired; task ${targetOp} dihentikan dan lock dilepas.`,
+        );
+        return res.json({
+          success: false,
+          status: 'failed',
+          done: true,
+          refunded: refundedUsage.refunded,
+          accountStatus: 'expired',
+          accountSessionInvalid: true,
+          failureSource: 'session_invalid',
+          error: 'Sesi akun Google Gemini terkonfirmasi kedaluwarsa saat memantau video. Sinkronkan atau login ulang akun sebelum digunakan kembali.',
+          errorMessage: 'Sesi akun Google Gemini terkonfirmasi kedaluwarsa saat memantau video. Sinkronkan atau login ulang akun sebelum digunakan kembali.',
+          remainingCredits: refundedUsage.remaining,
+          userRemainingCredits: refundedUsage.remaining,
+          totalCredits: GEMINI_MAX_CREDITS,
+        });
+      }
+
       try {
         const { GeminiWebClient, isQuotaExhaustedText } = require('../../script-gemini/gemini_chat.cjs');
         const client = new GeminiWebClient(cookies);
         await client.initSession();
         if (tracked && client.cookies) tracked.cookies = client.cookies;
         let history = await client.getConversationHistory(convId, 20000);
+        const validationState = geminiVideoSessionValidation.get(targetOp);
+        if (validationState) validationState.consecutiveUnknownPolls = 0;
 
         // IF HISTORY IS NULL (Google returned Error Code [7] PERMISSION_DENIED / Session Not Found):
         if (!history) {
@@ -2897,15 +3108,37 @@ router.post('/gemini/video-status', async (req, res) => {
         });
       } catch (err: any) {
         const errorMessage = err.message || 'Gagal memantau status video Gemini Web.';
-        console.warn(`[Gemini Video Status] ⚠️ Poll belum dapat memastikan status ${targetOp}; lock akun tetap aktif: ${errorMessage}`);
+        const isMalformedHistoryPayload = errorMessage.includes(
+          'Gemini conversation-history response did not contain the expected RPC payload',
+        );
+        const validationState = isMalformedHistoryPayload
+          ? scheduleGeminiVideoSessionValidation(targetOp, cookies)
+          : getGeminiVideoSessionValidationState(targetOp);
+        validationState.consecutiveUnknownPolls += 1;
+        const pollingLimitReached =
+          validationState.consecutiveUnknownPolls >= MAX_GEMINI_VIDEO_UNKNOWN_STATUS_POLLS;
+        console.warn(
+          `[Gemini Video Status] ⚠️ Poll belum dapat memastikan status ${targetOp}; lock akun tetap aktif ` +
+            `(unknown ${validationState.consecutiveUnknownPolls}/${MAX_GEMINI_VIDEO_UNKNOWN_STATUS_POLLS}, ` +
+            `validasi sesi ${validationState.result || (validationState.inFlight ? 'pending' : 'belum dapat dipastikan')}): ${errorMessage}`,
+        );
         touchGeminiVideoAccountLock(targetOp);
         return res.json({
           success: true,
           status: 'processing',
           done: false,
           statusUnknown: true,
-          error: 'Status video belum dapat dipastikan. Task tetap dipantau dan akun masih dikunci.',
+          pollingLimitReached,
+          sessionValidationStatus:
+            validationState.result || (validationState.inFlight ? 'pending' : 'unknown'),
+          error: pollingLimitReached
+            ? 'Status video tetap belum diketahui setelah beberapa percobaan. Pemantauan otomatis dihentikan; lock akun dipertahankan agar tidak terjadi generate duplikat.'
+            : 'Status video belum dapat dipastikan. Validasi sesi berjalan/akan dicoba kembali dan akun masih dikunci.',
           errorMessage,
+          unknownPollAttempts: validationState.consecutiveUnknownPolls,
+          maxUnknownPollAttempts: MAX_GEMINI_VIDEO_UNKNOWN_STATUS_POLLS,
+          sessionValidationAttempts: validationState.attempts,
+          maxSessionValidationAttempts: MAX_GEMINI_SESSION_VALIDATION_ATTEMPTS,
           remainingCredits: usage.remaining,
           userRemainingCredits: usage.remaining,
           totalCredits: GEMINI_MAX_CREDITS,

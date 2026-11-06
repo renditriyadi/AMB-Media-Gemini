@@ -37,6 +37,14 @@ const getProviderDetails = (provider?: string, model?: string) => {
   const p = (provider || '').toLowerCase();
   const m = (model || '').toLowerCase();
 
+  if (p === 'vids' || p === 'google vids' || m.includes('google vids') || m.includes('vids omni')) {
+    return {
+      name: 'Google Vids',
+      logoUrl: 'https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico',
+      bgClass: 'bg-stone-900 border border-stone-700',
+    };
+  }
+
   if (
     p === 'gemini' ||
     p === 'google gemini' ||
@@ -135,6 +143,11 @@ interface ExtractedFrameData {
   height: number;
 }
 
+type RemoveWatermarkEvent =
+  | { type: 'log'; message: string }
+  | { type: 'complete'; videoUrl: string }
+  | { type: 'error'; message: string };
+
 interface GenerationDetailModalProps {
   item: GenerationItem | null;
   onClose: () => void;
@@ -143,6 +156,7 @@ interface GenerationDetailModalProps {
   onSendAsReference?: (item: GenerationItem) => void;
   onReuseItem?: (item: GenerationItem) => void;
   onSendExtractedFrameAsReference?: (frameDataUrl: string, frameLabel: string) => void;
+  onMediaUpdated?: (id: string, mediaUrl: string) => void;
 }
 
 export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
@@ -153,6 +167,7 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
   onSendAsReference,
   onReuseItem,
   onSendExtractedFrameAsReference,
+  onMediaUpdated,
 }) => {
   const isVideo = item?.mode === 'video';
   const [isPlaying, setIsPlaying] = useState(false);
@@ -167,10 +182,27 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
   } | null>(null);
   const [useProxy, setUseProxy] = useState(false);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
+  const [processedVideoUrl, setProcessedVideoUrl] = useState<string | null>(null);
+  const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
+  const [watermarkLogs, setWatermarkLogs] = useState<string[]>([]);
+  const [watermarkError, setWatermarkError] = useState<string | null>(null);
+  const activeMediaUrl = processedVideoUrl || item?.mediaUrl || '';
+  const isGoogleVids =
+    (item?.provider || '').toLowerCase() === 'vids' ||
+    (item?.model || '').toLowerCase().includes('google vids') ||
+    (item?.model || '').toLowerCase().includes('vids omni');
+  const canRemoveWatermark =
+    isVideo &&
+    isGoogleVids &&
+    /^\/media-cache\/vids_[^/]+\.mp4$/i.test(item?.mediaUrl || '');
 
   useEffect(() => {
     setUseProxy(false);
     setHasPlaybackError(false);
+    setProcessedVideoUrl(null);
+    setIsRemovingWatermark(false);
+    setWatermarkLogs([]);
+    setWatermarkError(null);
   }, [item?.id, item?.mediaUrl]);
 
   // Video State & Frame Extraction State
@@ -197,7 +229,7 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
   }, [item?.id, item?.mediaUrl]);
 
   React.useEffect(() => {
-    if (item && isVideo && videoRef.current && item.mediaUrl) {
+    if (item && isVideo && videoRef.current && activeMediaUrl) {
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise
@@ -207,7 +239,7 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
           });
       }
     }
-  }, [item?.mediaUrl, isVideo, useProxy]);
+  }, [activeMediaUrl, isVideo, useProxy]);
 
   const processDimensions = (w: number, h: number) => {
     if (!w || !h) return;
@@ -454,18 +486,77 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
     : 'w-full max-w-[500px] max-h-[440px] mx-auto shadow-xs';
 
   const handleDownload = async () => {
-    if (!item?.mediaUrl || isDownloading) return;
+    if (!activeMediaUrl || isDownloading) return;
     setIsDownloading(true);
     try {
       const cleanTitle = getCleanPrompt(item.prompt, item.model) || item.title || 'weavy_media';
-      await downloadMediaFile(item.mediaUrl, cleanTitle, item.mode || (isVideo ? 'video' : 'image'), item.model);
+      await downloadMediaFile(activeMediaUrl, cleanTitle, item.mode || (isVideo ? 'video' : 'image'), item.model);
     } catch (e) {
       console.warn('Download media failed:', e);
-      if (item?.mediaUrl) {
-        window.open(item.mediaUrl, '_blank');
+      if (activeMediaUrl) {
+        window.open(activeMediaUrl, '_blank');
       }
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleRemoveWatermark = async () => {
+    if (!item || !canRemoveWatermark || isRemovingWatermark) return;
+
+    setIsRemovingWatermark(true);
+    setWatermarkLogs(['Memulai remove watermark...']);
+    setWatermarkError(null);
+
+    try {
+      const response = await fetch('/api/vids/remove-watermark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: item.mediaUrl }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || `Permintaan gagal (HTTP ${response.status}).`);
+      }
+      if (!response.body) throw new Error('Server tidak mengirim log proses.');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let completed = false;
+
+      const handleEvent = (line: string) => {
+        if (!line.trim()) return;
+        const event = JSON.parse(line) as RemoveWatermarkEvent;
+        if (event.type === 'log') {
+          setWatermarkLogs((current) => [...current, event.message]);
+        } else if (event.type === 'complete') {
+          completed = true;
+          setProcessedVideoUrl(event.videoUrl);
+          onMediaUpdated?.(item.id, event.videoUrl);
+          setWatermarkLogs((current) => [...current, 'Selesai. Preview diperbarui ke hasil remove watermark.']);
+        } else if (event.type === 'error') {
+          throw new Error(event.message);
+        }
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) handleEvent(line);
+        if (done) break;
+      }
+      handleEvent(buffer);
+      if (!completed) throw new Error('Proses berakhir tanpa mengembalikan file hasil.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Proses remove watermark gagal.';
+      setWatermarkError(message);
+      setWatermarkLogs((current) => [...current, `Gagal: ${message}`]);
+    } finally {
+      setIsRemovingWatermark(false);
     }
   };
 
@@ -554,7 +645,7 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
                     <div className="absolute right-0 top-8 z-30 w-52 bg-white dark:bg-[#1C1C24] rounded-xl shadow-xl border border-stone-200 dark:border-white/10 py-1.5 text-xs">
                       {item.mediaUrl && (
                         <a
-                          href={item.mediaUrl}
+                          href={activeMediaUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="w-full flex items-center gap-2 px-3.5 py-2 text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-white/5 font-medium cursor-pointer"
@@ -669,16 +760,16 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
                       </div>
                     )}
                   </div>
-                ) : item.mediaUrl ? (
+                ) : activeMediaUrl ? (
                   <video
-                    key={`${item.mediaUrl}-${useProxy}`}
+                    key={`${activeMediaUrl}-${useProxy}`}
                     ref={videoRef}
                     src={(() => {
-                      if (!item.mediaUrl) return '';
-                      if (item.mediaUrl.startsWith('/media-cache/') || item.mediaUrl.startsWith('data:')) {
-                        return item.mediaUrl;
+                      if (!activeMediaUrl) return '';
+                      if (activeMediaUrl.startsWith('/media-cache/') || activeMediaUrl.startsWith('data:')) {
+                        return activeMediaUrl;
                       }
-                      if (useProxy || item.mediaUrl.includes('googleusercontent.com') || item.mediaUrl.includes('contribution.usercontent')) {
+                      if (useProxy || activeMediaUrl.includes('googleusercontent.com') || activeMediaUrl.includes('contribution.usercontent')) {
                         let activeToken = '';
                         try {
                           const gAccounts = JSON.parse(localStorage.getItem('gemini_accounts') || '[]');
@@ -686,20 +777,20 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
                           if (active?.refreshToken) activeToken = active.refreshToken;
                         } catch (e) {}
 
-                        let pUrl = `/api/proxy-video?url=${encodeURIComponent(item.mediaUrl)}`;
+                        let pUrl = `/api/proxy-video?url=${encodeURIComponent(activeMediaUrl)}`;
                         if (activeToken) {
                           pUrl += `&token=${encodeURIComponent(activeToken)}`;
                         }
                         return pUrl;
                       }
-                      return item.mediaUrl;
+                      return activeMediaUrl;
                     })()}
                     onLoadedMetadata={handleVideoMetadata}
                     onTimeUpdate={handleTimeUpdate}
                     onPause={() => setIsVideoPaused(true)}
                     onPlay={() => setIsVideoPaused(false)}
                     onError={() => {
-                      if (!useProxy && item.mediaUrl && item.mediaUrl.startsWith('http')) {
+                      if (!useProxy && activeMediaUrl && activeMediaUrl.startsWith('http')) {
                         console.warn('[Video Player] Direct playback error, switching to proxy...');
                         setUseProxy(true);
                       } else {
@@ -752,7 +843,7 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
                     id="btn-detail-download-media"
                     type="button"
                     onClick={handleDownload}
-                    disabled={isDownloading || !item.mediaUrl}
+                    disabled={isDownloading || !activeMediaUrl}
                     className="px-3.5 py-2 bg-amber-600 dark:bg-amber-500 hover:bg-amber-700 dark:hover:bg-amber-400 active:scale-[0.98] text-white dark:text-stone-950 font-semibold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {isDownloading ? (
@@ -762,6 +853,23 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
                     )}
                     <span>Download</span>
                   </button>
+
+                  {canRemoveWatermark && !processedVideoUrl && (
+                    <button
+                      id="btn-remove-vids-watermark"
+                      type="button"
+                      onClick={handleRemoveWatermark}
+                      disabled={isRemovingWatermark}
+                      className="px-3.5 py-2 bg-stone-800 dark:bg-white/10 hover:bg-stone-700 dark:hover:bg-white/15 active:scale-[0.98] text-white dark:text-stone-100 font-semibold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {isRemovingWatermark ? (
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 shrink-0" />
+                      )}
+                      <span>{isRemovingWatermark ? 'Memproses...' : 'Remove Watermark'}</span>
+                    </button>
+                  )}
 
                   {/* Extract Frame (.PNG) for Video */}
                   {isVideo && item.mediaUrl && (
@@ -819,6 +927,20 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
                   )}
                 </div>
               </div>
+
+              {(watermarkLogs.length > 0 || watermarkError) && (
+                <div
+                  aria-live="polite"
+                  className="max-h-28 overflow-y-auto rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-black/20 px-3 py-2 text-[11px] font-mono text-stone-600 dark:text-stone-300 space-y-1"
+                >
+                  {watermarkLogs.map((log, index) => (
+                    <div key={`${index}-${log}`} className="whitespace-pre-wrap break-words">{log}</div>
+                  ))}
+                  {watermarkError && (
+                    <div className="text-rose-600 dark:text-rose-400">{watermarkError}</div>
+                  )}
+                </div>
+              )}
 
               {/* Optional Collapsible Prompt Peek */}
               {showPrompt && item.prompt && (
@@ -954,5 +1076,3 @@ export const GenerationDetailModal: React.FC<GenerationDetailModalProps> = ({
     </AnimatePresence>
   );
 };
-
-

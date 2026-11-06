@@ -261,6 +261,7 @@ export const PROVIDER_SHEET_MAP: Record<string, string> = {
   weavy: 'Weavy_Accounts',
   gemini: 'Gemini_Accounts',
   flow: 'Flow_Accounts',
+  vids: 'Vids_Accounts',
   roboneo: 'RoboNeo_Accounts',
   galleri5: 'Galleri5_Accounts',
   kie: 'Kie.ai_Accounts',
@@ -556,10 +557,11 @@ export async function getProviderAccountsFromSheet(
       const isRunningHub = providerKey.toLowerCase() === 'runninghub';
       const isGemini = providerKey.toLowerCase() === 'gemini';
       const isFlow = providerKey.toLowerCase() === 'flow';
-      const defaultProviderCredits = isGemini ? 0 : (isFlow ? 50 : (providerKey.toLowerCase() === 'galleri5' ? 100 : (providerKey.toLowerCase() === 'kie' ? 80 : (isRunningHub ? 600 : 150))));
+      const isVids = providerKey.toLowerCase() === 'vids';
+      const defaultProviderCredits = isGemini ? 0 : (isFlow ? 50 : (isVids ? 500 : (providerKey.toLowerCase() === 'galleri5' ? 100 : (providerKey.toLowerCase() === 'kie' ? 80 : (isRunningHub ? 600 : 150)))));
       const rawCreditNum = (creditsIdx >= 0 && row[creditsIdx] !== undefined && String(row[creditsIdx]).trim() !== '') ? Number(row[creditsIdx]) : NaN;
       let creditsVal = !isNaN(rawCreditNum) ? rawCreditNum : defaultProviderCredits;
-      let totalCreditsVal = (totalCreditsIdx >= 0 && row[totalCreditsIdx] !== undefined && String(row[totalCreditsIdx]).trim() !== '') ? Number(row[totalCreditsIdx]) : (isGemini ? GEMINI_VIDEO_CREDIT_LIMIT : undefined);
+      let totalCreditsVal = (totalCreditsIdx >= 0 && row[totalCreditsIdx] !== undefined && String(row[totalCreditsIdx]).trim() !== '') ? Number(row[totalCreditsIdx]) : (isGemini ? GEMINI_VIDEO_CREDIT_LIMIT : (isVids ? 500 : undefined));
       if (isRunningHub) {
         totalCreditsVal = undefined;
       }
@@ -607,7 +609,7 @@ export async function getProviderAccountsFromSheet(
           credits: isNaN(creditsVal) ? defaultProviderCredits : creditsVal,
           totalCredits: isGemini
             ? GEMINI_VIDEO_CREDIT_LIMIT
-            : ((totalCreditsVal !== undefined && !isNaN(totalCreditsVal)) ? totalCreditsVal : (isFlow ? 50 : undefined)),
+            : ((totalCreditsVal !== undefined && !isNaN(totalCreditsVal)) ? totalCreditsVal : (isFlow ? 50 : (isVids ? 500 : undefined))),
           creditsUsed: (creditsUsedVal !== undefined && !isNaN(creditsUsedVal)) ? creditsUsedVal : undefined,
           creditSyncStatus,
         });
@@ -676,6 +678,7 @@ export async function saveProviderAccountsToSheet(userId: string, providerKey: s
   const isRunningHub = providerKey.toLowerCase() === 'runninghub';
   const isGemini = providerKey.toLowerCase() === 'gemini';
   const isFlow = providerKey.toLowerCase() === 'flow';
+  const isVids = providerKey.toLowerCase() === 'vids';
 
   // Sanitize & deduplicate accounts payload (updates existing accounts by API Key / Token / Email)
   const deduplicatedMap = new Map<string, any>();
@@ -687,7 +690,7 @@ export async function saveProviderAccountsToSheet(userId: string, providerKey: s
 
     const tokenKey = String(acc.refreshToken || acc.apiKey || acc.accessToken || acc.token || acc.cookies || '').trim();
     const emailKey = String(acc.email || '').trim().toLowerCase();
-    const isGenericEmail = (isFlow && (emailKey.startsWith('flow_user_') || emailKey.startsWith('flow_') || emailKey === 'flow.user@google.com')) || emailKey.startsWith('rh_');
+    const isGenericEmail = (isFlow && (emailKey.startsWith('flow_user_') || emailKey.startsWith('flow_') || emailKey === 'flow.user@google.com')) || (isVids && (emailKey.startsWith('vids_user_') || emailKey.startsWith('vids_') || emailKey === 'vids.user@google.com')) || emailKey.startsWith('rh_');
     const uniqueKey = tokenKey || (!isGenericEmail && emailKey ? emailKey : '') || String(acc.id || `acc-${idx}`);
 
     const normalizedAcc = {
@@ -702,12 +705,12 @@ export async function saveProviderAccountsToSheet(userId: string, providerKey: s
         ? (typeof acc.credits === 'number'
             ? Math.min(GEMINI_VIDEO_CREDIT_LIMIT, Math.max(0, acc.credits))
             : 0)
-        : (typeof acc.credits === 'number' ? acc.credits : (isFlow ? 50 : (providerKey.toLowerCase() === 'galleri5' ? 100 : (providerKey.toLowerCase() === 'kie' ? 80 : 0)))),
+        : (typeof acc.credits === 'number' ? acc.credits : (isFlow ? 50 : (isVids ? 500 : (providerKey.toLowerCase() === 'galleri5' ? 100 : (providerKey.toLowerCase() === 'kie' ? 80 : 0))))),
       totalCredits: isRunningHub
         ? undefined
         : (isGemini
             ? GEMINI_VIDEO_CREDIT_LIMIT
-            : (typeof acc.totalCredits === 'number' ? acc.totalCredits : (isFlow ? 50 : undefined))),
+            : (typeof acc.totalCredits === 'number' ? acc.totalCredits : (isFlow ? 50 : (isVids ? 500 : undefined)))),
       creditsUsed: isGemini
         ? (typeof acc.creditsUsed === 'number'
             ? Math.min(GEMINI_VIDEO_CREDIT_LIMIT, Math.max(0, acc.creditsUsed))
@@ -811,13 +814,14 @@ export async function saveProviderAccountsToSheet(userId: string, providerKey: s
 export async function getAllProvidersAccountsFromSheet(userId: string) {
   const cleanUserId = (userId || '').trim();
   if (!cleanUserId) {
-    return { weavy: [], gemini: [], flow: [], roboneo: [], galleri5: [], kie: [], runninghub: [] };
+    return { weavy: [], gemini: [], flow: [], vids: [], roboneo: [], galleri5: [], kie: [], runninghub: [] };
   }
 
-  const [weavy, gemini, flow, roboneo, galleri5, kie, runninghub] = await Promise.all([
+  const [weavy, gemini, flow, vids, roboneo, galleri5, kie, runninghub] = await Promise.all([
     getProviderAccountsFromSheet(cleanUserId, 'weavy'),
     getProviderAccountsFromSheet(cleanUserId, 'gemini'),
     getProviderAccountsFromSheet(cleanUserId, 'flow'),
+    getProviderAccountsFromSheet(cleanUserId, 'vids'),
     getProviderAccountsFromSheet(cleanUserId, 'roboneo'),
     getProviderAccountsFromSheet(cleanUserId, 'galleri5'),
     getProviderAccountsFromSheet(cleanUserId, 'kie'),
@@ -828,6 +832,7 @@ export async function getAllProvidersAccountsFromSheet(userId: string) {
     weavy,
     gemini,
     flow,
+    vids,
     roboneo,
     galleri5,
     kie,

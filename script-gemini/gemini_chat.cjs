@@ -143,6 +143,8 @@ class GeminiWebClient {
     this.snlm0e = null;
     this.bl = 'boq_assistant-bard-web-server_20261001.00_p1';
     this.fdrfje = null;
+    this.clientContext = null;
+    this.contextRefreshHandler = null;
     this.conversationId = null;
     this.responseId = null;
     this.choiceId = null;
@@ -167,6 +169,96 @@ class GeminiWebClient {
     if (conversationId) this.conversationId = conversationId;
     if (responseId) this.responseId = responseId;
     if (choiceId) this.choiceId = choiceId;
+  }
+
+  /**
+   * Pasang client context yang dicapture dari UI Gemini (chatContext penuh + header asli).
+   * Tanpa ini, payload yang dikirim hanya 19 elemen dan tool video tidak pernah aktif.
+   */
+  setClientContext(ctx) {
+    if (!ctx) return;
+    this.clientContext = {
+      chatContext: Array.isArray(ctx.chatContext) ? ctx.chatContext : null,
+      headers: ctx.headers || {},
+      atToken: ctx.atToken || null,
+      buildId: ctx.buildId || null,
+      fSid: ctx.fSid || null,
+    };
+    if (this.clientContext.atToken) this.snlm0e = this.clientContext.atToken;
+    if (this.clientContext.buildId) this.bl = this.clientContext.buildId;
+    if (this.clientContext.fSid) this.fdrfje = this.clientContext.fSid;
+  }
+
+  /**
+   * Dipanggil server ketika request ditolak 400/401/403 supaya client context
+   * bisa di-capture ulang dari UI (token `at` ikut kadaluwarsa).
+   */
+  setContextRefreshHandler(handler) {
+    this.contextRefreshHandler = typeof handler === 'function' ? handler : null;
+  }
+
+  async _refreshClientContext() {
+    if (!this.contextRefreshHandler) return false;
+    try {
+      const fresh = await this.contextRefreshHandler();
+      if (fresh) {
+        this.setClientContext(fresh);
+        return true;
+      }
+    } catch (e) {
+      console.warn(`[Gemini Web Client] Refresh client context gagal: ${e?.message || e}`);
+    }
+    return false;
+  }
+
+  /**
+   * Bangun chatContext. Kalau client context tersedia, pakai template UI (90+ elemen)
+   * dan hanya ganti indeks 0 (promptEntry) dan indeks 2 (contextConv).
+   */
+  _buildChatContext(promptEntry, contextConv, legacyChatContext) {
+    const template = this.clientContext?.chatContext;
+    if (!Array.isArray(template) || template.length < 90) {
+      return legacyChatContext;
+    }
+    const ctx = template.slice();
+    ctx[0] = promptEntry;
+    // Index 2 = contextConv. Chat baru harus null, jangan ikut sisa percakapan dari capture.
+    ctx[2] = contextConv || null;
+    return ctx;
+  }
+
+  /**
+   * Header asli dari request UI, dengan cookie & authorization yang selalu dihitung ulang.
+   */
+  _buildParityHeaders(baseHeaders) {
+    const captured = this.clientContext?.headers;
+    if (!captured || Object.keys(captured).length === 0) {
+      return baseHeaders;
+    }
+    const merged = { ...baseHeaders };
+    const SKIP = new Set([
+      'cookie',
+      'content-length',
+      'host',
+      'authorization',
+      'content-type',
+      'origin',
+      'referer',
+      'x-same-domain',
+    ]);
+    // Header dasar dibuang kalau ada versi lowercase dari UI (header HTTP case-insensitive).
+    const baseKeyByLower = new Map();
+    for (const key of Object.keys(merged)) {
+      baseKeyByLower.set(key.toLowerCase(), key);
+    }
+    for (const [key, value] of Object.entries(captured)) {
+      const lower = key.toLowerCase();
+      if (SKIP.has(lower)) continue;
+      const baseKey = baseKeyByLower.get(lower);
+      if (baseKey && baseKey !== key) delete merged[baseKey];
+      merged[lower] = value;
+    }
+    return merged;
   }
 
   getSapisidHash(origin = 'https://gemini.google.com') {
@@ -334,6 +426,9 @@ class GeminiWebClient {
       this.snlm0e = cached.snlm0e;
       if (cached.bl) this.bl = cached.bl;
       if (cached.fdrfje) this.fdrfje = cached.fdrfje;
+      if (this.clientContext?.atToken) this.snlm0e = this.clientContext.atToken;
+      if (this.clientContext?.buildId) this.bl = this.clientContext.buildId;
+      if (this.clientContext?.fSid) this.fdrfje = this.clientContext.fSid;
       return this;
     }
 
@@ -364,6 +459,11 @@ class GeminiWebClient {
 
     if (blMatch && !this.bl) this.bl = blMatch[1];
     if (fdrMatch && !this.fdrfje) this.fdrfje = fdrMatch[1];
+
+    // Client context dari UI adalah sumber kebenaran: jangan ditimpa token/build dari /app.
+    if (this.clientContext?.atToken) this.snlm0e = this.clientContext.atToken;
+    if (this.clientContext?.buildId) this.bl = this.clientContext.buildId;
+    if (this.clientContext?.fSid) this.fdrfje = this.clientContext.fSid;
 
     if (!this.snlm0e) {
       throw new Error('Gagal mengekstrak token CSRF (uS02ke / SNlM0e). Cookie Google mungkin sudah kadaluwarsa atau perlu diperbarui.');
@@ -1246,29 +1346,40 @@ class GeminiWebClient {
     const isVideoReq = /video|vidio|veo|klip|animasi/i.test(promptText);
     const promptEntry = [promptText, 0, null, imageArr, null, null, 0];
 
-    const chatContext = [
+    const chatContext = this._buildChatContext(
       promptEntry,
-      ["en"],
       contextConv,
-      null, null, null,
-      [1],
-      0,
-      [],
-      [],
-      1,
-      0,
-      null, null, null, null, null, null,
-      0
-    ];
+      [
+        promptEntry,
+        ["en"],
+        contextConv,
+        null, null, null,
+        [1],
+        0,
+        [],
+        [],
+        1,
+        0,
+        null, null, null, null, null, null,
+        0
+      ]
+    );
 
     const reqData = [null, JSON.stringify(chatContext)];
     const bodyParams = new URLSearchParams();
     bodyParams.append('f.req', JSON.stringify(reqData));
-    bodyParams.append('at', this.snlm0e);
+    bodyParams.append('at', this.clientContext?.atToken || this.snlm0e);
 
     const requestBody = bodyParams.toString();
     const sidParam = this.fdrfje ? `&f.sid=${encodeURIComponent(this.fdrfje)}` : '';
     const endpoint = `https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?bl=${encodeURIComponent(this.bl)}${sidParam}&hl=en&_reqid=${this.reqId}&rt=c`;
+
+    console.log(
+      `[Gemini Payload Parity] chatContext=${chatContext.length} elemen ` +
+      `(mode: ${this.clientContext?.chatContext ? 'parity-UI' : 'legacy'}), ` +
+      `at=${this.clientContext?.atToken ? 'ui-token' : 'app-token'}, ` +
+      `header-parity=${this.clientContext?.headers ? Object.keys(this.clientContext.headers).length : 0} header`
+    );
 
     const parsedUrl = new URL(endpoint);
     let fullAnswerText = '';
@@ -1391,7 +1502,7 @@ class GeminiWebClient {
         path: parsedUrl.pathname + parsedUrl.search,
         method: 'POST',
         maxHeaderSize: 1048576,
-        headers: {
+        headers: this._buildParityHeaders({
           'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
           'Origin': origin,
           'Referer': 'https://gemini.google.com/',
@@ -1423,7 +1534,7 @@ class GeminiWebClient {
           'x-goog-ext-525005358-jspb': '["25030126-4BD9-4DC2-B022-C67A98A520AE",1]',
           'x-goog-ext-73010989-jspb': '[0]',
           'x-goog-ext-73010990-jspb': '[0,0,0]'
-        }
+        })
       }, (res) => {
         reqInstance = req;
         try { req.setTimeout(streamTimeoutMs); } catch (e) {}
@@ -1738,43 +1849,58 @@ class GeminiWebClient {
     const promptEntry = [promptText, 0, null, imageArr, null, null, 0];
 
     // Google Gemini StreamGenerate Payload format
-    const chatContext = [
+    const chatContext = this._buildChatContext(
       promptEntry,
-      ["en"],
       contextConv,
-      null, null, null,
-      [1],
-      0,
-      [],
-      [],
-      1,
-      0,
-      null, null, null, null, null, null,
-      0
-    ];
+      [
+        promptEntry,
+        ["en"],
+        contextConv,
+        null, null, null,
+        [1],
+        0,
+        [],
+        [],
+        1,
+        0,
+        null, null, null, null, null, null,
+        0
+      ]
+    );
 
     const reqData = [null, JSON.stringify(chatContext)];
     const bodyParams = new URLSearchParams();
     bodyParams.append('f.req', JSON.stringify(reqData));
-    bodyParams.append('at', this.snlm0e);
+    bodyParams.append('at', this.clientContext?.atToken || this.snlm0e);
 
     const requestBody = bodyParams.toString();
     const sidParam = this.fdrfje ? `&f.sid=${encodeURIComponent(this.fdrfje)}` : '';
     const endpoint = `https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?bl=${encodeURIComponent(this.bl)}${sidParam}&hl=en&_reqid=${this.reqId}&rt=c`;
 
-    const headers = {
+    console.log(
+      `[Gemini Payload Parity] chatContext=${chatContext.length} elemen ` +
+      `(mode: ${this.clientContext?.chatContext ? 'parity-UI' : 'legacy'}), ` +
+      `at=${this.clientContext?.atToken ? 'ui-token' : 'app-token'}, ` +
+      `header-parity=${this.clientContext?.headers ? Object.keys(this.clientContext.headers).length : 0} header`
+    );
+
+    const origin = 'https://gemini.google.com';
+    const authHeader = this.getAuthorizationHeader(origin) || (this.getSapisidHash(origin) ? `SAPISIDHASH ${this.getSapisidHash(origin)}` : '');
+    const baseHeaders = {
       'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-      'Origin': 'https://gemini.google.com',
+      'Origin': origin,
       'Referer': 'https://gemini.google.com/',
       'X-Same-Domain': '1',
       'Cookie': this.cookies,
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
       'Accept': '*/*',
+      ...(authHeader ? { authorization: authHeader } : {}),
       'x-goog-ext-525001261-jspb': '[1,null,null,null,"56fdd199312815e2",null,null,0,[4,5,6,8,16,4,5,6,8,16],null,null,2,null,null,1,null,"E690D403-FF65-4D0C-B6AD-49D1F76E55B4",null,null,[[null,554099999],[1790843616,178000000]]]',
       'x-goog-ext-525005358-jspb': '["25030126-4BD9-4DC2-B022-C67A98A520AE",1]',
       'x-goog-ext-73010989-jspb': '[0]',
       'x-goog-ext-73010990-jspb': '[0,0,0]'
     };
+    const headers = this._buildParityHeaders(baseHeaders);
 
     const res = await this._request(endpoint, {
       method: 'POST',
@@ -1790,9 +1916,11 @@ class GeminiWebClient {
         this.conversationId = null;
         this.responseId = null;
         this.choiceId = null;
+        // Token `at` dari UI bisa ikut kedaluwarsa -> capture ulang sebelum mencoba lagi.
+        const refreshed = await this._refreshClientContext();
         try {
-          await this.initSession();
-          return await this.sendMessage(promptText, true, autoPollVideo, attempt + 1);
+          await this.initSession(refreshed);
+          return await this.sendMessage(promptText, true, autoPollVideo, attempt + 1, imageAttachment);
         } catch (retryErr) {
           // fall through
         }
@@ -1930,8 +2058,11 @@ class GeminiWebClient {
         this.conversationId = null;
         this.responseId = null;
         this.choiceId = null;
+        // Error internal ini juga muncul kalau payload tidak cocok dengan UI ->
+        // coba capture ulang client context sebelum retry.
+        const refreshed = await this._refreshClientContext();
         try {
-          await this.initSession();
+          await this.initSession(refreshed);
           return await this.sendMessage(promptText, true, autoPollVideo, attempt + 1, imageAttachment);
         } catch (retryErr) {
           console.warn('[Gemini Web Client] Auto-retry gagal:', retryErr.message);

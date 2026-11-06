@@ -23,6 +23,7 @@ CLI langsung menggunakan server lokal `http://127.0.0.1:3000` dan menampilkan pr
 1. Login ke server dan dapatkan sesi yang ditandatangani server.
 2. Tampilkan akun Gemini milik user yang login saja.
 3. Pilih dan sinkronkan sesi/kredit lokal akun sebelum generate. Sync memverifikasi sesi dan membaca ledger server; tidak memindai riwayat Gemini. Saldo `0/2` tetap boleh diuji, tetapi ledger harus sudah diketahui dan sesi aktif.
+   - Jika server mengonfirmasi sesi expired, generate tetap diblokir secara default. Pengguna dapat mengetik `UJI` untuk meminta server memverifikasi ulang status sesi; jika tetap invalid, server menolak sebelum membuat task. Tidak ada polling, fallback akun, atau perubahan ledger.
 4. Jika belum memilih akun, CLI langsung meminta pengguna memilih akun sebelum melanjutkan. Buat task text-to-video untuk akun yang dipilih, tanpa fallback ke akun lain.
 5. CLI otomatis mem-poll status task setelah generate dimulai. Tidak ada menu untuk melanjutkan polling task yang sudah terputus.
 6. Logout menghapus sesi dan pilihan akun dari memori proses.

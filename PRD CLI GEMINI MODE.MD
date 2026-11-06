@@ -1,6 +1,6 @@
 # PRD — CLI Gemini Mode
 
-**Status:** Revisi kebutuhan mode Settings/Playwright; implementasi lanjutan belum dimulai  
+**Status:** Percobaan test akun bersesi invalid telah diimplementasikan pada CLI dan route server terautentikasi  
 **Tanggal:** 1 November 2026  
 **Folder implementasi:** `cli gemin mode`  
 **Tujuan:** Menyediakan tool terminal untuk menguji text-to-video Gemini melalui server AMB Media dan akun Gemini yang tersimpan di Google Sheets.
@@ -9,7 +9,7 @@
 
 CLI Gemini Mode adalah program interaktif untuk menjalankan pengujian generate video Gemini dari terminal tanpa membuka UI AMB Media. Pengguna tetap login memakai akun user AMB Media melalui server yang sama seperti UI. Berdasarkan user yang berhasil login, CLI mengambil daftar akun Gemini milik user tersebut dari Google Sheets, menampilkan status/kredit, lalu menjalankan text-to-video memakai akun yang dipilih. Server AMB Media tetap harus berjalan di terminal terpisah.
 
-CLI menggunakan endpoint login, pemuatan akun, verifikasi/sinkronisasi, generate video, dan polling status server yang sama. CLI tidak menerima `userId` yang dipilih bebas. Sebagai pengecualian khusus testing, generate CLI yang terautentikasi boleh melewati saldo kredit internal tanpa menulis pemakaian atau riwayat kegagalan ke ledger; sesi aktif dan lock satu generate per akun tetap berlaku. Pengecualian ini tidak berlaku pada UI, Canvas, Chat, atau endpoint generate biasa.
+CLI menggunakan endpoint login, pemuatan akun, verifikasi/sinkronisasi, generate video, dan polling status server yang sama. CLI tidak menerima `userId` yang dipilih bebas. Sebagai pengecualian khusus testing, generate CLI yang terautentikasi boleh melewati saldo kredit internal tanpa menulis pemakaian atau riwayat kegagalan ke ledger; sesi aktif dan lock satu generate per akun tetap berlaku. Untuk menguji sesi invalid, CLI boleh meneruskan satu percobaan generate setelah sync gagal hanya setelah konfirmasi eksplisit pengguna. Ini hanya melewati pre-check CLI; server tetap memvalidasi sesi Google dan harus menolak sesi invalid sebelum task video diterima. Pengecualian ini tidak berlaku pada UI, Canvas, Chat, atau endpoint generate biasa.
 
 ## 2. Analisis sistem dan kebutuhan
 
@@ -65,7 +65,7 @@ Pengujian generate video sekarang bergantung pada UI aplikasi. Pengguna ingin me
 ## 5. Bukan tujuan
 
 - Mengubah algoritma generate video Gemini, ledger kredit, ataupun aturan satu proses aktif per akun.
-- Membypass lock server, status ledger yang belum diketahui, kebijakan kuota, atau penanganan error server. Bypass kredit internal hanya berlaku pada mode test CLI yang sudah disetujui dan terautentikasi.
+- Membypass lock server, kebijakan kuota, atau penanganan error server. Ledger yang belum diketahui tetap memblokir generate normal; pengecualian sempit untuk percobaan uji sesi invalid hanya berlaku setelah server sync mengonfirmasi status expired, konfirmasi eksplisit pengguna, dan tidak ada task yang dapat diterima/dibebankan. Percobaan tersebut tidak boleh menulis atau mengubah ledger.
 - Melakukan registrasi user AMB Media atau mengelola user aplikasi.
 - Mengubah data akun di Google Sheets secara langsung dari CLI; penyimpanan akun hasil Playwright harus menggunakan jalur server yang sama/ekuivalen dengan UI dan hanya ke akun user yang login.
 - Menyediakan generate gambar, image-to-video, video reference, Chat, Canvas, batch generation, atau workflow otomatis pada versi pertama.
@@ -91,12 +91,21 @@ Pengguna adalah developer/operator yang sedang menguji integrasi text-to-video G
 
 1. Jika belum ada akun terpilih, CLI langsung menampilkan daftar akun Gemini agar pengguna memilih akun sebelum melanjutkan.
 2. CLI menerima prompt teks dan parameter generate.
-3. CLI memvalidasi prompt dan status akun/kredit.
+3. CLI memvalidasi prompt dan status akun/kredit. Jika sinkronisasi memastikan sesi akun expired, perilaku default adalah menghentikan proses; pengguna dapat memilih percobaan uji sesi invalid secara eksplisit.
 4. CLI mengirim satu request generate ke server dengan akun pilihan sebagai akun utama. CLI tidak boleh mengirim daftar akun cadangan secara diam-diam.
 5. Jika task diterima, CLI menampilkan ID task, akun yang dipakai, status, waktu berjalan, dan progress yang tersedia.
 6. CLI mem-poll endpoint status hingga task selesai, gagal, atau pengguna memilih berhenti menunggu.
 7. Saat selesai, CLI menampilkan status akhir, URL hasil video, waktu proses, dan saldo terbaru jika tersedia.
 8. Jika task gagal atau status task tidak diketahui, CLI menampilkan error server apa adanya secara aman dan tidak membuat retry otomatis yang bisa membuat task baru atau memakai kredit tambahan.
+
+### Skenario G — Menguji akun dengan sesi invalid
+
+1. Pengguna memilih akun Gemini yang sinkronisasinya memastikan sesi expired/tidak valid.
+2. CLI menjelaskan bahwa akun tidak dapat mengakses Gemini dan menampilkan pilihan satu kali untuk mengirim percobaan uji ke endpoint generate.
+3. Tanpa konfirmasi, CLI tetap memblokir generate dan menawarkan relogin melalui Settings.
+4. Jika pengguna mengonfirmasi, CLI mengirim satu request test untuk akun yang dipilih. Server tetap menjalankan validasi sesi Google normal; sesi invalid harus menghasilkan error autentikasi yang aman sebelum task video diterima.
+5. CLI menampilkan kegagalan sebagai hasil uji sesi invalid, tidak memulai polling bila tidak ada `operationName`/`taskId`, tidak mencoba akun lain, dan tidak mengubah ledger kredit atau riwayat kegagalan.
+6. Percobaan menggunakan akun milik user aktif saja, tetap tunduk pada lock satu proses per akun, dan tidak mengubah status expired akun menjadi aktif.
 
 ### Skenario C — Server belum tersedia
 
@@ -218,6 +227,10 @@ Daftar nilai aspect ratio, durasi, dan resolusi harus diambil dari sumber konfig
    - Panggil `POST /api/gemini/generate-video` dengan prompt, parameter, identitas akun, dan kredensial akun terpilih.
    - Request harus text-to-video tanpa referensi media.
    - Hormati mekanisme lock satu proses aktif per akun dan ledger server.
+   - Akun expired/invalid tetap diblokir secara default. Jika sinkronisasi gagal secara spesifik karena sesi terkonfirmasi expired, hanya setelah konfirmasi eksplisit untuk uji sesi invalid, route CLI terautentikasi boleh melewati gate sesi lokal dan syarat ledger-known untuk satu percobaan. Kegagalan sync generik atau ledger unknown tanpa konfirmasi expired tetap diblokir.
+   - Percobaan uji hanya boleh memakai akun tersimpan milik user yang login dan kredensial server-side akun tersebut. Jangan menerima kredensial arbitrer dari CLI, menonaktifkan validasi Google, mengirim fallback account, atau melewati lock.
+   - Endpoint generate harus memvalidasi sesi secara normal dan gagal sebelum membuat/mendaftarkan task. Jika task belum diterima, tidak ada operasi polling, task ID, potongan/refund kredit, atau catatan kegagalan generate.
+   - Izin test satu-kali harus diikat ke akun, user, dan request; digunakan hanya oleh route CLI terautentikasi dan tidak mengubah perilaku endpoint umum.
 
 7. **Polling**
    - Jika server mengembalikan `operationName`/`taskId`, panggil `POST /api/gemini/video-status` berkala sampai status terminal.
@@ -259,7 +272,7 @@ Jika identitas dari login belum dapat diikat dengan aman ke request akun/generat
 | CLI-06 | P0 | Generate awal hanya text-to-video; prompt wajib dan media referensi tidak diterima. |
 | CLI-07 | P0 | Parameter model, aspect ratio, durasi, dan resolusi mengikuti opsi yang didukung aplikasi/server. |
 | CLI-08 | P0 | Generate memakai endpoint server yang sama, mempertahankan lock satu proses aktif per akun, dan hanya route CLI terautentikasi yang dapat mengaktifkan test mode tanpa mengubah ledger kredit. |
-| CLI-09 | P0 | Sesi expired dan saldo ledger yang belum diketahui memblokir generate; saldo nol yang sudah tersinkron tetap dapat dipakai melalui test mode CLI dan tidak mengubah ledger. |
+| CLI-09 | P0 | Sesi expired/invalid dan saldo ledger yang belum diketahui memblokir generate secara default; saldo nol yang sudah tersinkron tetap dapat dipakai melalui test mode CLI. Pengecualian uji sesi invalid hanya untuk status expired yang dikonfirmasi server, dengan persetujuan eksplisit, boleh melewati gate sesi/ledger-known untuk satu request; kegagalan sync generik atau ledger unknown yang tidak berkaitan dengan expired tetap diblokir. Validasi Google server tetap wajib dan ledger tidak berubah. |
 | CLI-10 | P0 | Task asynchronous dipantau dengan operation/task ID sampai selesai/gagal; gangguan polling tidak melakukan submit ulang otomatis. |
 | CLI-11 | P1 | CLI menampilkan status/progress yang benar-benar tersedia, elapsed time, error yang dapat ditindaklanjuti, URL hasil, dan saldo pasca-task. |
 | CLI-12 | P1 | Pengguna dapat memuat ulang daftar akun dan sinkronisasi saldo tanpa mengubah kredensial; perubahan sesi hanya dilakukan melalui alur Settings yang sama dengan UI. |
@@ -282,7 +295,8 @@ Jika identitas dari login belum dapat diikat dengan aman ke request akun/generat
 - Sheet tidak dapat dibaca: tampilkan error Google Sheets yang aman; jangan memakai cache kosong sebagai daftar akun baru.
 - Tidak ada akun Gemini: tampilkan petunjuk bahwa akun harus ditambahkan terlebih dahulu melalui aplikasi/Sheets.
 - Ledger belum diketahui: tandai belum sinkron dan blok generate sampai sinkronisasi/lookup berhasil.
-- Akun expired: tawarkan relogin lewat Settings CLI untuk akun terpilih; jika kredensial tersimpan tidak ada, minta input tersembunyi sesuai alur UI.
+- Akun expired: tawarkan relogin lewat Settings CLI untuk akun terpilih; jika kredensial tersimpan tidak ada, minta input tersembunyi sesuai alur UI. Pengguna juga dapat memilih percobaan uji sesi invalid satu kali; jelaskan bahwa server tetap menolak sesi invalid dan tidak ada video yang akan dibuat.
+- Percobaan uji sesi invalid dibatalkan atau gagal sebelum task diterima: jangan polling, retry, fallback ke akun lain, mengubah status expired menjadi aktif, atau mengubah ledger/riwayat kegagalan.
 - Akun baru dari UI belum muncul: sediakan refresh yang membaca Sheets secara langsung setelah cache diinvalidasi; jika pembacaan gagal, tampilkan error dan jangan menyajikan cache kosong seolah-olah data terbaru.
 - Playwright/2FA/batch gagal atau timeout: pertahankan status per sesi, izinkan melanjutkan polling/cancel jika sesi masih tersedia, dan jangan menyatakan akun berhasil tersimpan sebelum identitas serta persistensi dikonfirmasi.
 - Akun sedang digunakan atau lock gagal: tampilkan respons server; jangan mencoba membypass lock.
@@ -296,7 +310,7 @@ Jika identitas dari login belum dapat diikat dengan aman ke request akun/generat
 1. Dengan server mati, CLI memberikan pesan yang jelas dan tidak melakukan request generate.
 2. Dengan server hidup dan login user sukses, daftar yang tampil hanya akun Gemini milik user tersebut.
 3. Login gagal tidak memuat daftar akun dan tidak menerima `userId` dari input lain.
-4. Akun dengan sesi expired atau ledger belum diketahui tidak dapat dipakai untuk generate; saldo `0/2` yang telah tersinkron tetap dapat dipakai dalam mode test CLI.
+4. Akun dengan sesi expired atau ledger belum diketahui diblokir secara default; saldo `0/2` yang telah tersinkron tetap dapat dipakai dalam mode test CLI.
 5. Akun `0/2`, `1/2`, atau `2/2` yang valid dapat dipilih; setelah generate/poll, pemakaian kredit internal dan riwayat kegagalan akun tidak berubah.
 6. Dua request untuk akun yang sama tidak dapat melanggar lock server; CLI melaporkan akun sibuk atau menunggu hanya jika perilaku tunggu memang didukung backend.
 7. Prompt kosong ditolak sebelum request dikirim.
@@ -315,6 +329,9 @@ Jika identitas dari login belum dapat diikat dengan aman ke request akun/generat
 20. Relogin dari akun terpilih memperbarui sesi tanpa menggandakan baris, mengubah saldo ledger, atau mengubah user pemilik.
 21. Cookie & cURL, import batch, Script Runner Lokal, 2FA, status/log, serta cancel berperilaku setara dengan mode terkait di Settings UI dan tidak mengekspos rahasia.
 22. Setelah akun baru ditambahkan di UI, refresh Settings CLI menampilkannya segera meski cache server sebelumnya masih dalam TTL.
+23. Akun dengan sesi expired yang gagal saat sync tetap tidak generate secara default; CLI menawarkan uji invalid satu kali dan meminta konfirmasi eksplisit.
+24. Setelah konfirmasi uji invalid, hanya route CLI terautentikasi yang boleh meneruskan request akun user aktif ke endpoint generate; validasi Google menolak sesi invalid sebelum task diterima.
+25. Penolakan sesi invalid tidak menghasilkan task ID/polling, tidak memakai akun fallback, tidak mengubah ledger maupun riwayat kegagalan, dan tidak mengubah status akun menjadi aktif.
 
 ## 14. Rencana pengujian
 
@@ -325,7 +342,8 @@ Jika identitas dari login belum dapat diikat dengan aman ke request akun/generat
 - Uji bahwa request dengan userId yang tidak terikat pada login/session ditolak server.
 - Uji akun kosong, cache stale, dan kegagalan Google Sheets tanpa fallback ke akun user lain.
 - Uji status kredit `0`, `1`, `2`, dan `ledgerKnown=false`; saldo `0` boleh untuk CLI test, sedangkan ledger unknown tetap diblokir.
-- Uji verifikasi sesi expired serta sinkronisasi kredit yang gagal.
+- Uji verifikasi sesi expired serta sinkronisasi kredit yang gagal; pastikan default-nya memblokir generate.
+- Uji percobaan test sesi invalid dengan dan tanpa konfirmasi, kegagalan autentikasi sebelum task diterima, tidak ada polling/fallback, dan ledger/riwayat kegagalan tetap tidak berubah.
 - Uji generate text-to-video sukses langsung dan task asynchronous.
 - Uji polling otomatis sukses, gagal, timeout, dan koneksi terputus.
 - Uji pemilihan akun eksplisit, akun terkunci oleh proses lain, serta tidak ada auto-fallback diam-diam.
@@ -338,7 +356,7 @@ Jika identitas dari login belum dapat diikat dengan aman ke request akun/generat
 
 ## 15. Komponen rencana implementasi
 
-Implementasi mencakup entry point `cli gemin mode/index.mjs`, script `npm run cli:gemini`, sesi bearer bertanda tangan dari server, route CLI untuk daftar/sinkronisasi/generate/poll, dan submenu Settings untuk Playwright single/batch, relogin, 2FA, status/log/cancel, Cookie & cURL, import batch, Script Runner Lokal, dan refresh akun terbaru dari Sheets. Route Settings mengikat session/batch ke user aktif, memverifikasi email hasil Playwright, menyimpan akun lewat service server, dan tidak mengirim kredensial akun ke CLI. Refresh CLI melewati cache baca; kegagalan Sheets dilaporkan.
+Implementasi mencakup entry point `cli gemin mode/index.mjs`, script `npm run cli:gemini`, sesi bearer bertanda tangan dari server, route CLI untuk daftar/sinkronisasi/generate/poll, dan submenu Settings untuk Playwright single/batch, relogin, 2FA, status/log/cancel, Cookie & cURL, import batch, Script Runner Lokal, dan refresh akun terbaru dari Sheets. Route Settings mengikat session/batch ke user aktif, memverifikasi email hasil Playwright, menyimpan akun lewat service server, dan tidak mengirim kredensial akun ke CLI. Refresh CLI melewati cache baca; kegagalan Sheets dilaporkan. Test sesi invalid kini meminta konfirmasi `UJI`, lalu route CLI melakukan validasi ulang ke Google melalui sync server dan menolak sebelum memanggil generator bila sesi masih expired. Status sync yang generik/ambigu tetap diblokir; percobaan tidak membuat task, memakai fallback, atau mengubah ledger.
 
 `npm run lint` dan pemeriksaan sintaks `node --check "cli gemin mode\\index.mjs"` lulus setelah implementasi. Sebelum rilis, jalankan pengujian manual dengan akun uji terotorisasi untuk login, isolasi dua user, tiap mode Settings, sinkronisasi kredit, generate, polling otomatis, dan kegagalan sesi.
 

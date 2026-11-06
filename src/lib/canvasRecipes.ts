@@ -977,7 +977,7 @@ export function resolveStitcherInputs(
     if (!sourceNode) continue;
 
     let url: string | undefined = undefined;
-    if (sourceNode.type === 'geminiVideo' || sourceNode.type === 'videoStitcher') {
+    if (sourceNode.type === 'geminiVideo' || sourceNode.type === 'vidsVideo' || sourceNode.type === 'videoStitcher') {
       url = sourceNode.data?.outputVideo || sourceNode.data?.videoUrl || sourceNode.data?.resultUrl;
     } else if (sourceNode.type === 'imageViewer') {
       url = sourceNode.data?.resultUrl || sourceNode.data?.outputVideo;

@@ -77,14 +77,22 @@ export function getCookiesForGeminiEmail(email: string): string | null {
   }
 
   // 3. Extract and decrypt cookies from SQLite DB
-  const cookieDbPath = path.join(profileDir, 'Default', 'Cookies');
-  if (!fs.existsSync(cookieDbPath)) return null;
+  // Chromium >= 128 menaruh database cookie di Default/Network/Cookies (versi lama: Default/Cookies).
+  const cookieDbCandidates = [
+    path.join(profileDir, 'Default', 'Network', 'Cookies'),
+    path.join(profileDir, 'Default', 'Cookies'),
+  ];
+  const cookieDbPath = cookieDbCandidates.find((p) => fs.existsSync(p));
+  if (!cookieDbPath) return null;
 
   const pythonScript = path.join(process.cwd(), 'server', 'utils', 'dump_profile_cookies.py');
   if (!fs.existsSync(pythonScript)) return null;
 
+  // Di Windows executable-nya `python`, di Linux/macOS `python3`.
+  const pythonBin = process.platform === 'win32' ? 'python' : 'python3';
+
   try {
-    const rawJson = execFileSync('python3', [pythonScript, cookieDbPath], {
+    const rawJson = execFileSync(pythonBin, [pythonScript, cookieDbPath], {
       encoding: 'utf8',
       timeout: 10000,
     });

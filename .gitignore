@@ -15,6 +15,27 @@ google-service-account.json
 .playwright-profiles/
 playwright-browsers/
 
+# Captured Gemini UI client context (berisi cookie sesi + token CSRF)
+data/gemini_client_context/
+
+# Google Vids sessions (berisi cookie sesi + server token)
+data/
+data/vids_sessions.json
+script-vids/config.json
+script-vids/config.json.bak
+
+# Local credentials, debug captures, runtime state, and experimental files
+akun-contoh.txt
+debug-tes-gemini/
+.tmp-wm/
+script-video-flow/
+server/data/chat_sessions.json
+script-vps/*.zip
+script-vids/curl.txt
+script-vids/.probe_aspect.cjs
+script-vids/remove_watermark.cjs
+script-vids/vids_console_download.js
+
 # Local dependencies and generated output
 node_modules/
 dist/
@@ -22,3 +43,6 @@ ffmpeg/
 media-cache/
 .tmp-smoke/
 *.log
+
+# Generated video output from script-vids
+script-vids/*.mp4

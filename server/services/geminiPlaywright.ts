@@ -245,6 +245,7 @@ export interface PlaywrightSession {
 
 class GeminiPlaywrightManager {
   private sessions: Map<string, PlaywrightSession> = new Map();
+  private openBrowserContexts = new Map<string, BrowserContext>();
   private batches = new Map<string, {
     id: string;
     total: number;
@@ -477,6 +478,12 @@ class GeminiPlaywrightManager {
       throw new Error('Alamat email Gemini tidak valid untuk menghapus profil browser.');
     }
 
+    const openBrowserContext = this.openBrowserContexts.get(normalizedEmail);
+    if (openBrowserContext) {
+      await openBrowserContext.close();
+      this.openBrowserContexts.delete(normalizedEmail);
+    }
+
     const matchingSessions = [...this.sessions.values()].filter(
       (session) => session.email.trim().toLowerCase() === normalizedEmail
     );
@@ -518,6 +525,68 @@ class GeminiPlaywrightManager {
     }
     await fs.promises.rm(this.credentialsPathForEmail(normalizedEmail), { force: true });
     clearGeminiProfileCookiesCache(normalizedEmail);
+  }
+
+  public async openBrowserProfile(email: string): Promise<void> {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      throw new Error('Alamat email Gemini tidak valid untuk membuka browser.');
+    }
+
+    const activeSession = [...this.sessions.values()].find(
+      (session) =>
+        session.email.trim().toLowerCase() === normalizedEmail &&
+        session.context &&
+        ['starting', 'navigating_login', 'filling_credentials', 'awaiting_2fa', 'navigating_gemini', 'accepting_terms', 'extracting_session'].includes(session.status)
+    );
+    if (activeSession) {
+      throw new Error('Profil akun ini sedang digunakan proses login Gemini. Coba lagi setelah proses selesai.');
+    }
+
+    const profileDir = this.profileDirForEmail(normalizedEmail);
+    try {
+      const profileStats = await fs.promises.stat(profileDir);
+      if (!profileStats.isDirectory()) throw new Error('Profil browser tidak ditemukan.');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error('Profil browser akun ini belum tersedia. Tambahkan atau login akun melalui Playwright terlebih dahulu.');
+      }
+      throw error;
+    }
+
+    const existingContext = this.openBrowserContexts.get(normalizedEmail);
+    if (existingContext) {
+      const page = existingContext.pages()[0] || await existingContext.newPage();
+      await page.bringToFront();
+      return;
+    }
+
+    const executablePath = findLocalChromiumExecutable() || await ensurePlaywrightInstalled();
+    if (!executablePath) {
+      throw new Error('Browser Chromium Playwright belum tersedia. Jalankan instalasi browser terlebih dahulu.');
+    }
+
+    const context = await chromium.launchPersistentContext(profileDir, {
+      headless: false,
+      executablePath,
+      viewport: null,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--no-first-run', '--no-default-browser-check'],
+    });
+    this.openBrowserContexts.set(normalizedEmail, context);
+    context.once('close', () => {
+      if (this.openBrowserContexts.get(normalizedEmail) === context) {
+        this.openBrowserContexts.delete(normalizedEmail);
+      }
+    });
+
+    try {
+      const page = context.pages()[0] || await context.newPage();
+      await page.goto('https://gemini.google.com/app', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (error) {
+      this.openBrowserContexts.delete(normalizedEmail);
+      await context.close();
+      throw error;
+    }
   }
 
   /**

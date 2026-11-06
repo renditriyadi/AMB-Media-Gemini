@@ -56,6 +56,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           videoDuration: '10 seconds',
           videoResolution: '1080p',
         });
+      } else if (currentProvider === 'vids') {
+        onUpdateSettings({
+          mode,
+          provider: 'vids',
+          videoModel: 'Google Vids Omni',
+          videoAspectRatio: '9:16 (Vertical)',
+          videoDuration: '10 seconds',
+          videoResolution: '720p',
+        });
       } else if (currentProvider === 'flow') {
         onUpdateSettings({
           mode,
@@ -96,8 +105,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setActiveDropdown(null);
   };
 
-  const handleProviderSelect = (provider: 'weavy' | 'gemini' | 'flow' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub') => {
-    if (provider === 'gemini') {
+  const handleProviderSelect = (provider: 'weavy' | 'gemini' | 'flow' | 'vids' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub') => {
+    if (provider === 'vids') {
+      onUpdateSettings({
+        provider: 'vids',
+        videoModel: 'Google Vids Omni',
+        videoAspectRatio: '9:16 (Vertical)',
+        videoDuration: '10 seconds',
+        videoResolution: '720p',
+        imageModel: '-',
+      });
+    } else if (provider === 'gemini') {
       if (isVideo) {
         onUpdateSettings({
           provider,
@@ -255,6 +273,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           referrerPolicy="no-referrer"
                         />
                       </div>
+                    ) : currentProvider === 'vids' ? (
+                      <div className="w-4.5 h-4.5 rounded flex items-center justify-center shrink-0">
+                        <img
+                          src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+                          alt="Google Vids"
+                          className="w-full h-full object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
                     ) : currentProvider === 'galleri5' ? (
                       <>
                         <img
@@ -298,7 +325,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         />
                       </div>
                     )}
-                    <span>{currentProvider === 'weavy' ? 'Weavy' : currentProvider === 'gemini' ? 'Google Gemini' : currentProvider === 'flow' ? 'Google Flow' : currentProvider === 'galleri5' ? 'Galleri5' : currentProvider === 'kie' ? 'Kie.ai' : currentProvider === 'runninghub' ? 'RunningHub' : 'RoboNeo'}</span>
+                    <span>{currentProvider === 'weavy' ? 'Weavy' : currentProvider === 'gemini' ? 'Google Gemini' : currentProvider === 'flow' ? 'Google Flow' : currentProvider === 'vids' ? 'Google Vids' : currentProvider === 'galleri5' ? 'Galleri5' : currentProvider === 'kie' ? 'Kie.ai' : currentProvider === 'runninghub' ? 'RunningHub' : 'RoboNeo'}</span>
                     <ChevronRight className={`w-4 h-4 text-stone-400 transition-transform ${activeDropdown === 'provider' ? 'rotate-90' : ''}`} />
                   </div>
                 </button>
@@ -341,6 +368,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className={currentProvider === 'flow' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Google Flow (flow.google.com)</span>
                       </div>
                       {currentProvider === 'flow' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleProviderSelect('vids')}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+                          alt="Google Vids"
+                          className="w-4.5 h-4.5 object-contain shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                        <span className={currentProvider === 'vids' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Google Vids (Omni Video)</span>
+                      </div>
+                      {currentProvider === 'vids' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                     </button>
 
                     <button
@@ -549,7 +593,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     className="mt-2 p-2 bg-white dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 shadow-md space-y-1 z-20 relative"
                   >
                     {isVideo
-                      ? (currentProvider === 'gemini'
+                      ? (currentProvider === 'vids'
+                          ? (['Google Vids Omni'] as VideoModel[])
+                          : currentProvider === 'gemini'
                           ? (['Omni Flash', 'Google Veo 2 / Gemini Video'] as VideoModel[])
                           : currentProvider === 'runninghub'
                           ? (['MiniMax H3 Turbo Video', 'S2 Motion Control', 'Motion Control'] as VideoModel[])
@@ -564,7 +610,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           <button
                             key={m}
                             onClick={() => {
-                              if (m === 'Omni Flash' || m === 'Gemini Omni Flash Video (10s)') {
+                              if (m === 'Google Vids Omni') {
+                                onUpdateSettings({
+                                  videoModel: 'Google Vids Omni',
+                                  provider: currentProvider,
+                                  videoDuration: '10 seconds',
+                                  videoResolution: '720p',
+                                  videoAspectRatio: '9:16 (Vertical)',
+                                });
+                              } else if (m === 'Omni Flash' || m === 'Gemini Omni Flash Video (10s)') {
                                 onUpdateSettings({
                                   videoModel: 'Omni Flash',
                                   provider: currentProvider,
@@ -729,8 +783,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </div>
 
-              {/* Show Aspect Ratio, Duration, Resolution for Image mode, Gemini, MiniMax H3, SeeDance models, or Grok Imagine models */}
-              {(!isVideo || currentProvider === 'gemini' || settings.videoModel === 'Google Veo 2 / Gemini Video' || settings.videoModel === 'Gemini Omni Flash Video (10s)' || settings.videoModel === 'MiniMax H3 Turbo Video' || settings.videoModel === 'SeeDance 2.0 Mini' || settings.videoModel === 'SeeDance 2.5' || settings.videoModel === 'Grok Imagine 1.5 Preview' || settings.videoModel === 'Grok Imagine (Image-to-Video)' || (settings.videoModel as string) === 'grok-imagine/image-to-video') && (
+              {/* Show provider-supported aspect ratio and resolution controls */}
+              {(!isVideo || currentProvider === 'gemini' || currentProvider === 'vids' || settings.videoModel === 'Google Veo 2 / Gemini Video' || settings.videoModel === 'Gemini Omni Flash Video (10s)' || settings.videoModel === 'MiniMax H3 Turbo Video' || settings.videoModel === 'SeeDance 2.0 Mini' || settings.videoModel === 'SeeDance 2.5' || settings.videoModel === 'Grok Imagine 1.5 Preview' || settings.videoModel === 'Grok Imagine (Image-to-Video)' || (settings.videoModel as string) === 'grok-imagine/image-to-video') && (
                 <>
                   {/* 2. Aspect Ratio */}
                   <div className="relative">
@@ -756,7 +810,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         className="mt-2 p-2 bg-white dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 shadow-md space-y-1 max-h-48 overflow-y-auto z-20 relative"
                       >
                         {isVideo
-                          ? (currentProvider === 'gemini' || settings.videoModel === 'Google Veo 2 / Gemini Video' || settings.videoModel === 'Gemini Omni Flash Video (10s)'
+                          ? (currentProvider === 'vids'
+                              ? (['9:16 (Vertical)', '16:9 (Landscape)'] as VideoAspectRatio[])
+                              : currentProvider === 'gemini' || settings.videoModel === 'Google Veo 2 / Gemini Video' || settings.videoModel === 'Gemini Omni Flash Video (10s)'
                               ? (['16:9 (Landscape)', '9:16 (Vertical)', '1:1 (Square)', '4:3', '3:4'] as VideoAspectRatio[])
                               : settings.videoModel === 'MiniMax H3 Turbo Video'
                               ? (['9:16 (Vertical)', '16:9 (Landscape)', '1:1 (Square)', '4:3', '3:4'] as VideoAspectRatio[])
@@ -767,7 +823,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                               <button
                                 key={ar}
                                 onClick={() => {
-                                  onUpdateSettings({ videoAspectRatio: ar });
+                                  onUpdateSettings({
+                                    videoAspectRatio: ar,
+                                    ...(currentProvider === 'vids' && ar === '16:9 (Landscape)'
+                                      ? { videoResolution: '720p' }
+                                      : {}),
+                                  });
                                   setActiveDropdown(null);
                                 }}
                                 className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
@@ -794,7 +855,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* 3. Duration */}
-                  {isVideo && (
+                  {isVideo && currentProvider !== 'vids' && (
                     <div className="relative">
                       <button
                         type="button"
@@ -886,7 +947,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         className="mt-2 p-2 bg-white dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 shadow-md space-y-1 z-20 relative"
                       >
                         {isVideo
-                          ? (currentProvider === 'gemini'
+                          ? (currentProvider === 'vids'
+                              ? (settings.videoAspectRatio === '16:9 (Landscape)'
+                                  ? (['720p'] as VideoResolution[])
+                                  : (['720p', '1080p'] as VideoResolution[]))
+                              : currentProvider === 'gemini'
                               ? (['1080p', '720p'] as VideoResolution[])
                               : settings.videoModel === 'MiniMax H3 Turbo Video'
                               ? (['720p', '768p', '1080p'] as VideoResolution[])
@@ -923,8 +988,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                   </div>
 
+                  {isVideo && currentProvider === 'vids' && settings.videoResolution === '1080p' && (
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      Kuota SKU Google Vids 1080p saat ini tercatat 0; generasi 1080p bisa gagal dengan HTTP 429.
+                    </p>
+                  )}
+
                   {/* 5. Audio / Sound Toggle */}
-                  {isVideo && settings.videoModel !== 'Grok Imagine 1.5 Preview' && settings.videoModel !== 'MiniMax H3 Turbo Video' && (
+                  {isVideo && currentProvider !== 'vids' && settings.videoModel !== 'Grok Imagine 1.5 Preview' && settings.videoModel !== 'MiniMax H3 Turbo Video' && (
                     <div className="flex items-center justify-between p-3.5 bg-stone-50 dark:bg-stone-800/50 rounded-lg border border-stone-200/80 dark:border-stone-700/80 transition-all">
                       <div className="flex items-center gap-3">
                         <Volume2 className="w-4 h-4 text-stone-600 dark:text-stone-400" />

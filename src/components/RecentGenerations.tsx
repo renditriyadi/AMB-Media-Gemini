@@ -25,6 +25,7 @@ const ProviderBadgeIcon: React.FC<{ provider?: string; model?: string }> = ({ pr
   const m = (model || '').toLowerCase();
 
   // Determine provider by explicit provider property or model name fallback
+  const isVids = p === 'vids' || p === 'google vids' || m.includes('google vids') || m.includes('vids omni');
   let isGemini = p === 'gemini' || p === 'google gemini' || m.includes('gemini') || m.includes('veo') || m.includes('imagen') || m.includes('omni flash');
   let isRunningHub = !isGemini && (p === 'runninghub' || m.includes('runninghub') || m.includes('s2 motion') || m.includes('ambmedia') || m.includes('motion control motionfly') || (m === 'motion control' && p !== 'roboneo'));
   let isKie = !isGemini && (p === 'kie' || p === 'kie.ai' || m.includes('grok imagine 1.5')) && p !== 'weavy';
@@ -39,6 +40,18 @@ const ProviderBadgeIcon: React.FC<{ provider?: string; model?: string }> = ({ pr
         alt="Google Gemini"
         className="w-3.5 h-3.5 rounded object-contain shrink-0"
         title="Provider: Google Gemini"
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  if (isVids) {
+    return (
+      <img
+        src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+        alt="Google Vids"
+        className="w-3.5 h-3.5 rounded object-contain shrink-0"
+        title="Provider: Google Vids"
         referrerPolicy="no-referrer"
       />
     );

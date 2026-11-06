@@ -1,8 +1,8 @@
 export type GenerationMode = 'video' | 'image';
 
-export type VideoModel = 'Motion Control' | 'S2 Motion Control' | 'MiniMax H3 Turbo Video' | 'Omni Flash' | 'Kling 3.0 Pro Motion Control' | 'Kling 2.6 Motion Control' | 'Kling 2.6 Motion Control Standar' | 'SeeDance 2.5' | 'SeeDance 2.0 Mini' | 'Galleri5 Video Studio' | 'Grok Imagine 1.5 Preview' | 'Grok Imagine (Image-to-Video)' | 'grok-imagine/image-to-video' | (string & {});
+export type VideoModel = 'Google Vids Omni' | 'Motion Control' | 'S2 Motion Control' | 'MiniMax H3 Turbo Video' | 'Omni Flash' | 'Kling 3.0 Pro Motion Control' | 'Kling 2.6 Motion Control' | 'Kling 2.6 Motion Control Standar' | 'SeeDance 2.5' | 'SeeDance 2.0 Mini' | 'Galleri5 Video Studio' | 'Grok Imagine 1.5 Preview' | 'Grok Imagine (Image-to-Video)' | 'grok-imagine/image-to-video' | (string & {});
 export type ImageModel = 'Nano Banana Pro' | 'Seedream V5.0 Pro Edit' | 'ChatGPT Images 2.0 Edit' | 'Google Imagen 3 Pro' | 'Gemini 3 Pro Image' | 'Grok Imagine Image' | 'GPT Image 2.5' | 'GPT Image 2 (Image-to-Image)' | 'Seedream 4.0 Edit' | 'GPT Image 2 (Text-to-Image)' | '-';
-export type AIProvider = 'weavy' | 'gemini' | 'flow' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub';
+export type AIProvider = 'weavy' | 'gemini' | 'flow' | 'vids' | 'roboneo' | 'galleri5' | 'kie' | 'runninghub';
 
 export type VideoAspectRatio = '9:16 (Vertical)' | '16:9 (Landscape)' | '1:1 (Square)' | '4:3' | '3:4' | '21:9' | '3:2' | '2:3' | 'Auto';
 export type ImageAspectRatio = '9:16 (Vertical)' | '16:9 (Landscape)' | '1:1 (Square)' | '4:3 (Landscape)' | '3:4 (Portrait)' | 'Auto / Default';
@@ -292,6 +292,9 @@ export interface ProviderAccount {
   accountStatus?: 'active' | 'banned' | 'expired' | 'error';
   statusMessage?: string;
   lastChecked?: string;
+  docId?: string;
+  serverToken?: string;
+  flixDocId?: string;
 }
 
 export function getCleanPrompt(prompt?: string, model?: string): string {

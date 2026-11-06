@@ -1,9 +1,9 @@
 # PRD — Gemini Video: Satu Akun untuk Satu Proses Generate
 
-**Status:** Implementasi server, integrasi, alokasi akun per-node Canvas, dan tampilan operation ID selama render Canvas telah diterapkan
+**Status:** Implementasi server, integrasi, alokasi akun per-node Canvas, tampilan operation ID, dan validasi sesi saat polling status unknown telah diterapkan
 **Tanggal analisis:** 1 November 2026  
 **Cakupan:** Node Gemini Omni Flash di Canvas dan semua jalur generate video Gemini di Canvas, Chat, serta menu Generate  
-**Perubahan kode:** Implementasi server dan integrasi telah diterapkan. Planner akun Canvas, preview per-node, konflik pilihan manual, assignment untuk Run Selected, serta penayangan operation ID internal `web_...` saat node Canvas merender telah diterapkan. Server tetap menjadi enforcement final untuk bentrok lintas permukaan.
+**Perubahan kode:** Implementasi server dan integrasi telah diterapkan. Planner akun Canvas, preview per-node, konflik pilihan manual, assignment untuk Run Selected, penayangan operation ID internal `web_...`, serta validasi sesi background saat polling history RPC gagal telah diterapkan.
 
 ## 1. Ringkasan
 
@@ -83,6 +83,7 @@ Lease akun baru diminta ketika node benar-benar mulai berjalan. Karena itu tampi
 - Mengubah kuota/kebijakan kredit harian atau total akun.
 - Mengubah cara autentikasi sesi Gemini Web, format prompt, model, atau konfigurasi media.
 - Menjalankan beberapa proses bersamaan pada satu akun hanya karena akun tersebut mempunyai lebih dari satu kredit.
+- Menggunakan Playwright/browser automation pada jalur generate video; generate tetap memakai Gemini Web RPC langsung melalui HTTPS dan hanya boleh membaca client context yang sudah tersimpan serta masih valid.
 
 ## 6. Perilaku produk yang diusulkan
 
@@ -106,6 +107,10 @@ Penguncian akun dimulai sebelum request generate video dikirim dan berakhir hany
 - Saat berpindah akun untuk retry, akun baru juga harus memperoleh lock sebelum request dikirim.
 - Kegagalan request sebelum task diterima harus melepas lock dan tidak mengurangi kredit.
 - Request yang timeout atau kehilangan respons setelah kemungkinan diterima Google tidak boleh langsung melepas akun lalu membuat duplikat. Tandai status sebagai belum diketahui dan lakukan rekonsiliasi/polling sebelum akun dipakai ulang, atau ikuti kebijakan timeout yang disetujui.
+- Jika endpoint status gagal membaca riwayat conversation karena respons Gemini tidak memuat payload RPC yang diharapkan (misalnya `Gemini conversation-history response did not contain the expected RPC payload`), lakukan validasi sesi akun di background dengan mekanisme sync/verifikasi sesi yang sudah tersedia. Jangan langsung menyimpulkan task gagal hanya dari parser/RPC error tersebut.
+- Jika validasi background mengonfirmasi sesi expired/tidak valid, hentikan polling task segera, tandai proses gagal dengan alasan sesi akun tidak valid, lepaskan busy lock, dan terapkan kebijakan kredit/refund yang sesuai. Jangan menunggu timeout render normal untuk akun yang tidak mungkin lagi memeriksa task.
+- Jika validasi menyatakan sesi masih aktif, jangan melepas lock atau menyatakan task gagal hanya karena respons history malformed. Perlakukan status task sebagai belum diketahui dan lanjutkan polling dengan interval/retry terbatas serta pesan status yang jelas.
+- Jika validasi sesi sendiri gagal atau hasilnya ambigu (misalnya timeout jaringan), status akun tetap belum diketahui; pertahankan lock dan ikuti batas retry/status-unknown yang eksplisit. Error RPC tunggal tidak cukup menjadi bukti akun invalid.
 - Pembatalan dari pengguna tidak boleh menganggap task Google berhenti jika server tidak dapat mengonfirmasi pembatalannya.
 
 ### 6.3 Sumber kebenaran dan jangkauan
@@ -123,6 +128,11 @@ Endpoint server tidak boleh memakai fallback account tanpa memperoleh lock untuk
 - Saat lease dilepas karena terminal, bangunkan waiter berikutnya.
 - Tetap hormati pembatalan antrean bila pengguna membatalkan sebelum task dikirim.
 - Berikan alasan eksplisit untuk akun yang tidak layak: sibuk, kredit tidak cukup, sesi invalid, atau status akun tidak aktif.
+- Jika polling mendapat response history/RPC yang tidak dapat diparse, jalankan verifikasi sesi background tanpa memblokir status task lebih lama dari batas request sync; tampilkan status validasi yang sedang berlangsung/hasilnya dengan membedakan sesi invalid dari gangguan RPC sementara.
+- Jika akun dinyatakan invalid oleh verifikasi, stop polling dan beri status terminal pada task; jika akun valid, pertahankan task dalam status unknown/processing dan gunakan retry polling terbatas.
+- Validasi sesi menggunakan bukti autentikasi dari halaman Gemini dan membedakan hasil `valid`, `invalid`, serta `unknown`; gangguan jaringan, timeout, HTTP yang tidak tegas, atau halaman tanpa penanda autentikasi yang dapat dipastikan tidak boleh menandai akun expired.
+- Validasi background dicoba maksimal dua kali dengan jarak minimal 30 detik. Status unknown dihentikan di klien setelah 20 respons unknown berturut-turut; server tetap mempertahankan lock dan pesannya melarang generate ulang sebelum status task direkonsiliasi.
+- Jika sesi terkonfirmasi invalid, server menghentikan task, mengembalikan kredit sesuai ledger, melepas lock, lalu klien menandai akun expired/nonaktif dan menyinkronkan perubahan akun.
 
 ### 6.5 Alokasi akun Canvas per-node
 
@@ -189,6 +199,9 @@ Perubahan ini hanya untuk visibilitas status penerimaan task. Operation ID `web_
 | FR-16 | P1 | Preview dan akun aktual saat run tidak mengubah preferensi Auto/manual tersimpan pada node. |
 | FR-17 | P1 | Node Gemini Omni Flash Canvas menampilkan operation ID internal AMB Media `web_...` segera setelah hand-off generate dikonfirmasi, selama render belum terminal. |
 | FR-18 | P1 | Operation ID tidak dibuat-buat atau salah dilabeli sebagai ID resmi Google; callback task awal maupun retry memperbarui ID aktif dan hasil/error tetap mempertahankan referensi task yang benar. |
+| FR-19 | P1 | Error parsing RPC riwayat Gemini memicu validasi sesi akun di background; sesi yang terkonfirmasi invalid menghentikan polling dan menutup lock lebih awal, sedangkan sesi aktif/hasil ambigu tidak dianggap invalid hanya dari error parsing. |
+| FR-20 | P1 | Retry validasi/polling pada status unknown dibatasi dan dilaporkan; timeout verifikasi tidak boleh secara otomatis menandai akun invalid atau melepaskan lock. |
+| FR-21 | P0 | Generate video menggunakan Gemini Web RPC langsung melalui HTTPS, tidak meluncurkan Playwright/browser automation, dan hanya membaca cached client context yang masih valid bila tersedia. |
 
 ## 8. Kriteria penerimaan
 
@@ -212,6 +225,10 @@ Perubahan ini hanya untuk visibilitas status penerimaan task. Operation ID `web_
 18. **Belum ada task ID:** sebelum server mengonfirmasi task, node tetap menampilkan indikator “Membuat Video...” dan tidak menampilkan ID buatan atau conversation ID saja.
 19. **Polling dan terminal:** ID terlihat segera, tetap lengkap untuk copy/tooltip, dan tidak menghambat polling. Saat selesai preview menampilkan video; ID tersimpan untuk inspeksi. Jika gagal setelah hand-off, ID tetap tersedia pada detail node.
 20. **Retry:** jika task pertama gagal dan runner memulai task baru pada akun lain, ID aktif node berubah ke ID server task baru; ID task lama tidak keliru ditampilkan sebagai task yang sedang berjalan.
+21. **History RPC malformed dan sesi expired:** saat video-status tidak menemukan payload RPC yang diharapkan dan validasi sesi background memastikan akun expired, task dihentikan segera sebagai gagal, akun ditandai invalid, busy lock dilepas, dan tidak menunggu batas timeout render.
+22. **History RPC malformed tetapi sesi aktif:** error parser saja tidak menyebabkan task gagal/refund atau lock dilepas; task tetap berstatus belum diketahui dan polling dilanjutkan secara terbatas tanpa duplicate generation.
+23. **Verifikasi sesi timeout/ambigu:** lock tetap aktif, akun tidak dinyatakan expired, status unknown diinformasikan, dan retry verifikasi/polling mengikuti batas yang ditentukan.
+24. **Transport generate:** menjalankan generate video hanya memanggil Gemini Web RPC lewat HTTPS; tidak ada peluncuran Playwright atau browser untuk capture/refresh konteks. Cache konteks yang valid boleh digunakan, sedangkan cache yang tidak ada/kedaluwarsa tidak memicu browser.
 
 ## 9. Skenario uji minimum
 
@@ -230,8 +247,13 @@ Perubahan ini hanya untuk visibilitas status penerimaan task. Operation ID `web_
 - Canvas submit yang menerima response processing dengan `operationName: web_...`; verifikasi ID muncul pada node sebelum polling mencapai status terminal.
 - Response generate belum memiliki task ID, generate selesai langsung dengan video URL, task gagal setelah hand-off, serta retry yang menerima task ID baru.
 - Reload recipe ketika task sedang berjalan setelah ID diterima; pastikan ID task tetap tersedia dan tidak menggantikan pilihan akun atau kredensial.
+- Polling menghasilkan `conversation-history response did not contain the expected RPC payload` sementara cookie expired; pastikan sync background mengonfirmasi expired lalu polling berhenti dan lock dilepas tanpa menunggu batas render.
+- Error RPC yang sama terjadi pada cookie valid atau gangguan sementara; pastikan sistem tidak false-positive menandai akun invalid dan lock tidak dilepas sebelum status task aman.
+- Sync/verifikasi sesi background timeout atau hasilnya tidak tegas; pastikan status tetap unknown, lock dipertahankan, dan jumlah retry dibatasi.
 
 ## 10. Catatan implementasi
+
+Endpoint generate video membuat `GeminiWebClient` dari cookie akun dan mengirim StreamGenerate langsung melalui HTTPS. Endpoint hanya membaca cached client context yang masih valid; proses generate tidak pernah menjalankan Playwright untuk capture atau refresh konteks. Inisialisasi Playwright juga ditunda hingga endpoint login/profil Playwright dipanggil, bukan saat server start atau generate video.
 
 Implementasi memisahkan:
 

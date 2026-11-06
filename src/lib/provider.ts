@@ -61,6 +61,13 @@ export const PROVIDER_METADATA: Record<AIProvider, ProviderMeta> = {
     defaultQuota: 50,
     creditUnit: 'Credits',
   },
+  vids: {
+    id: 'vids',
+    name: 'Google Vids',
+    logoUrl: 'https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico',
+    defaultQuota: 500,
+    creditUnit: 'Credits',
+  },
 };
 
 export const resolveActiveProviderId = (
@@ -85,6 +92,13 @@ export const resolveActiveProviderId = (
   if (isVideo) {
     const vm = (settings?.videoModel || '') as string;
     const vmLower = vm.toLowerCase();
+
+    if (
+      vm === 'Google Vids Omni' ||
+      vmLower.includes('vids')
+    ) {
+      return 'vids';
+    }
 
     if (
       vm === 'Omni Flash' ||

@@ -68,6 +68,7 @@ interface CanvasInspectorPanelProps {
   onClose: () => void;
   onUpdateData: (nodeId: string, newData: any) => void;
   onRunNode?: (nodeId: string) => void;
+  onRemoveWatermark?: (nodeId: string) => Promise<void>;
   onDeleteNode?: (nodeId: string) => void;
   isExecuting?: boolean;
   executingProgress?: number;
@@ -89,6 +90,7 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
   onClose,
   onUpdateData,
   onRunNode,
+  onRemoveWatermark,
   isExecuting = false,
   executingProgress = 0,
   credits = 0,
@@ -96,6 +98,8 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
 }) => {
   const nodeData = selectedNode.data || {};
   const [runs, setRuns] = useState<number>(nodeData.runs || 1);
+  const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
+  const [watermarkError, setWatermarkError] = useState<string | null>(null);
 
   useEffect(() => {
     setRuns(selectedNode?.data?.runs || 1);
@@ -104,8 +108,55 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
   // Model-specific calculations
   const isLLMNode = selectedNode.type === 'anyLLM' || selectedNode.type === 'promptEnhancer';
   const isGeminiVideoNode = selectedNode.type === 'geminiVideo';
+  const isVidsVideoNode = selectedNode.type === 'vidsVideo';
   const isVideoStitcherNode = selectedNode.type === 'videoStitcher';
+  const supportsVidsWatermarkRemoval = isVidsVideoNode || isVideoStitcherNode;
   const isStoryboardNode = selectedNode.type === 'storyboard';
+
+  const [vidsAccounts, setVidsAccounts] = useState<Array<{
+    id?: string;
+    email?: string;
+    name?: string;
+    displayName?: string;
+    isActive?: boolean;
+    credits?: number;
+    totalCredits?: number;
+  }>>(() => {
+    try {
+      const raw = localStorage.getItem('vids_accounts');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('[CanvasInspector] Could not read Google Vids accounts:', error);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const refreshVidsAccounts = () => {
+      try {
+        const raw = localStorage.getItem('vids_accounts');
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(parsed)) {
+          throw new Error('Daftar akun Google Vids harus berupa array.');
+        }
+        setVidsAccounts(parsed);
+      } catch (error) {
+        console.error('[CanvasInspector] Could not refresh Google Vids accounts:', error);
+      }
+    };
+
+    window.addEventListener('vids_accounts_updated', refreshVidsAccounts);
+    window.addEventListener('storage', refreshVidsAccounts);
+    return () => {
+      window.removeEventListener('vids_accounts_updated', refreshVidsAccounts);
+      window.removeEventListener('storage', refreshVidsAccounts);
+    };
+  }, []);
+
+  const selectedVidsAccount = vidsAccounts.find(
+    (account) => account.id === nodeData.accountId || account.email === nodeData.accountId
+  ) || vidsAccounts.find((account) => account.isActive) || vidsAccounts[0];
 
   // Gemini Video calculations & accounts
   const geminiModelDisplayName = 'Gemini Omni Flash';
@@ -431,6 +482,16 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
                 className="w-3.5 h-3.5 object-contain"
               />
             </div>
+          ) : isVidsVideoNode ? (
+            <img
+              src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+              alt="Google Vids"
+              className="w-5 h-5 object-contain rounded"
+              referrerPolicy="no-referrer"
+              onError={(event) => {
+                event.currentTarget.src = 'https://ssl.gstatic.com/docs/doclist/images/mediatype/icon_1_flix_x32.png';
+              }}
+            />
           ) : isVideoStitcherNode ? (
             <div className="w-5 h-5 rounded-md bg-rose-500/20 text-rose-400 flex items-center justify-center">
               <Film className="w-3.5 h-3.5" />
@@ -457,6 +518,8 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
               ? llmDisplayName
               : isGeminiVideoNode
               ? geminiModelDisplayName
+              : isVidsVideoNode
+              ? 'Google Vids Omni'
               : isVideoStitcherNode
               ? 'Video Stitcher'
               : selectedNode.title || 'Node Settings'}
@@ -727,6 +790,132 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
               </div>
             </div>
           </>
+        )}
+
+        {/* SPECIFIC TO GOOGLE VIDS VIDEO NODE */}
+        {isVidsVideoNode && (
+          <div className="flex-1 flex flex-col space-y-3.5">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-stone-400">Model Video</label>
+              <div className="w-full bg-[#202026] text-white border border-white/10 rounded-xl px-3 py-2 text-xs font-medium">
+                Google Vids Omni · 10s
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-stone-400">Aspect Ratio</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {['9:16', '16:9'].map((ratio) => {
+                  const isSelected = (nodeData.aspectRatio || '9:16') === ratio;
+                  return (
+                    <button
+                      key={ratio}
+                      type="button"
+                      onClick={() =>
+                        onUpdateData(selectedNode.id, {
+                          ...nodeData,
+                          aspectRatio: ratio,
+                          ...(ratio === '16:9' && nodeData.resolution === '1080p' ? { resolution: '720p' } : {}),
+                        })
+                      }
+                      className={`py-1.5 px-2 rounded-lg text-center text-[11px] font-medium transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-semibold'
+                          : 'bg-[#202026] border-white/5 text-stone-400 hover:text-stone-200 hover:bg-white/5'
+                      }`}
+                    >
+                      {ratio}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-stone-400">Resolusi</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {['720p', '1080p'].map((resolution) => {
+                  const disabled = resolution === '1080p' && (nodeData.aspectRatio || '9:16') === '16:9';
+                  const isSelected = (nodeData.resolution || '720p') === resolution;
+                  return (
+                    <button
+                      key={resolution}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onUpdateData(selectedNode.id, { ...nodeData, resolution })}
+                      className={`py-1.5 px-2 rounded-lg text-center text-[11px] font-medium transition-all border ${
+                        disabled
+                          ? 'bg-[#202026] border-white/5 text-stone-600 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-semibold cursor-pointer'
+                          : 'bg-[#202026] border-white/5 text-stone-400 hover:text-stone-200 hover:bg-white/5 cursor-pointer'
+                      }`}
+                    >
+                      {resolution}
+                    </button>
+                  );
+                })}
+              </div>
+              {(nodeData.aspectRatio || '9:16') === '16:9' && (
+                <p className="text-[10px] text-stone-500">Google Vids landscape saat ini mendukung 720p.</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-stone-400">Akun Google Vids</label>
+              <select
+                value={nodeData.accountId || selectedVidsAccount?.id || selectedVidsAccount?.email || ''}
+                onChange={(event) => {
+                  const accountId = event.target.value;
+                  const account = vidsAccounts.find((item) => (item.id || item.email) === accountId);
+                  onUpdateData(selectedNode.id, {
+                    ...nodeData,
+                    accountId: accountId || undefined,
+                    accountEmail: account?.email,
+                  });
+                }}
+                className="w-full bg-[#202026] text-white border border-white/10 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/50"
+              >
+                {vidsAccounts.length === 0 ? (
+                  <option value="">Tidak ada akun tersimpan</option>
+                ) : (
+                  vidsAccounts.map((account) => {
+                    const value = account.id || account.email || '';
+                    return (
+                      <option key={value} value={value}>
+                        {account.displayName || account.name || account.email || 'Akun Google Vids'}
+                        {' · '}
+                        {account.credits ?? 0}/{account.totalCredits ?? 500} kredit
+                        {account.isActive ? ' (Aktif)' : ''}
+                      </option>
+                    );
+                  })
+                )}
+              </select>
+              {selectedVidsAccount?.email && (
+                <p className="text-[10px] text-stone-500 truncate">
+                  {selectedVidsAccount.email} · {selectedVidsAccount.credits ?? 0}/{selectedVidsAccount.totalCredits ?? 500} kredit
+                </p>
+              )}
+            </div>
+
+            <div className="flex-1 min-h-[120px] flex flex-col space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-stone-400">Prompt Override</label>
+                {connectedPrompt && (
+                  <span className="text-[10px] text-blue-400 font-mono bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded">
+                    Prompt terhubung
+                  </span>
+                )}
+              </div>
+              <textarea
+                value={nodeData.promptOverride || ''}
+                onChange={(event) => onUpdateData(selectedNode.id, { ...nodeData, promptOverride: event.target.value })}
+                placeholder="Prompt dari node Prompt akan digunakan otomatis. Isi di sini jika ingin menimpa."
+                className="w-full flex-1 min-h-[110px] bg-[#181820] text-stone-200 border border-white/10 rounded-xl p-2.5 text-xs focus:outline-none focus:border-blue-500/50 resize-none font-mono leading-relaxed custom-scrollbar"
+              />
+            </div>
+          </div>
         )}
 
         {/* SPECIFIC TO GEMINI VIDEO NODE */}
@@ -1671,14 +1860,49 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
       </div>
 
       {/* 3. Bottom Sticky Section ("Run selected nodes") */}
-      {(selectedNode.type === 'imageModel' || isLLMNode || isGeminiVideoNode || isVideoStitcherNode || isStoryboardNode) && onRunNode && (
+      {(selectedNode.type === 'imageModel' || isLLMNode || isGeminiVideoNode || isVidsVideoNode || isVideoStitcherNode || isStoryboardNode) && onRunNode && (
         <div className="p-4 border-t border-white/10 bg-[#141418] shrink-0 space-y-3">
+          {supportsVidsWatermarkRemoval &&
+            onRemoveWatermark &&
+            /^(?:\/media-cache\/vids_|\/media-cache\/stitched_)[^/]+\.mp4$/i.test(nodeData.outputVideo || nodeData.videoUrl || nodeData.resultUrl || '') &&
+            !/_nowm\.mp4$/i.test(nodeData.outputVideo || nodeData.videoUrl || nodeData.resultUrl || '') && (
+              <div className="space-y-2">
+                {watermarkError && (
+                  <p className="text-[10px] text-rose-400 leading-relaxed">{watermarkError}</p>
+                )}
+                <button
+                  type="button"
+                  disabled={isRemovingWatermark}
+                  onClick={async () => {
+                    setIsRemovingWatermark(true);
+                    setWatermarkError(null);
+                    try {
+                      await onRemoveWatermark(selectedNode.id);
+                    } catch (error) {
+                      const message = error instanceof Error ? error.message : 'Remove watermark gagal.';
+                      setWatermarkError(message);
+                    } finally {
+                      setIsRemovingWatermark(false);
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/15 text-blue-200 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {isRemovingWatermark ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  <span>{isRemovingWatermark ? 'Memproses remove watermark...' : 'Remove Watermark'}</span>
+                </button>
+              </div>
+            )}
+
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-              {isStoryboardNode ? 'Jalankan Storyboard Copilot' : isVideoStitcherNode ? 'Gabungkan Video (FFmpeg)' : isGeminiVideoNode ? 'Jalankan Gemini Video' : 'Run selected nodes'}
+              {isStoryboardNode ? 'Jalankan Storyboard Copilot' : isVideoStitcherNode ? 'Gabungkan Video (FFmpeg)' : isGeminiVideoNode ? 'Jalankan Gemini Video' : isVidsVideoNode ? 'Jalankan Google Vids Omni' : 'Run selected nodes'}
             </h4>
 
-            {!isGeminiVideoNode && !isVideoStitcherNode && (
+            {!isGeminiVideoNode && !isVidsVideoNode && !isVideoStitcherNode && (
               <div className="flex items-center justify-between text-xs py-0.5">
                 <span className="text-stone-400 font-medium">Runs</span>
                 <div className="relative">
@@ -1705,6 +1929,8 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
               <div className="flex items-center gap-1.5 font-semibold text-white">
                 {isGeminiVideoNode || (isStoryboardNode && (nodeData.provider || 'weavy') === 'gemini') ? (
                   <GeminiIcon className="w-3.5 h-3.5" />
+                ) : isVidsVideoNode ? (
+                  <Video className="w-3.5 h-3.5 text-blue-400" />
                 ) : isVideoStitcherNode ? (
                   <Film className="w-3.5 h-3.5 text-rose-400" />
                 ) : isStoryboardNode ? (
@@ -1715,6 +1941,8 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
                 <span>
                   {isGeminiVideoNode
                     ? '1 Kuota Gemini'
+                    : isVidsVideoNode
+                    ? 'Mengikuti kuota akun Vids'
                     : isVideoStitcherNode
                     ? '0 credit (FFmpeg Lokal)'
                     : isStoryboardNode
@@ -1733,6 +1961,7 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
               isExecuting ||
               (!isLLMNode &&
                 !isGeminiVideoNode &&
+                !isVidsVideoNode &&
                 !isVideoStitcherNode &&
                 (!isStoryboardNode || (nodeData.provider || 'weavy') === 'weavy') &&
                 credits < (isStoryboardNode ? 1 : totalCost))
@@ -1742,6 +1971,7 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
                 ? 'bg-stone-800 text-stone-200 cursor-wait opacity-90'
                 : (!isLLMNode &&
                     !isGeminiVideoNode &&
+                    !isVidsVideoNode &&
                     !isVideoStitcherNode &&
                     (!isStoryboardNode || (nodeData.provider || 'weavy') === 'weavy') &&
                     credits < (isStoryboardNode ? 1 : totalCost))
@@ -1759,6 +1989,8 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
                     ? 'Menggabungkan Video...'
                     : isGeminiVideoNode
                     ? 'Merender Video...'
+                    : isVidsVideoNode
+                    ? 'Merender Google Vids...'
                     : isLLMNode
                     ? 'Memproses LLM...'
                     : 'Merender AI...'} {Math.round(executingProgress)}%
@@ -1767,7 +1999,7 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
             ) : (
               <>
                 <ArrowRight className="w-4 h-4 text-stone-950 stroke-[2.5]" />
-                <span>{isStoryboardNode ? 'Generate Storyboard' : isVideoStitcherNode ? 'Stitch Video' : isGeminiVideoNode ? 'Run Model' : 'Run selected'}</span>
+                <span>{isStoryboardNode ? 'Generate Storyboard' : isVideoStitcherNode ? 'Stitch Video' : isGeminiVideoNode ? 'Run Model' : isVidsVideoNode ? 'Generate Video' : 'Run selected'}</span>
               </>
             )}
           </button>

@@ -23,6 +23,7 @@ const PRIMARY_NODES: NodeOption[] = [
   { type: 'anyLLM', label: 'Any LLM' },
   { type: 'imageModel', label: 'Model Gambar' },
   { type: 'geminiVideo', label: 'Gemini Omni Flash' },
+  { type: 'vidsVideo', label: 'Vids Omni' },
   { type: 'videoStitcher', label: 'Video Stitcher (FFmpeg)' },
   { type: 'imageViewer', label: 'Viewer Output' },
 ];
