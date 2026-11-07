@@ -68,6 +68,9 @@ function sanitizeFilesForLocalStorage(files: CanvasFile[], ultraLean = false): C
       if (typeof data.coverUrl === 'string' && (ultraLean || data.coverUrl.startsWith('data:image/') && data.coverUrl.length > 1024)) {
         data.coverUrl = '';
       }
+      if (typeof data.videoUrl === 'string' && (ultraLean || data.videoUrl.startsWith('data:video/') && data.videoUrl.length > 1024)) {
+        data.videoUrl = '';
+      }
 
       return {
         ...node,

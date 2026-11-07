@@ -34,7 +34,9 @@ export interface PromptNodeData {
 
 export interface ImageInputNodeData {
   imageUrl?: string;
+  videoUrl?: string;
   fileName?: string;
+  mediaType?: 'image' | 'video';
   aspectRatio?: string;
 }
 
@@ -802,6 +804,15 @@ export const getPortCoordinate = (
         ? getStoryboardNodeOutputs(node.data)
         : node.type === 'aiWorker'
         ? getAiWorkerOutputs(node.data)
+        : node.type === 'imageInput'
+        ? [
+            ...(node.outputs && node.outputs.length > 0
+              ? node.outputs
+              : [{ id: 'output-image', name: 'image', type: 'image' as const, label: 'Image Output' }]),
+            ...((!node.data?.videoUrl || (node.outputs || []).some((p) => p.id === 'output-video'))
+              ? []
+              : [{ id: 'output-video', name: 'video', type: 'video' as const, label: 'Video Output' }]),
+          ]
         : node.outputs && node.outputs.length > 0
         ? node.outputs
         : node.type === 'imageViewer' || node.type === 'imageModel'

@@ -815,7 +815,6 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
                         onUpdateData(selectedNode.id, {
                           ...nodeData,
                           aspectRatio: ratio,
-                          ...(ratio === '16:9' && nodeData.resolution === '1080p' ? { resolution: '720p' } : {}),
                         })
                       }
                       className={`py-1.5 px-2 rounded-lg text-center text-[11px] font-medium transition-all cursor-pointer border ${
@@ -835,19 +834,15 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
               <label className="text-[11px] font-medium text-stone-400">Resolusi</label>
               <div className="grid grid-cols-2 gap-1.5">
                 {['720p', '1080p'].map((resolution) => {
-                  const disabled = resolution === '1080p' && (nodeData.aspectRatio || '9:16') === '16:9';
-                  const isSelected = (nodeData.resolution || '720p') === resolution;
+                  const isSelected = (nodeData.resolution || '1080p') === resolution;
                   return (
                     <button
                       key={resolution}
                       type="button"
-                      disabled={disabled}
                       onClick={() => onUpdateData(selectedNode.id, { ...nodeData, resolution })}
-                      className={`py-1.5 px-2 rounded-lg text-center text-[11px] font-medium transition-all border ${
-                        disabled
-                          ? 'bg-[#202026] border-white/5 text-stone-600 cursor-not-allowed'
-                          : isSelected
-                          ? 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-semibold cursor-pointer'
+                      className={`py-1.5 px-2 rounded-lg text-center text-[11px] font-medium transition-all border cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-500/15 border-blue-500/40 text-blue-300 font-semibold'
                           : 'bg-[#202026] border-white/5 text-stone-400 hover:text-stone-200 hover:bg-white/5 cursor-pointer'
                       }`}
                     >

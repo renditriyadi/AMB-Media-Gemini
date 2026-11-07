@@ -857,8 +857,15 @@ export function resolveModelInputs(
     if (edge) {
       const sourceNode = nodes.find((n) => n.id === edge.sourceNodeId);
       if (sourceNode) {
-        if (sourceNode.type === 'imageInput' && sourceNode.data?.imageUrl) {
-          addMediaUrl(sourceNode.data.imageUrl, sourceNode.type);
+        if (sourceNode.type === 'imageInput') {
+          if (sourceNode.data?.imageUrl) addMediaUrl(sourceNode.data.imageUrl, sourceNode.type);
+          if (
+            modelNode.type === 'geminiVideo' &&
+            sourceNode.data?.videoUrl &&
+            !videoUrls.includes(sourceNode.data.videoUrl)
+          ) {
+            videoUrls.push(sourceNode.data.videoUrl);
+          }
         } else if (sourceNode.type === 'imageViewer' && sourceNode.data?.resultUrl) {
           addMediaUrl(sourceNode.data.resultUrl, sourceNode.type);
         } else if (sourceNode.type === 'imageModel' && (sourceNode.data?.outputImage || sourceNode.data?.resultUrl)) {
@@ -908,8 +915,15 @@ export function resolveModelInputs(
     } else if ((sourceNode.type === 'promptEnhancer' || sourceNode.type === 'anyLLM') && !prompt) {
       const raw = sourceNode.data?.generatedText || sourceNode.data?.enhancedPrompt || sourceNode.data?.inputPrompt || '';
       prompt = extractCleanPromptText(raw);
-    } else if (sourceNode.type === 'imageInput' && sourceNode.data?.imageUrl) {
-      addMediaUrl(sourceNode.data.imageUrl, sourceNode.type);
+    } else if (sourceNode.type === 'imageInput') {
+      if (sourceNode.data?.imageUrl) addMediaUrl(sourceNode.data.imageUrl, sourceNode.type);
+      if (
+        modelNode.type === 'geminiVideo' &&
+        sourceNode.data?.videoUrl &&
+        !videoUrls.includes(sourceNode.data.videoUrl)
+      ) {
+        videoUrls.push(sourceNode.data.videoUrl);
+      }
     } else if (sourceNode.type === 'imageViewer' && sourceNode.data?.resultUrl) {
       addMediaUrl(sourceNode.data.resultUrl, sourceNode.type);
     } else if (sourceNode.type === 'imageModel' && (sourceNode.data?.outputImage || sourceNode.data?.resultUrl)) {
@@ -982,7 +996,7 @@ export function resolveStitcherInputs(
     } else if (sourceNode.type === 'imageViewer') {
       url = sourceNode.data?.resultUrl || sourceNode.data?.outputVideo;
     } else if (sourceNode.type === 'imageInput') {
-      url = sourceNode.data?.imageUrl;
+      url = sourceNode.data?.videoUrl || sourceNode.data?.imageUrl;
     }
 
     if (url && typeof url === 'string' && url.trim().length > 0) {

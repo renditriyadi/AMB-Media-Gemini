@@ -8,11 +8,15 @@
  */
 
 import { Router } from 'express';
+import multer from 'multer';
 import { spawn } from 'child_process';
 import https from 'https';
 import crypto from 'crypto';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 const router = Router();
 
@@ -20,6 +24,15 @@ const mediaCacheDir = path.join(process.cwd(), 'media-cache');
 if (!fs.existsSync(mediaCacheDir)) {
   fs.mkdirSync(mediaCacheDir, { recursive: true });
 }
+
+const cacheImportedVideoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, os.tmpdir()),
+    filename: (_req, _file, callback) =>
+      callback(null, `canvas-video-${crypto.randomBytes(12).toString('hex')}.tmp`),
+  }),
+  limits: { fileSize: 100 * 1024 * 1024 },
+});
 
 const VIDS_SESSIONS_FILE = path.join(process.cwd(), 'data', 'vids_sessions.json');
 const VIDS_CONFIG_FALLBACK = path.join(process.cwd(), 'script-vids', 'config.json');
@@ -40,7 +53,7 @@ export interface VidsAccountSession {
 }
 
 // Helper: Membaca cache sesi Google Vids
-function readAllVidsSessions(): Record<string, VidsAccountSession> {
+export function readAllVidsSessions(): Record<string, VidsAccountSession> {
   try {
     if (fs.existsSync(VIDS_SESSIONS_FILE)) {
       return JSON.parse(fs.readFileSync(VIDS_SESSIONS_FILE, 'utf-8')) || {};
@@ -75,7 +88,7 @@ function readAllVidsSessions(): Record<string, VidsAccountSession> {
 }
 
 // Helper: Menyimpan cache sesi Google Vids
-function saveVidsSessions(data: Record<string, VidsAccountSession>) {
+export function saveVidsSessions(data: Record<string, VidsAccountSession>) {
   try {
     const dir = path.dirname(VIDS_SESSIONS_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -116,12 +129,17 @@ export function extractVidsAuth(input: string): {
   const tokenMatch = trimmed.match(/x-server-token:\s*([^\s'"]+)/i);
   if (tokenMatch) serverToken = tokenMatch[1].trim();
 
+  if (!serverToken) {
+    const dataTokenMatch = trimmed.match(/["'](CAMS[A-Za-z0-9_-]{20,80}={0,2})["']/);
+    if (dataTokenMatch) serverToken = dataTokenMatch[1].trim();
+  }
+
   // 3. Ekstraksi Document ID Google Vids (.flix)
   const docMatch = trimmed.match(/["']([a-zA-Z0-9_-]{35,55})["']\s*,\s*["']application\/vnd\.google-apps\.flix["']/);
   if (docMatch) docId = docMatch[1].trim();
 
   if (!docId) {
-    const urlDocMatch = trimmed.match(/docs\.google.com\/videos\/d\/([a-zA-Z0-9_-]{35,55})/i);
+    const urlDocMatch = trimmed.match(/docs\.google\.com\/videos\/(?:d\/|u\/\d+\/d\/)?([a-zA-Z0-9_-]{35,55})/i);
     if (urlDocMatch) docId = urlDocMatch[1].trim();
   }
 
@@ -147,15 +165,15 @@ export function generateSapisidHash(cookies: string, origin = 'https://docs.goog
   return `SAPISIDHASH ${timestamp}_${hash} SAPISID1PHASH ${timestamp}_${hash} SAPISID3PHASH ${timestamp}_${hash}`;
 }
 
-// Helper: Mengambil kuota akun dari endpoint resmi Google Vids quotaSummary.
-// Body: [null,1,[9],389,null,[[null,"1",1189]]]
-// Respons: [[null,["60",null,"60",1,null,null,["1796112000"],0],"0",[9],1,17,51]]
-//   [0] = limit, [2] = remaining, [6][0] = epoch reset
-function fetchQuotaSummary(cookies: string): Promise<{ limit: number; remaining: number; resetEpoch: number | null } | null> {
+// Helper: Mengambil kuota spesifik per opcode/SKU
+function queryQuotaForCode(
+  cookies: string,
+  code: number
+): Promise<{ limit: number; remaining: number; resetEpoch: number | null } | null> {
   return new Promise((resolve) => {
     const auth = generateSapisidHash(cookies);
     if (!auth) return resolve(null);
-    const body = JSON.stringify([null, 1, [9], 389, null, [[null, '1', 1189]]]);
+    const body = JSON.stringify([null, 1, [9], code, null, [[null, '1', 1189]]]);
     const req = https.request(
       {
         hostname: 'appsgenaiserver-pa.clients6.google.com',
@@ -171,7 +189,7 @@ function fetchQuotaSummary(cookies: string): Promise<{ limit: number; remaining:
           'user-agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
           'x-goog-authuser': '0',
-          'Content-Length': Buffer.byteLength(body),
+          'Content-Length': String(Buffer.byteLength(body)),
         },
       },
       (res) => {
@@ -202,8 +220,22 @@ function fetchQuotaSummary(cookies: string): Promise<{ limit: number; remaining:
   });
 }
 
+// Helper: Mengambil kuota akun dari endpoint resmi Google Vids quotaSummary.
+// Cek Opcode 374 terlebih dahulu (Workspace / SKU 36, kuota 500 kredit),
+// lalu fallback ke Opcode 389 (Consumer / SKU 51, kuota 60 kredit).
+export async function fetchQuotaSummary(
+  cookies: string
+): Promise<{ limit: number; remaining: number; resetEpoch: number | null } | null> {
+  for (const code of [374, 389]) {
+    const quota = await queryQuotaForCode(cookies, code);
+    if (quota && quota.limit > 0) return quota;
+    if (quota && code === 389) return quota;
+  }
+  return null;
+}
+
 // Helper: Cek nama dan foto profil akun Google via ListAccounts
-async function fetchGoogleUserProfile(cookies: string): Promise<{ email?: string; name?: string; photoUrl?: string }> {
+export async function fetchGoogleUserProfile(cookies: string): Promise<{ email?: string; name?: string; photoUrl?: string }> {
   return new Promise((resolve) => {
     const req = https.request(
       {
@@ -291,58 +323,49 @@ async function fetchGoogleUserProfile(cookies: string): Promise<{ email?: string
   });
 }
 
-// Helper: Membangun array payload Protobuf JSON (Opcode 386)
-// Nilai WAJIB identik dengan request yang diterima server (diverifikasi 5 Nov 2026):
-//   opcode      386 = Vids Video Generation RPC
-//   [4][15][4]   1 = 720p landscape, 2 = 720p portrait, 6 = 1080p portrait
-//   [2][8][3]    3 level nesting
-//   [2][13]    "in" = locale
-//   [2][35]    null (tidak boleh berisi "Asia/Jakarta" -> HTTP 400 search_context)
-//   [2][41]    string client_root_request_id (angka 0 -> HTTP 400 TYPE_STRING)
+// Helper: Membangun array payload Protobuf JSON
+// Opcode 374: Versi RPC Google Vids modern (Workspace GenAI / 500 kredit)
+// Opcode 386: Versi RPC Google Vids legacy (Consumer GenAI / 60 kredit)
 function buildProtobufPayload(
   prompt: string,
   duration: number,
   docId: string,
   aspectRatio: '9:16' | '16:9',
-  resolution: '720p' | '1080p'
+  resolution: '720p' | '1080p',
+  opcode = 374
 ): any[] {
   const aspectRatioCode = 12;
-  const resolutionCode = aspectRatio === '16:9' ? 1 : resolution === '1080p' ? 6 : 2;
+  const resolutionCode = resolution === '1080p' ? 6 : (aspectRatio === '16:9' ? 1 : 2);
   const clientReqId = `goog_${Math.floor(Math.random() * 900000000 + 100000000)}`;
-  return [
-    386, // Opcode Vids Video Generation
-    null,
-    [
-      9, // Vids App ID
-      null, null, null,
-      clientReqId,
-      null,
-      "0", // authuser index
-      null,
+
+  const ctx: any[] = [];
+  ctx[0] = 9; // Vids App ID
+  ctx[4] = clientReqId;
+  ctx[6] = '0'; // authuser index
+  ctx[8] = [
+    null, null, null,
+    [[[
+      null, null, null, null, null, null, null,
       [
-        null, null, null,
-        [[[
-          null, null, null, null, null, null, null,
-          [
-            null, null,
-            [[
-              docId,
-              "application/vnd.google-apps.flix",
-              null, null, 1
-            ]]
-          ]
-        ]]]
-      ],
-      null, null,
-      [24, 0],
-      null,
-      "in", // locale
-      null, null, null, null, null, 1,
-      null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-      null, // [2][35] timezone TIDAK dikirim (menyebabkan HTTP 400 search_context)
-      null, null, null, null, null,
-      clientReqId // [2][41] client_root_request_id harus string
-    ],
+        null, null,
+        [[
+          docId,
+          'application/vnd.google-apps.flix',
+          null, null, 1
+        ]]
+      ]
+    ]]]
+  ];
+  ctx[11] = [24, 0];
+  ctx[13] = 'en';
+  ctx[19] = 1;
+  ctx[34] = 'Asia/Jakarta';
+  ctx[40] = 0;
+
+  return [
+    opcode,
+    null,
+    ctx,
     [
       null, null, null,
       [[[null, null, prompt]]]
@@ -354,29 +377,25 @@ function buildProtobufPayload(
     [
       1,
       null,
-      [[null, "1", 1189]]
+      [[null, '1', 1189]]
     ],
     1
   ];
 }
 
-// Helper: Kirim request generate video ke server Google Vids (Held Connection)
-function sendVidsGenerateRequest(
+function executeVidsGenerateRpc(
   prompt: string,
   duration: number,
   docId: string,
   cookies: string,
   serverToken: string | undefined,
   aspectRatio: '9:16' | '16:9',
-  resolution: '720p' | '1080p'
+  resolution: '720p' | '1080p',
+  opcode: number,
+  authHeader: string
 ): Promise<any> {
   return new Promise((resolve, reject) => {
-    const authHeader = generateSapisidHash(cookies);
-    if (!authHeader) {
-      return reject(new Error('Cookie SAPISID tidak valid untuk otentikasi Google Vids.'));
-    }
-
-    const payload = JSON.stringify(buildProtobufPayload(prompt, duration, docId, aspectRatio, resolution));
+    const payload = JSON.stringify(buildProtobufPayload(prompt, duration, docId, aspectRatio, resolution, opcode));
     const url = `https://appsgenaiserver-pa.clients6.google.com/v1/genai/generate?key=${VIDS_API_KEY}`;
     const urlObj = new URL(url);
 
@@ -389,7 +408,7 @@ function sendVidsGenerateRequest(
       'origin': 'https://docs.google.com',
       'referer': 'https://docs.google.com/',
       'user-agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
       'x-goog-authuser': '0',
       'Content-Length': String(Buffer.byteLength(payload)),
     };
@@ -412,7 +431,7 @@ function sendVidsGenerateRequest(
         res.on('end', () => {
           if (res.statusCode !== 200) {
             return reject(
-              new Error(`Google Vids AI gagal dengan HTTP ${res.statusCode}: ${data.slice(0, 300)}`)
+              new Error(`Google Vids AI (Opcode ${opcode}) gagal dengan HTTP ${res.statusCode}: ${data.slice(0, 300)}`)
             );
           }
           try {
@@ -434,6 +453,45 @@ function sendVidsGenerateRequest(
     req.write(payload);
     req.end();
   });
+}
+
+// Helper: Kirim request generate video ke server Google Vids (Held Connection)
+// Coba Opcode 374 lebih dahulu, jika gagal coba Opcode 386
+async function sendVidsGenerateRequest(
+  prompt: string,
+  duration: number,
+  docId: string,
+  cookies: string,
+  serverToken: string | undefined,
+  aspectRatio: '9:16' | '16:9',
+  resolution: '720p' | '1080p'
+): Promise<any> {
+  const authHeader = generateSapisidHash(cookies);
+  if (!authHeader) {
+    throw new Error('Cookie SAPISID tidak valid untuk otentikasi Google Vids.');
+  }
+
+  let lastError: Error | null = null;
+  for (const opcode of [374, 386]) {
+    try {
+      return await executeVidsGenerateRpc(
+        prompt,
+        duration,
+        docId,
+        cookies,
+        serverToken,
+        aspectRatio,
+        resolution,
+        opcode,
+        authHeader
+      );
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[Google Vids] RPC Opcode ${opcode} gagal: ${err.message}. Mencoba fallback jika ada...`);
+    }
+  }
+
+  throw lastError || new Error('Gagal memproses request generate video Google Vids.');
 }
 
 // Helper: Ekstraksi URL Video dari respon Google
@@ -537,6 +595,9 @@ router.post('/vids/accounts/verify', async (req, res) => {
     const sessions = readAllVidsSessions();
     const existing = sessions[resolvedEmail.toLowerCase()];
 
+    // Ambil kuota live langsung dari Google Vids server (mendukung 500 kredit / 60 kredit)
+    const liveQuota = await fetchQuotaSummary(cookies);
+
     const sessionData: VidsAccountSession = {
       email: resolvedEmail,
       name: resolvedName,
@@ -544,8 +605,8 @@ router.post('/vids/accounts/verify', async (req, res) => {
       cookies,
       docId: docId || existing?.docId || '',
       serverToken: serverToken || existing?.serverToken || '',
-      credits: existing?.credits ?? 60,
-      totalCredits: existing?.totalCredits ?? 60,
+      credits: liveQuota ? liveQuota.remaining : (existing?.credits ?? 60),
+      totalCredits: liveQuota ? liveQuota.limit : (existing?.totalCredits ?? 60),
       lastChecked: new Date().toISOString(),
     };
 
@@ -588,6 +649,263 @@ router.post('/vids/accounts/delete', (req, res) => {
   }
 
   return res.json({ success: true, deleted, email });
+});
+
+// =========================================================================================
+// GOOGLE VIDS PLAYWRIGHT AUTOMATION ENDPOINTS
+// =========================================================================================
+
+type VidsPlaywrightManager = typeof import('../services/vidsPlaywright').vidsPlaywrightManager;
+let vidsPlaywrightManagerInstance: VidsPlaywrightManager | null = null;
+function getVidsPlaywrightManager(): VidsPlaywrightManager {
+  if (!vidsPlaywrightManagerInstance) {
+    vidsPlaywrightManagerInstance = require('../services/vidsPlaywright').vidsPlaywrightManager;
+  }
+  return vidsPlaywrightManagerInstance!;
+}
+
+// POST /api/vids/playwright/profile/delete
+router.post('/vids/playwright/profile/delete', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    await getVidsPlaywrightManager().deleteProfile(email);
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      error: err.message || 'Gagal menghapus profil browser Google Vids.',
+    });
+  }
+});
+
+// POST /api/vids/playwright/profile/open
+router.post('/vids/playwright/profile/open', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    await getVidsPlaywrightManager().openBrowserProfile(email);
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      error: err.message || 'Gagal membuka profil browser Google Vids.',
+    });
+  }
+});
+
+// POST /api/vids/playwright/start
+router.post('/vids/playwright/start', async (req, res) => {
+  try {
+    const { email, password, recoveryEmail, customLabel } = req.body || {};
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email dan kata sandi Google wajib diisi untuk otomasi login Playwright.',
+      });
+    }
+
+    const startRes = await getVidsPlaywrightManager().startLogin({
+      email: String(email).trim(),
+      password: String(password),
+      recoveryEmail: recoveryEmail ? String(recoveryEmail).trim() : undefined,
+      customLabel: customLabel ? String(customLabel).trim() : undefined,
+    });
+
+    return res.json({
+      success: true,
+      ...startRes,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Gagal memulai otomasi browser Playwright Google Vids.',
+    });
+  }
+});
+
+// POST /api/vids/playwright/relogin
+router.post('/vids/playwright/relogin', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim();
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, error: 'Alamat email Google tidak valid.' });
+    }
+
+    const credentials = await getVidsPlaywrightManager().getSavedCredentials(email);
+    if (!credentials) {
+      return res.status(404).json({
+        success: false,
+        error: 'Kredensial untuk profil ini belum tersimpan. Tambahkan akun melalui Playwright terlebih dahulu.',
+      });
+    }
+
+    const startRes = await getVidsPlaywrightManager().startLogin({
+      email,
+      password: credentials.password,
+    });
+    return res.json({ success: true, ...startRes });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Gagal memulai relogin Google Vids.',
+    });
+  }
+});
+
+// POST /api/vids/playwright/start-batch
+router.post('/vids/playwright/start-batch', async (req, res) => {
+  try {
+    const rawEmails = Array.isArray(req.body?.emails)
+      ? req.body.emails
+      : String(req.body?.emails || req.body?.batchText || '')
+          .split(/[\n,]+/)
+          .map((value) => value.trim())
+          .filter(Boolean);
+
+    const password = String(req.body?.password || '').trim();
+    const recoveryEmail = req.body?.recoveryEmail ? String(req.body.recoveryEmail).trim() : undefined;
+    const customLabel = req.body?.customLabel ? String(req.body.customLabel).trim() : undefined;
+
+    if (!rawEmails.length) {
+      return res.status(400).json({
+        success: false,
+        error: 'Daftar email batch wajib diisi agar Playwright bisa memproses akun satu per satu.',
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password wajib diisi untuk semua email dalam batch Google Vids.',
+      });
+    }
+
+    const existingEmails = Array.isArray(req.body?.existingEmails)
+      ? req.body.existingEmails.map((e: any) => String(e).trim()).filter(Boolean)
+      : undefined;
+
+    const batchResult = await getVidsPlaywrightManager().startBatchLogin({
+      emails: rawEmails,
+      password,
+      recoveryEmail,
+      customLabel,
+      existingEmails,
+    });
+
+    return res.json({
+      success: true,
+      ...batchResult,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Gagal memulai batch Playwright Google Vids.',
+    });
+  }
+});
+
+// GET /api/vids/playwright/batch-status/:batchId
+router.get('/vids/playwright/batch-status/:batchId', (req, res) => {
+  const batch = getVidsPlaywrightManager().getBatch(req.params.batchId);
+  if (!batch) {
+    return res.status(404).json({ success: false, error: 'Sesi batch Playwright tidak ditemukan atau kedaluwarsa.' });
+  }
+  return res.json({ success: true, ...batch });
+});
+
+// GET /api/vids/playwright/status/:sessionId
+router.get('/vids/playwright/status/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = getVidsPlaywrightManager().getSession(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sesi Playwright tidak ditemukan atau sudah kedaluwarsa.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      sessionId: session.id,
+      status: session.status,
+      currentStep: session.currentStep,
+      logs: session.logs,
+      challengeType: session.challengeType,
+      challengePrompt: session.challengePrompt,
+      screenshotBase64: session.screenshotBase64,
+      account: session.account,
+      error: session.error,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Gagal membaca status sesi Playwright.',
+    });
+  }
+});
+
+// POST /api/vids/playwright/submit-2fa
+router.post('/vids/playwright/submit-2fa', async (req, res) => {
+  try {
+    const { sessionId, code, customLabel } = req.body || {};
+
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Session ID wajib disertakan.' });
+    }
+
+    await getVidsPlaywrightManager().submit2FA(sessionId, String(code || '').trim(), customLabel);
+
+    return res.json({
+      success: true,
+      message: 'Kode 2FA berhasil dikirimkan ke browser Google.',
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      error: err.message || 'Gagal memproses verifikasi 2FA.',
+    });
+  }
+});
+
+// POST /api/vids/playwright/cancel
+router.post('/vids/playwright/cancel', async (req, res) => {
+  try {
+    const { sessionId, batchId } = req.body || {};
+    if (batchId) {
+      await getVidsPlaywrightManager().cancelBatch(batchId);
+    }
+    if (sessionId) {
+      await getVidsPlaywrightManager().cancelSession(sessionId);
+    }
+    return res.json({ success: true, message: 'Sesi Playwright telah dibatalkan.' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/vids/playwright/cancel-batch
+router.post('/vids/playwright/cancel-batch', async (req, res) => {
+  try {
+    const { batchId } = req.body || {};
+    if (batchId) {
+      await getVidsPlaywrightManager().cancelBatch(batchId);
+    }
+    return res.json({ success: true, message: 'Batch Playwright Google Vids telah dibatalkan.' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vids/playwright/scripts
+router.get('/vids/playwright/scripts', async (_req, res) => {
+  try {
+    const scripts = getVidsPlaywrightManager().getLocalPlaywrightScripts();
+    return res.json({ success: true, ...scripts });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // 2. GET /api/vids/quota — Cek status sisa kredit akun
@@ -658,9 +976,6 @@ router.post('/vids/generate-video', async (req, res) => {
     const aspectRatio: '9:16' | '16:9' =
       requestAspectRatio === '16:9' || requestAspectRatio === '16:9 (Landscape)' ? '16:9' : '9:16';
     const resolution: '720p' | '1080p' = requestResolution;
-    if (aspectRatio === '16:9' && resolution === '1080p') {
-      return res.status(400).json({ success: false, error: 'Google Vids 1080p landscape belum terverifikasi. Pilih 720p atau aspect ratio 9:16.' });
-    }
 
     // Resolusi akun dan sesi
     const sessions = readAllVidsSessions();
@@ -737,7 +1052,14 @@ router.post('/vids/generate-video', async (req, res) => {
       remoteUrl: remoteVideoUrl,
       filename,
       duration: Number(duration) || 10,
-      resolution: resolution === '1080p' ? '1080x1920' : aspectRatio === '16:9' ? '1280x720' : '720x1280',
+      resolution:
+        resolution === '1080p'
+          ? aspectRatio === '16:9'
+            ? '1920x1080'
+            : '1080x1920'
+          : aspectRatio === '16:9'
+          ? '1280x720'
+          : '720x1280',
       aspectRatio,
       renderTimeSeconds: parseFloat(renderTimeSec),
       fileSize: totalBytes,
@@ -758,6 +1080,47 @@ router.post('/vids/generate-video', async (req, res) => {
   }
 });
 
+router.post(
+  '/vids/cache-imported-video',
+  (req, res, next) => {
+    cacheImportedVideoUpload.single('file')(req, res, (error) => {
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Gagal menerima file video.',
+        });
+      }
+      next();
+    });
+  },
+  (req, res) => {
+    const uploadedFile = req.file;
+    if (!uploadedFile) {
+      return res.status(400).json({ success: false, error: 'File video tidak ditemukan.' });
+    }
+
+    const isVideo =
+      uploadedFile.mimetype.startsWith('video/') ||
+      /\.(mp4|mov|avi|webm|mkv|m4v)$/i.test(uploadedFile.originalname);
+    if (!isVideo) {
+      fs.rmSync(uploadedFile.path, { force: true });
+      return res.status(400).json({ success: false, error: 'File yang diterima bukan video.' });
+    }
+
+    const filename = `canvas_${Date.now()}_${crypto.randomBytes(6).toString('hex')}.mp4`;
+    const destination = path.join(mediaCacheDir, filename);
+    try {
+      fs.copyFileSync(uploadedFile.path, destination);
+      return res.json({ success: true, videoUrl: `/media-cache/${filename}` });
+    } catch (error) {
+      console.error('[Canvas Video Cache] Gagal menyimpan video lokal:', error);
+      return res.status(500).json({ success: false, error: 'Gagal menyimpan video sementara untuk diproses.' });
+    } finally {
+      fs.rmSync(uploadedFile.path, { force: true });
+    }
+  }
+);
+
 router.post('/vids/remove-watermark', (req, res) => {
   const videoUrl = String(req.body?.videoUrl || '');
   const mediaPrefix = '/media-cache/';
@@ -772,8 +1135,8 @@ router.post('/vids/remove-watermark', (req, res) => {
     return res.status(400).json({ success: false, error: 'Nama file video tidak valid.' });
   }
 
-  if (!/^(?:vids|stitched)_[A-Za-z0-9._-]+(?:_nowm)?\.mp4$/i.test(filename)) {
-    return res.status(400).json({ success: false, error: 'File bukan video Google Vids atau hasil Video Stitcher yang didukung.' });
+  if (!/^(?:vids|stitched|canvas)_[A-Za-z0-9._-]+(?:_nowm)?\.mp4$/i.test(filename)) {
+    return res.status(400).json({ success: false, error: 'File bukan video Google Vids, Video Stitcher, atau video impor canvas yang didukung.' });
   }
 
   const inputFilename = filename.replace(/_nowm\.mp4$/i, '.mp4');

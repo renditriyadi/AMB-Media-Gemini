@@ -69,9 +69,7 @@ function generateAuthHeaders(cookies, origin = 'https://docs.google.com') {
   return `SAPISIDHASH ${timestamp}_${hash} SAPISID1PHASH ${timestamp}_${hash} SAPISID3PHASH ${timestamp}_${hash}`;
 }
 
-// Kuota live dari endpoint resmi quotaSummary.
-// Body: [null,1,[9],389,null,[[null,"1",1189]]]
-function fetchQuotaSummary(cookies) {
+function queryQuotaCode(cookies, code) {
   return new Promise((resolve) => {
     let authHeader;
     try {
@@ -79,7 +77,7 @@ function fetchQuotaSummary(cookies) {
     } catch (e) {
       return resolve(null);
     }
-    const body = JSON.stringify([null, 1, [9], 389, null, [[null, '1', 1189]]]);
+    const body = JSON.stringify([null, 1, [9], code, null, [[null, '1', 1189]]]);
     const req = https.request({
       hostname: 'appsgenaiserver-pa.clients6.google.com',
       path: `/v1/genai/quotaSummary?key=${VIDS_API_KEY}`,
@@ -103,7 +101,7 @@ function fetchQuotaSummary(cookies) {
         try {
           const q = JSON.parse(d)?.[0]?.[1];
           if (!q) return resolve(null);
-          resolve({ limit: Number(q[0]) || 0, remaining: Number(q[2]) || 0 });
+          resolve({ limit: Number(q[0]) || 0, remaining: Number(q[2]) || 0, code });
         } catch (e) {
           resolve(null);
         }
@@ -116,97 +114,100 @@ function fetchQuotaSummary(cookies) {
   });
 }
 
-// Field ini WAJIB identik dengan request yang diterima server (diverifikasi 5 Nov 2026):
-//   opcode         386  = Vids Video Generation RPC
-//   [4][15][4]     1    = resolusi 720p (nilai 6 = 1080p -> kuota SKU 1080p = 0, HTTP 429)
-//   [2][8][3]      3 level nesting
-//   [2][13]        "in" = locale
-//   [2][35]        null  (tidak boleh berisi "Asia/Jakarta" -> 400 search_context)
-//   [2][41]        string client_root_request_id (angka 0 -> 400 TYPE_STRING)
-function buildProtobufPayload(prompt, duration, docId) {
+// Kuota live dari endpoint resmi quotaSummary.
+// Cek Opcode 374 (Workspace / 500 kredit) lalu fallback ke 389 (Consumer / 60 kredit).
+async function fetchQuotaSummary(cookies) {
+  for (const code of [374, 389]) {
+    const q = await queryQuotaCode(cookies, code);
+    if (q && q.limit > 0) return q;
+    if (q && code === 389) return q;
+  }
+  return null;
+}
+
+function buildProtobufPayload(prompt, duration, docId, opcode = 374) {
   const clientReqId = `goog_${Math.floor(Math.random() * 900000000 + 100000000)}`;
-  return [
-    386, // Opcode Vids Video Generation
-    null,
-    [
-      9, // Vids App ID
-      null, null, null,
-      clientReqId,
-      null,
-      "0", // authuser
-      null,
+  const ctx = [];
+  ctx[0] = 9; // Vids App ID
+  ctx[4] = clientReqId;
+  ctx[6] = '0'; // authuser
+  ctx[8] = [
+    null, null, null,
+    [[[
+      null, null, null, null, null, null, null,
       [
-        null, null, null,
-        [[[
-          null, null, null, null, null, null, null,
-          [
-            null, null,
-            [[
-              docId,
-              "application/vnd.google-apps.flix",
-              null, null, 1
-            ]]
-          ]
-        ]]]
-      ],
-      null, null,
-      [24, 0],
-      null,
-      "in", // locale
-      null, null, null, null, null, 1,
-      null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-      null, // [2][35] timezone TIDAK dikirim (menyebabkan 400 search_context)
-      null, null, null, null, null,
-      clientReqId // [2][41] client_root_request_id harus string
-    ],
+        null, null,
+        [[
+          docId,
+          'application/vnd.google-apps.flix',
+          null, null, 1
+        ]]
+      ]
+    ]]]
+  ];
+  ctx[11] = [24, 0];
+  ctx[13] = 'en';
+  ctx[19] = 1;
+  ctx[34] = 'Asia/Jakarta';
+  ctx[40] = 0;
+
+  return [
+    opcode,
+    null,
+    ctx,
     [
       null, null, null,
       [[[null, null, prompt]]]
     ],
     [
       null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-      [0, 12, null, 0, 1, null, null, null, duration] // 12=Portrait, 1=720p, duration in seconds
+      [0, 12, null, 0, 6, null, null, null, duration] // 12=Portrait, 6=1080p, duration in seconds
     ],
     [
       1,
       null,
-      [[null, "1", 1189]]
+      [[null, '1', 1189]]
     ],
     1
   ];
 }
 
-function sendGenerateRequest(prompt, duration) {
+function executeRpc(prompt, duration, opcode) {
   return new Promise((resolve, reject) => {
     const authHeader = generateAuthHeaders(config.cookies);
-    const payload = JSON.stringify(buildProtobufPayload(prompt, duration, config.docId));
+    const payload = JSON.stringify(buildProtobufPayload(prompt, duration, config.docId, opcode));
     const url = `https://appsgenaiserver-pa.clients6.google.com/v1/genai/generate?key=${config.apiKey}`;
     const urlObj = new URL(url);
+
+    const headers = {
+      'accept': '*/*',
+      'accept-language': 'en',
+      'authorization': authHeader,
+      'content-type': 'application/json+protobuf',
+      'cookie': config.cookies,
+      'origin': 'https://docs.google.com',
+      'referer': 'https://docs.google.com/',
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
+      'x-goog-authuser': '0',
+      'Content-Length': Buffer.byteLength(payload)
+    };
+
+    if (config.serverToken) {
+      headers['x-server-token'] = config.serverToken;
+    }
 
     const req = https.request({
       hostname: urlObj.hostname,
       path: urlObj.pathname + urlObj.search,
       method: 'POST',
-      headers: {
-        'accept': '*/*',
-        'accept-language': 'en',
-        'authorization': authHeader,
-        'content-type': 'application/json+protobuf',
-        'cookie': config.cookies,
-        'origin': 'https://docs.google.com',
-        'referer': 'https://docs.google.com/',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
-        'x-goog-authuser': '0',
-        'x-server-token': config.serverToken,
-        'Content-Length': Buffer.byteLength(payload)
-      },
+      headers,
       timeout: 180000 // Timeout 3 menit untuk proses render video AI
     }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         if (res.statusCode !== 200) {
-          return reject(new Error(`Generate gagal dengan HTTP ${res.statusCode}: ${data.slice(0, 300)}`));
+          return reject(new Error(`Generate (Opcode ${opcode}) gagal dengan HTTP ${res.statusCode}: ${data.slice(0, 300)}`));
         }
         try {
           const json = JSON.parse(data);
@@ -226,6 +227,18 @@ function sendGenerateRequest(prompt, duration) {
     req.write(payload);
     req.end();
   });
+}
+
+async function sendGenerateRequest(prompt, duration) {
+  let lastErr = null;
+  for (const opcode of [374, 386]) {
+    try {
+      return await executeRpc(prompt, duration, opcode);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Generate request failed.');
 }
 
 function extractVideoUrl(data) {

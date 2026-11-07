@@ -13,6 +13,8 @@ google-service-account.json
 
 # Local browser profiles may contain authenticated sessions
 .playwright-profiles/
+.playwright-profiles-vids/
+.playwright-profiles*/
 playwright-browsers/
 
 # Captured Gemini UI client context (berisi cookie sesi + token CSRF)

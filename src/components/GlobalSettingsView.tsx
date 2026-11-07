@@ -45,6 +45,7 @@ import { GenerationSettings, AppUser, ProviderAccount } from '../types';
 import { exchangeRefreshTokenAndGetInfo } from '../lib/weavy';
 import { extensionBridge, ExtensionBridgeStatus } from '../lib/extensionBridge';
 import { GeminiPlaywrightAddAccount } from './gemini/GeminiPlaywrightAddAccount';
+import { VidsPlaywrightAddAccount } from './vids/VidsPlaywrightAddAccount';
 
 export type { ProviderAccount };
 
@@ -1384,6 +1385,115 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     window.dispatchEvent(new Event('accounts-updated'));
     window.dispatchEvent(new Event('gemini_accounts_updated'));
     await saveProviderAccountsToSheet('gemini', finalGeminiAccounts);
+  };
+
+  // Callback when a Google Vids account is added via Playwright or manual cookie
+  const handleVidsAccountAdded = async (newAccount: ProviderAccount, reloginEmail?: string) => {
+    const prov = providers.find((p) => p.id === 'vids');
+    const existingAccounts = prov ? [...prov.accounts] : [];
+    const previousActiveAccount =
+      existingAccounts.find((account) => account.isActive) ||
+      existingAccounts.find((account) => account.id === localStorage.getItem('vids_active_account_id'));
+
+    const existingIdx = existingAccounts.findIndex(
+      (a) =>
+        a.id === newAccount.id ||
+        (a.email && newAccount.email && a.email.toLowerCase() === newAccount.email.toLowerCase()) ||
+        (reloginEmail && a.email && a.email.toLowerCase() === reloginEmail.toLowerCase()) ||
+        (a.token && newAccount.token && a.token.trim() === newAccount.token.trim()) ||
+        (a.refreshToken && newAccount.token && a.refreshToken.trim() === newAccount.token.trim())
+    );
+    const verifiedAt = new Date().toISOString();
+
+    if (existingIdx >= 0) {
+      const existingAccount = existingAccounts[existingIdx];
+      const hasSyncedBalance = typeof newAccount.credits === 'number';
+      existingAccounts[existingIdx] = {
+        ...existingAccount,
+        ...newAccount,
+        id: existingAccount.id,
+        email: reloginEmail || newAccount.email || existingAccount.email,
+        refreshToken: newAccount.token || existingAccount.refreshToken,
+        token: newAccount.token || existingAccount.token,
+        credits: hasSyncedBalance ? newAccount.credits : existingAccount.credits,
+        creditsUsed: hasSyncedBalance ? newAccount.creditsUsed : existingAccount.creditsUsed,
+        totalCredits: newAccount.totalCredits || existingAccount.totalCredits || 500,
+        creditSyncStatus: hasSyncedBalance ? 'synced' : existingAccount.creditSyncStatus || 'unknown',
+        isActive: existingAccount.isActive || newAccount.isActive,
+        accountStatus: 'active',
+        statusMessage: undefined,
+        lastChecked: verifiedAt,
+      };
+    } else {
+      existingAccounts.push({
+        ...newAccount,
+        accountStatus: 'active',
+        statusMessage: undefined,
+        lastChecked: verifiedAt,
+      });
+    }
+
+    const preferredActiveId = newAccount.isActive
+      ? existingAccounts[existingIdx >= 0 ? existingIdx : existingAccounts.length - 1].id
+      : previousActiveAccount?.id;
+    const finalVidsAccounts = ensureSingleActiveAccount(existingAccounts, preferredActiveId);
+    const activeVidsAccount = finalVidsAccounts.find((account) => account.isActive);
+    setProviders((prev) =>
+      prev.map((p) => (p.id === 'vids' ? { ...p, accounts: finalVidsAccounts } : p))
+    );
+
+    localStorage.setItem('vids_accounts', JSON.stringify(finalVidsAccounts));
+    if (activeVidsAccount) {
+      localStorage.setItem('vids_active_account_id', activeVidsAccount.id);
+    }
+    window.dispatchEvent(new Event('accounts-updated'));
+    window.dispatchEvent(new Event('vids_accounts_updated'));
+    await saveProviderAccountsToSheet('vids', finalVidsAccounts);
+  };
+
+  // Callback when multiple Google Vids accounts are imported in batch
+  const handleVidsBatchAccountsAdded = async (newAccounts: ProviderAccount[]) => {
+    const prov = providers.find((p) => p.id === 'vids');
+    const existingAccounts = prov ? [...prov.accounts] : [];
+    const previousActiveAccount =
+      existingAccounts.find((account) => account.isActive) ||
+      existingAccounts.find((account) => account.id === localStorage.getItem('vids_active_account_id'));
+
+    const orderedNewAccounts: ProviderAccount[] = [];
+    newAccounts.forEach((newAcc) => {
+      const existingIdx = existingAccounts.findIndex(
+        (a) =>
+          a.id === newAcc.id ||
+          (a.email && newAcc.email && a.email.toLowerCase() === newAcc.email.toLowerCase()) ||
+          (a.token && newAcc.token && a.token.trim() === newAcc.token.trim())
+      );
+
+      if (existingIdx >= 0) {
+        existingAccounts[existingIdx] = {
+          ...existingAccounts[existingIdx],
+          ...newAcc,
+        };
+      } else {
+        orderedNewAccounts.push(newAcc);
+      }
+    });
+
+    const finalVidsAccounts = ensureSingleActiveAccount(
+      [...existingAccounts, ...orderedNewAccounts],
+      previousActiveAccount?.id,
+    );
+    const activeVidsAccount = finalVidsAccounts.find((account) => account.isActive);
+    setProviders((prev) =>
+      prev.map((p) => (p.id === 'vids' ? { ...p, accounts: finalVidsAccounts } : p))
+    );
+
+    localStorage.setItem('vids_accounts', JSON.stringify(finalVidsAccounts));
+    if (activeVidsAccount) {
+      localStorage.setItem('vids_active_account_id', activeVidsAccount.id);
+    }
+    window.dispatchEvent(new Event('accounts-updated'));
+    window.dispatchEvent(new Event('vids_accounts_updated'));
+    await saveProviderAccountsToSheet('vids', finalVidsAccounts);
   };
 
   // Callback when multiple Google Gemini accounts are imported in batch
@@ -2776,40 +2886,48 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
     }
   };
 
-  const handleGeminiRelogin = (account: ProviderAccount) => {
+  const handleAccountRelogin = (account: ProviderAccount) => {
     if (!account.email) {
-      setErrorMsg('Email akun Gemini tidak tersedia untuk proses relogin.');
+      setErrorMsg(`Email akun ${account.providerId === 'vids' ? 'Google Vids' : 'Gemini'} tidak tersedia untuk proses relogin.`);
       return;
     }
     setActiveMenuAccountId(null);
     setReloginAccount(account);
   };
+  const handleGeminiRelogin = handleAccountRelogin;
 
-  const handleOpenGeminiAccountBrowser = async (account: ProviderAccount) => {
+  const handleOpenAccountBrowser = async (account: ProviderAccount) => {
     if (!account.email) {
-      window.alert('Email akun Gemini tidak tersedia untuk membuka browser.');
+      window.alert(`Email akun ${account.providerId === 'vids' ? 'Google Vids' : 'Gemini'} tidak tersedia untuk membuka browser.`);
       return;
     }
     if (openingGeminiBrowserAccountId) return;
 
     setOpeningGeminiBrowserAccountId(account.id);
+    const isVids = account.providerId === 'vids';
+    const endpoint = isVids
+      ? '/api/vids/playwright/profile/open'
+      : '/api/gemini/playwright/profile/open';
+    const providerName = isVids ? 'Google Vids' : 'Gemini';
+
     try {
-      const response = await fetch('/api/gemini/playwright/profile/open', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: account.email }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Gagal membuka browser akun Gemini.');
+        throw new Error(data.error || `Gagal membuka browser akun ${providerName}.`);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Gagal membuka browser akun Gemini.';
+      const message = error instanceof Error ? error.message : `Gagal membuka browser akun ${providerName}.`;
       window.alert(message);
     } finally {
       setOpeningGeminiBrowserAccountId(null);
     }
   };
+  const handleOpenGeminiAccountBrowser = handleOpenAccountBrowser;
 
   // Helper to refresh a single account data from provider backend
   const refreshSingleAccount = async (acc: ProviderAccount, providerId: string): Promise<ProviderAccount> => {
@@ -4274,8 +4392,16 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               <div className="my-2">
                 {currentProvider.id === 'gemini' ? (
                   <GeminiPlaywrightAddAccount
-                    onAccountAdded={(account) => handleGeminiAccountAdded(account, reloginAccount.email)}
+                    onAccountAdded={(account) => handleGeminiAccountAdded(account, reloginAccount?.email)}
                     onBatchAccountsAdded={handleGeminiBatchAccountsAdded}
+                    onClose={() => setIsAddModalOpen(false)}
+                    existingAccountsCount={currentProvider.accounts.length}
+                    existingAccounts={currentProvider.accounts}
+                  />
+                ) : currentProvider.id === 'vids' ? (
+                  <VidsPlaywrightAddAccount
+                    onAccountAdded={(account) => handleVidsAccountAdded(account, reloginAccount?.email)}
+                    onBatchAccountsAdded={handleVidsBatchAccountsAdded}
                     onClose={() => setIsAddModalOpen(false)}
                     existingAccountsCount={currentProvider.accounts.length}
                     existingAccounts={currentProvider.accounts}
@@ -4483,10 +4609,10 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                                       <span>Login ke Tab Weavy</span>
                                     </button>
                                   )}
-                                  {currentProvider.id === 'gemini' && (
+                                  {(currentProvider.id === 'gemini' || currentProvider.id === 'vids') && (
                                     <button
                                       onClick={() => {
-                                        void handleOpenGeminiAccountBrowser(acc);
+                                        void handleOpenAccountBrowser(acc);
                                         setActiveMenuAccountId(null);
                                       }}
                                       disabled={Boolean(openingGeminiBrowserAccountId)}
@@ -4495,7 +4621,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                                       {openingGeminiBrowserAccountId === acc.id
                                         ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                         : <Globe className="w-3.5 h-3.5" />}
-                                      <span>Buka Browser Gemini</span>
+                                      <span>Buka Browser {currentProvider.id === 'vids' ? 'Google Vids' : 'Gemini'}</span>
                                     </button>
                                   )}
                                   <button
@@ -4508,14 +4634,14 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                                     <RefreshCw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                     <span>Refresh Token</span>
                                   </button>
-                                  {currentProvider.id === 'gemini' && (
+                                  {(currentProvider.id === 'gemini' || currentProvider.id === 'vids') && (
                                     <button
-                                      onClick={() => handleGeminiRelogin(acc)}
+                                      onClick={() => handleAccountRelogin(acc)}
                                       disabled={Boolean(reloginAccount)}
                                       className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-amber-500/10 disabled:opacity-60 text-amber-700 dark:text-amber-300 font-medium text-left cursor-pointer"
                                     >
                                       <LogIn className="w-3.5 h-3.5" />
-                                      <span>Relogin Gemini</span>
+                                      <span>Relogin {currentProvider.id === 'vids' ? 'Google Vids' : 'Gemini'}</span>
                                     </button>
                                   )}
                                   <button
@@ -4905,6 +5031,14 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                   existingAccountsCount={currentProvider.accounts.length}
                   existingAccounts={currentProvider.accounts}
                 />
+              ) : currentProvider.id === 'vids' ? (
+                <VidsPlaywrightAddAccount
+                  onAccountAdded={handleVidsAccountAdded}
+                  onBatchAccountsAdded={handleVidsBatchAccountsAdded}
+                  onClose={() => setIsAddModalOpen(false)}
+                  existingAccountsCount={currentProvider.accounts.length}
+                  existingAccounts={currentProvider.accounts}
+                />
               ) : (
                 renderInlineAddAccountForOtherProviders()
               )}
@@ -5156,15 +5290,15 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                               </button>
                             )}
 
-                            {currentProvider.id === 'gemini' && (
+                            {(currentProvider.id === 'gemini' || currentProvider.id === 'vids') && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  void handleOpenGeminiAccountBrowser(acc);
+                                  void handleOpenAccountBrowser(acc);
                                 }}
                                 disabled={Boolean(openingGeminiBrowserAccountId)}
-                                title="Buka Browser Gemini dengan profil akun ini"
+                                title={`Buka Browser ${currentProvider.id === 'vids' ? 'Google Vids' : 'Gemini'} dengan profil akun ini`}
                                 className="p-1.5 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-50 rounded-lg transition-colors cursor-pointer"
                               >
                                 {openingGeminiBrowserAccountId === acc.id
@@ -5173,15 +5307,15 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                               </button>
                             )}
 
-                            {currentProvider.id === 'gemini' && (
+                            {(currentProvider.id === 'gemini' || currentProvider.id === 'vids') && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleGeminiRelogin(acc);
+                                  handleAccountRelogin(acc);
                                 }}
                                 disabled={Boolean(reloginAccount) || isRefreshing}
-                                title="Relogin Google Gemini"
+                                title={`Relogin ${currentProvider.id === 'vids' ? 'Google Vids' : 'Google Gemini'}`}
                                 className="p-1.5 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-50 rounded-lg transition-colors cursor-pointer"
                               >
                                 <LogIn className="w-3.5 h-3.5" />
@@ -5374,15 +5508,15 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                               </button>
                             )}
 
-                            {currentProvider.id === 'gemini' && (
+                            {(currentProvider.id === 'gemini' || currentProvider.id === 'vids') && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  void handleOpenGeminiAccountBrowser(acc);
+                                  void handleOpenAccountBrowser(acc);
                                 }}
                                 disabled={Boolean(openingGeminiBrowserAccountId)}
-                                title="Buka Browser Gemini dengan profil akun ini"
+                                title={`Buka Browser ${currentProvider.id === 'vids' ? 'Google Vids' : 'Gemini'} dengan profil akun ini`}
                                 className="p-1.5 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-50 rounded-lg transition-colors cursor-pointer"
                               >
                                 {openingGeminiBrowserAccountId === acc.id
@@ -5391,15 +5525,15 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                               </button>
                             )}
 
-                            {currentProvider.id === 'gemini' && (
+                            {(currentProvider.id === 'gemini' || currentProvider.id === 'vids') && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleGeminiRelogin(acc);
+                                  handleAccountRelogin(acc);
                                 }}
                                 disabled={Boolean(reloginAccount) || isRefreshing}
-                                title="Relogin Google Gemini"
+                                title={`Relogin ${currentProvider.id === 'vids' ? 'Google Vids' : 'Google Gemini'}`}
                                 className="p-1.5 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-50 rounded-lg transition-colors cursor-pointer"
                               >
                                 <LogIn className="w-3.5 h-3.5" />
@@ -5496,14 +5630,25 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
       {reloginAccount && (
         <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/55 p-3 sm:p-6">
           <div className="w-full max-w-4xl my-auto">
-            <GeminiPlaywrightAddAccount
-              key={reloginAccount.email}
-              onAccountAdded={handleGeminiAccountAdded}
-              onClose={() => setReloginAccount(null)}
-              existingAccountsCount={currentProvider?.accounts.length || 0}
-              existingAccounts={currentProvider?.accounts || []}
-              reloginEmail={reloginAccount.email}
-            />
+            {reloginAccount.providerId === 'vids' ? (
+              <VidsPlaywrightAddAccount
+                key={reloginAccount.email}
+                onAccountAdded={(account) => handleVidsAccountAdded(account, reloginAccount.email)}
+                onClose={() => setReloginAccount(null)}
+                existingAccountsCount={currentProvider?.accounts.length || 0}
+                existingAccounts={currentProvider?.accounts || []}
+                reloginEmail={reloginAccount.email}
+              />
+            ) : (
+              <GeminiPlaywrightAddAccount
+                key={reloginAccount.email}
+                onAccountAdded={handleGeminiAccountAdded}
+                onClose={() => setReloginAccount(null)}
+                existingAccountsCount={currentProvider?.accounts.length || 0}
+                existingAccounts={currentProvider?.accounts || []}
+                reloginEmail={reloginAccount.email}
+              />
+            )}
           </div>
         </div>
       )}

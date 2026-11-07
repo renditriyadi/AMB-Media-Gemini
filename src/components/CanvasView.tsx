@@ -167,7 +167,16 @@ const getResetNodeData = (node: CanvasNode): any => {
   };
   switch (node.type) {
     case 'imageInput':
-      return { ...d, imageUrl: undefined, fileName: undefined };
+      return {
+        ...d,
+        imageUrl: undefined,
+        videoUrl: undefined,
+        mediaType: undefined,
+        fileName: undefined,
+        naturalWidth: undefined,
+        naturalHeight: undefined,
+        aspectRatio: undefined,
+      };
     case 'imageModel':
       return {
         ...d,
@@ -1375,7 +1384,23 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     setRecipe((prev) => ({
       ...prev,
       nodes: prev.nodes.map((n) =>
-        n.id === nodeId ? { ...n, data: newData } : n
+        n.id === nodeId
+          ? {
+              ...n,
+              data: newData,
+              outputs:
+                n.type === 'imageInput' &&
+                (newData?.videoUrl || newData?.mediaType === 'video') &&
+                !(n.outputs || []).some((port) => port.id === 'output-video')
+                  ? [
+                      ...(n.outputs || [
+                        { id: 'output-image', name: 'image', type: 'image' as const, label: 'Image Output' },
+                      ]),
+                      { id: 'output-video', name: 'video', type: 'video', label: 'Video Output' },
+                    ]
+                  : n.outputs,
+            }
+          : n
       ),
     }));
   };
@@ -5386,13 +5411,45 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
 
   const handleRemoveVidsWatermark = async (videoNodeId: string) => {
     const targetNode = recipeRef.current.nodes.find((node) => node.id === videoNodeId);
-    if (!targetNode || (targetNode.type !== 'vidsVideo' && targetNode.type !== 'videoStitcher')) {
+    if (
+      !targetNode ||
+      (targetNode.type !== 'vidsVideo' &&
+        targetNode.type !== 'videoStitcher' &&
+        targetNode.type !== 'imageInput')
+    ) {
       throw new Error('Node video tidak ditemukan.');
     }
 
-    const originalVideoUrl = targetNode.data?.outputVideo || targetNode.data?.videoUrl || targetNode.data?.resultUrl;
-    if (!/^\/media-cache\/(?:vids|stitched)_[^/]+\.mp4$/i.test(originalVideoUrl || '')) {
-      throw new Error('Video Google Vids atau hasil Video Stitcher ini tidak mendukung proses remove watermark.');
+    let originalVideoUrl =
+      targetNode.data?.outputVideo || targetNode.data?.videoUrl || targetNode.data?.resultUrl;
+    if (targetNode.type === 'imageInput') {
+      if (targetNode.data?.mediaType !== 'video' || !originalVideoUrl) {
+        throw new Error('Node File tidak berisi video yang dapat diproses.');
+      }
+
+      if (originalVideoUrl.startsWith('data:video/')) {
+        const videoBlob = await fetch(originalVideoUrl).then((response) => response.blob());
+        if (!videoBlob.size) {
+          throw new Error('File video lokal kosong atau tidak dapat dibaca.');
+        }
+        const formData = new FormData();
+        formData.append('file', videoBlob, targetNode.data?.fileName || 'canvas-video.mp4');
+        const cacheResponse = await fetch('/api/vids/cache-imported-video', {
+          method: 'POST',
+          body: formData,
+        });
+        const cacheResult = await cacheResponse.json().catch(() => ({}));
+        if (!cacheResponse.ok || !cacheResult.videoUrl) {
+          throw new Error(
+            cacheResult.error || `Gagal menyiapkan video lokal (HTTP ${cacheResponse.status}).`
+          );
+        }
+        originalVideoUrl = cacheResult.videoUrl;
+      }
+    }
+
+    if (!/^\/media-cache\/(?:vids|stitched|canvas)_[^/]+\.mp4$/i.test(originalVideoUrl || '')) {
+      throw new Error('Video ini tidak didukung proses remove watermark.');
     }
     if (/_nowm\.mp4$/i.test(originalVideoUrl)) {
       throw new Error('Watermark video ini sudah pernah dihapus.');
@@ -5401,6 +5458,8 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
     setStatusMessage(
       targetNode.type === 'videoStitcher'
         ? 'Memproses remove watermark untuk hasil Video Stitcher...'
+        : targetNode.type === 'imageInput'
+        ? 'Memproses remove watermark untuk video impor...'
         : 'Memproses remove watermark untuk video Google Vids...'
     );
     const response = await fetch('/api/vids/remove-watermark', {
@@ -5455,9 +5514,10 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
               ...node,
               data: {
                 ...node.data,
-                outputVideo: processedVideoUrl,
                 videoUrl: processedVideoUrl,
-                resultUrl: processedVideoUrl,
+                ...(node.type === 'imageInput'
+                  ? { mediaType: 'video' }
+                  : { outputVideo: processedVideoUrl, resultUrl: processedVideoUrl }),
               },
             }
           : node
@@ -6936,6 +6996,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
                 onSelect={(e) => handleSelectNode(node.id, e)}
                 onDelete={handleDeleteNode}
                 onUpdateData={handleUpdateNodeData}
+                onRemoveWatermark={handleRemoveVidsWatermark}
                 onStartDrag={handleStartDragNode}
                 onStartConnect={handleStartConnect}
                 onEndConnect={handleEndConnect}

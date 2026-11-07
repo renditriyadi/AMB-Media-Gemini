@@ -42,13 +42,11 @@ function generateSapisidHash(cookies, origin = 'https://docs.google.com') {
   return `SAPISIDHASH ${timestamp}_${hash} SAPISID1PHASH ${timestamp}_${hash} SAPISID3PHASH ${timestamp}_${hash}`;
 }
 
-// Status sesi ditentukan dari responsiveness endpoint quotaSummary resmi,
-// bukan dari halaman login google.com (cookie Vids tidak berlaku di domain itu).
-function fetchQuotaSummary(cookies, apiKey) {
+function queryQuotaForCode(cookies, apiKey, code) {
   return new Promise((resolve) => {
     const auth = generateSapisidHash(cookies);
     if (!auth) return resolve(null);
-    const body = JSON.stringify([null, 1, [9], 389, null, [[null, '1', 1189]]]);
+    const body = JSON.stringify([null, 1, [9], code, null, [[null, '1', 1189]]]);
     const req = https.request({
       hostname: 'appsgenaiserver-pa.clients6.google.com',
       path: `/v1/genai/quotaSummary?key=${apiKey}`,
@@ -75,6 +73,7 @@ function fetchQuotaSummary(cookies, apiKey) {
             limit: Number(q[0]),
             remaining: Number(q[2]),
             resetEpoch: Number(q[6]?.[0]) || null,
+            code,
           });
         } catch (e) {
           resolve(null);
@@ -86,6 +85,17 @@ function fetchQuotaSummary(cookies, apiKey) {
     req.write(body);
     req.end();
   });
+}
+
+// Status sesi ditentukan dari responsiveness endpoint quotaSummary resmi.
+// Cek Opcode 374 (Workspace / 500 kredit) lalu fallback ke 389 (Consumer / 60 kredit).
+async function fetchQuotaSummary(cookies, apiKey) {
+  for (const code of [374, 389]) {
+    const quota = await queryQuotaForCode(cookies, apiKey, code);
+    if (quota && quota.limit > 0) return quota;
+    if (quota && code === 389) return quota;
+  }
+  return null;
 }
 
 async function checkOne(target) {

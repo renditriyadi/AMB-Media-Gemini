@@ -258,6 +258,7 @@ interface CanvasNodeCardProps {
   onDelete: (id: string) => void;
   onDuplicate?: (id: string) => void;
   onUpdateData: (id: string, newData: any) => void;
+  onRemoveWatermark?: (nodeId: string) => Promise<void>;
   onStartDrag: (nodeId: string, e: React.PointerEvent<HTMLElement> | React.MouseEvent<HTMLElement>) => void;
   onStartConnect: (nodeId: string, portId: string, e: React.PointerEvent<HTMLElement> | React.MouseEvent<HTMLElement>, isInput?: boolean) => void;
   onEndConnect: (nodeId: string, portId: string, isInput?: boolean) => void;
@@ -585,6 +586,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
   onDelete,
   onDuplicate,
   onUpdateData,
+  onRemoveWatermark,
   onStartDrag,
   onStartConnect,
   onEndConnect,
@@ -623,6 +625,9 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [isDragOverFile, setIsDragOverFile] = useState(false);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [videoLoadProgress, setVideoLoadProgress] = useState(0);
+  const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [geminiElapsedSeconds, setGeminiElapsedSeconds] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -690,6 +695,15 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
         )
       : node.type === 'aiWorker'
       ? getAiWorkerOutputs(node.data)
+      : node.type === 'imageInput'
+      ? [
+          ...(node.outputs && node.outputs.length > 0
+            ? node.outputs
+            : [{ id: 'output-image', name: 'image', type: 'image' as const, label: 'Image Output' }]),
+          ...((!node.data?.videoUrl || (node.outputs || []).some((port) => port.id === 'output-video'))
+            ? []
+            : [{ id: 'output-video', name: 'video', type: 'video' as const, label: 'Video Output' }]),
+        ]
       : node.outputs && node.outputs.length > 0
       ? node.outputs
       : node.type === 'imageViewer' || node.type === 'imageModel'
@@ -839,15 +853,65 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
   const theme = getHeaderTheme();
   const Icon = theme.icon;
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleMediaFile = async (file: File) => {
+    const isVideo =
+      file.type.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(file.name);
+
+    if (isVideo) {
+      setIsLoadingVideo(true);
+      setVideoLoadProgress(0);
+      try {
+        const videoUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+              setVideoLoadProgress(Math.round((event.loaded / event.total) * 100));
+            }
+          };
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('Browser tidak menghasilkan data video yang valid.'));
+            }
+          };
+          reader.onerror = () => reject(reader.error || new Error('Gagal membaca file video.'));
+          reader.onabort = () => reject(new Error('Pembacaan file video dibatalkan.'));
+          reader.readAsDataURL(file);
+        });
+        onUpdateData(node.id, {
+          ...node.data,
+          imageUrl: undefined,
+          videoUrl,
+          mediaType: 'video',
+          fileName: file.name,
+          naturalWidth: undefined,
+          naturalHeight: undefined,
+          aspectRatio: undefined,
+        });
+        if (onToast) onToast(`Video (${file.name}) dimuat dan disimpan lokal di canvas.`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (onToast) onToast(`Gagal memuat video: ${message}`);
+      } finally {
+        setIsLoadingVideo(false);
+        setVideoLoadProgress(0);
+      }
+      return;
+    }
+
+    if (!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|bmp|svg|avif)$/i.test(file.name)) {
+      if (onToast) onToast('Format file tidak didukung. Pilih gambar atau video.');
+      return;
+    }
 
     try {
       const optimized = await optimizeImageForCanvas(file);
       onUpdateData(node.id, {
         ...node.data,
         imageUrl: optimized.dataUrl,
+        videoUrl: undefined,
+        mediaType: 'image',
         fileName: file.name,
         naturalWidth: optimized.width,
         naturalHeight: optimized.height,
@@ -855,7 +919,13 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
       });
     } catch (err) {
       console.warn('Failed to process uploaded image:', err);
+      if (onToast) onToast(`Gagal memproses gambar: ${file.name}`);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await handleMediaFile(file);
     e.target.value = '';
   };
 
@@ -993,7 +1063,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
         const isTextPort = (port.type === 'text' || port.id.includes('prompt')) && !isSceneImagePort;
         const isFileInput = node.type === 'imageInput';
         const isVideoOutputPort = port.type === 'video' || port.id.includes('video');
-        const portColor = isTextPort ? '#F1A0FA' : isFileInput ? '#ffffff' : isVideoOutputPort ? '#EF9092' : '#6EDDB3';
+        const portColor = isTextPort ? '#F1A0FA' : isVideoOutputPort ? '#EF9092' : isFileInput ? '#ffffff' : '#6EDDB3';
         const portLabel =
           node.type === 'prompt'
             ? ''
@@ -1002,7 +1072,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
             : node.type === 'imageModel'
             ? 'Image'
             : node.type === 'imageInput'
-            ? 'File'
+            ? isVideoOutputPort ? 'Video' : 'Image'
             : (port.label || 'Result');
 
         return (
@@ -1445,7 +1515,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,video/*,.mkv,.mov"
               className="hidden"
               onChange={handleFileUpload}
             />
@@ -1468,21 +1538,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                 e.stopPropagation();
                 setIsDragOverFile(false);
                 const file = e.dataTransfer.files?.[0];
-                if (file && file.type.startsWith('image/')) {
-                  optimizeImageForCanvas(file)
-                    .then((optimized) => {
-                      onUpdateData(node.id, {
-                        ...node.data,
-                        imageUrl: optimized.dataUrl,
-                        fileName: file.name,
-                        naturalWidth: optimized.width,
-                        naturalHeight: optimized.height,
-                        aspectRatio: optimized.aspectRatio,
-                      });
-                      if (onToast) onToast(`File (${file.name}) dimuat!`);
-                    })
-                    .catch((err) => console.warn('Failed to load dropped image:', err));
-                }
+                if (file) void handleMediaFile(file);
               }}
               onPaste={(e) => {
                 const clipboardData = e.clipboardData;
@@ -1491,7 +1547,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                 if (clipboardData.files && clipboardData.files.length > 0) {
                   for (let i = 0; i < clipboardData.files.length; i++) {
                     const f = clipboardData.files[i];
-                    if (f.type.startsWith('image/')) {
+                    if (f.type.startsWith('image/') || f.type.startsWith('video/')) {
                       file = f;
                       break;
                     }
@@ -1500,7 +1556,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                 if (!file && clipboardData.items) {
                   for (let i = 0; i < clipboardData.items.length; i++) {
                     const item = clipboardData.items[i];
-                    if (item.type.startsWith('image/')) {
+                    if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
                       file = item.getAsFile();
                       if (file) break;
                     }
@@ -1509,27 +1565,14 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                 if (file) {
                   e.preventDefault();
                   e.stopPropagation();
-                  const fileName = file.name || 'pasted_image.png';
-                  optimizeImageForCanvas(file)
-                    .then((optimized) => {
-                      onUpdateData(node.id, {
-                        ...node.data,
-                        imageUrl: optimized.dataUrl,
-                        fileName,
-                        naturalWidth: optimized.width,
-                        naturalHeight: optimized.height,
-                        aspectRatio: optimized.aspectRatio,
-                      });
-                      if (onToast) onToast(`File (${fileName}) dimuat!`);
-                    })
-                    .catch((err) => console.warn('Failed to load pasted image:', err));
+                  void handleMediaFile(file);
                 }
               }}
               className={`relative w-full rounded-xl overflow-hidden border border-white/[0.06] bg-[#0d0d11] transition-all duration-200 flex flex-col items-center justify-center cursor-pointer group select-none ${
                 isDragOverFile ? 'ring-2 ring-white/50' : ''
               }`}
               style={
-                node.data?.imageUrl
+                node.data?.imageUrl || node.data?.videoUrl
                   ? getViewerAspectStyle(
                       node.data?.aspectRatio,
                       node.data?.naturalWidth,
@@ -1540,7 +1583,76 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
             >
               <div className="absolute inset-0 opacity-40 canvas-checkerboard pointer-events-none" />
 
-              {Boolean(node.data?.imageUrl?.trim()) ? (
+              {Boolean(node.data?.videoUrl?.trim()) ? (
+                <>
+                  <video
+                    src={node.data.videoUrl}
+                    controls
+                    preload="metadata"
+                    className="w-full h-full object-contain relative z-10"
+                    onClick={(e) => e.stopPropagation()}
+                    onLoadedMetadata={(e) => {
+                      const video = e.currentTarget;
+                      if (!video.videoWidth || !video.videoHeight) return;
+                      const width = video.videoWidth;
+                      const height = video.videoHeight;
+                      const detectedRatio =
+                        width / height >= 1.5
+                          ? '16:9'
+                          : width / height >= 1.15
+                          ? '4:3'
+                          : height / width >= 1.5
+                          ? '9:16'
+                          : height / width >= 1.15
+                          ? '3:4'
+                          : '1:1';
+                      if (
+                        node.data?.naturalWidth !== width ||
+                        node.data?.naturalHeight !== height ||
+                        node.data?.aspectRatio !== detectedRatio
+                      ) {
+                        onUpdateData(node.id, {
+                          ...node.data,
+                          naturalWidth: width,
+                          naturalHeight: height,
+                          aspectRatio: detectedRatio,
+                        });
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex items-center justify-center gap-2 pointer-events-none">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-md text-xs font-medium text-white transition-colors cursor-pointer pointer-events-auto"
+                    >
+                      Ganti File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUpdateData(node.id, {
+                          ...node.data,
+                          videoUrl: undefined,
+                          fileName: '',
+                          mediaType: undefined,
+                          naturalWidth: undefined,
+                          naturalHeight: undefined,
+                          aspectRatio: undefined,
+                        });
+                      }}
+                      className="p-1.5 rounded-lg bg-red-500/30 hover:bg-red-500/50 backdrop-blur-md text-red-200 transition-colors cursor-pointer pointer-events-auto"
+                      title="Hapus"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </>
+              ) : Boolean(node.data?.imageUrl?.trim()) ? (
                 <>
                   <img
                     src={node.data!.imageUrl}
@@ -1609,7 +1721,12 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                         onUpdateData(node.id, {
                           ...node.data,
                           imageUrl: '',
+                          videoUrl: undefined,
                           fileName: '',
+                          mediaType: undefined,
+                          naturalWidth: undefined,
+                          naturalHeight: undefined,
+                          aspectRatio: undefined,
                         });
                       }}
                       className="p-1.5 rounded-lg bg-red-500/30 hover:bg-red-500/50 backdrop-blur-md text-red-200 transition-colors cursor-pointer"
@@ -1621,13 +1738,57 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                 </>
               ) : (
                 <div className="relative z-10 flex flex-col items-center justify-center gap-2.5 p-4 text-center">
-                  <Upload className="w-5 h-5 text-stone-300 stroke-[1.8]" />
+                  {isLoadingVideo ? (
+                    <Loader2 className="w-5 h-5 text-stone-300 animate-spin" />
+                  ) : (
+                    <Upload className="w-5 h-5 text-stone-300 stroke-[1.8]" />
+                  )}
                   <span className="text-xs text-stone-200 font-normal">
-                    {isDragOverFile ? 'Lepaskan file di sini' : 'Drag & drop or click to upload'}
+                    {isLoadingVideo
+                      ? `Memuat video... ${videoLoadProgress}%`
+                      : isDragOverFile
+                      ? 'Lepaskan file di sini'
+                      : 'Drag & drop or click to upload image/video'}
                   </span>
                 </div>
               )}
+              {isLoadingVideo && Boolean(node.data?.imageUrl || node.data?.videoUrl) && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/65 text-xs text-white">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Memuat video... {videoLoadProgress}%
+                </div>
+              )}
             </div>
+            {node.data?.mediaType === 'video' &&
+              node.data?.videoUrl &&
+              onRemoveWatermark &&
+              !/_nowm\.mp4(?:$|[?#])/i.test(node.data.videoUrl) && (
+                <button
+                  type="button"
+                  disabled={isRemovingWatermark || isLoadingVideo}
+                  onClick={async (event) => {
+                    event.stopPropagation();
+                    setIsRemovingWatermark(true);
+                    try {
+                      await onRemoveWatermark(node.id);
+                    } catch (error) {
+                      const message =
+                        error instanceof Error ? error.message : 'Remove watermark gagal.';
+                      if (onToast) onToast(message);
+                    } finally {
+                      setIsRemovingWatermark(false);
+                    }
+                  }}
+                  className="w-full py-2 px-3 rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/15 text-blue-200 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {isRemovingWatermark ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  {isRemovingWatermark ? 'Memproses remove watermark...' : 'Remove Watermark'}
+                </button>
+              )}
           </div>
         )}
 

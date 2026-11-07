@@ -63,7 +63,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           videoModel: 'Google Vids Omni',
           videoAspectRatio: '9:16 (Vertical)',
           videoDuration: '10 seconds',
-          videoResolution: '720p',
+          videoResolution: '1080p',
         });
       } else if (currentProvider === 'flow') {
         onUpdateSettings({
@@ -112,7 +112,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         videoModel: 'Google Vids Omni',
         videoAspectRatio: '9:16 (Vertical)',
         videoDuration: '10 seconds',
-        videoResolution: '720p',
+        videoResolution: '1080p',
         imageModel: '-',
       });
     } else if (provider === 'gemini') {
@@ -615,7 +615,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                   videoModel: 'Google Vids Omni',
                                   provider: currentProvider,
                                   videoDuration: '10 seconds',
-                                  videoResolution: '720p',
+                                  videoResolution: '1080p',
                                   videoAspectRatio: '9:16 (Vertical)',
                                 });
                               } else if (m === 'Omni Flash' || m === 'Gemini Omni Flash Video (10s)') {
@@ -825,9 +825,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 onClick={() => {
                                   onUpdateSettings({
                                     videoAspectRatio: ar,
-                                    ...(currentProvider === 'vids' && ar === '16:9 (Landscape)'
-                                      ? { videoResolution: '720p' }
-                                      : {}),
                                   });
                                   setActiveDropdown(null);
                                 }}
@@ -948,9 +945,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       >
                         {isVideo
                           ? (currentProvider === 'vids'
-                              ? (settings.videoAspectRatio === '16:9 (Landscape)'
-                                  ? (['720p'] as VideoResolution[])
-                                  : (['720p', '1080p'] as VideoResolution[]))
+                              ? (['1080p', '720p'] as VideoResolution[])
                               : currentProvider === 'gemini'
                               ? (['1080p', '720p'] as VideoResolution[])
                               : settings.videoModel === 'MiniMax H3 Turbo Video'
@@ -987,12 +982,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </motion.div>
                     )}
                   </div>
-
-                  {isVideo && currentProvider === 'vids' && settings.videoResolution === '1080p' && (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                      Kuota SKU Google Vids 1080p saat ini tercatat 0; generasi 1080p bisa gagal dengan HTTP 429.
-                    </p>
-                  )}
 
                   {/* 5. Audio / Sound Toggle */}
                   {isVideo && currentProvider !== 'vids' && settings.videoModel !== 'Grok Imagine 1.5 Preview' && settings.videoModel !== 'MiniMax H3 Turbo Video' && (

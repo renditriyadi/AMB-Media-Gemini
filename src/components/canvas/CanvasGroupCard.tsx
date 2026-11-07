@@ -16,7 +16,7 @@ function getNodeEstimatedHeight(node: CanvasNode): number {
   if (node.type === 'prompt') return 220;
 
   if (node.type === 'imageInput') {
-    if (node.data?.imageUrl) {
+    if (node.data?.imageUrl || node.data?.videoUrl) {
       if (node.data?.naturalWidth && node.data?.naturalHeight) {
         const imgHeight = Math.min(
           540,
