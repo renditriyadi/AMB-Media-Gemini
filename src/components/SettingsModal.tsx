@@ -34,6 +34,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const isVideo = settings.mode === 'video';
   const currentProvider = resolveActiveProviderId(settings);
+  const vidsDuration = Math.min(15, Math.max(3, Number.parseInt(settings.videoDuration, 10) || 10));
 
   const handleModeChange = (mode: GenerationMode) => {
     if (mode === 'image') {
@@ -338,6 +339,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   >
                     <button
                       type="button"
+                      onClick={() => handleProviderSelect('vids')}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
+                          alt="Google Vids"
+                          className="w-4.5 h-4.5 object-contain shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                        <span className={currentProvider === 'vids' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Google Vids</span>
+                      </div>
+                      {currentProvider === 'vids' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => handleProviderSelect('gemini')}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
                     >
@@ -348,12 +366,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           className="w-4.5 h-4.5 object-contain shrink-0"
                           referrerPolicy="no-referrer"
                         />
-                        <span className={currentProvider === 'gemini' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Google Gemini (Veo Video)</span>
+                        <span className={currentProvider === 'gemini' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Google Gemini</span>
                       </div>
                       {currentProvider === 'gemini' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                     </button>
 
-                    <button
+                    {/* GOOGLE FLOW PROVIDER — MAINTENANCE: restore this option when the provider is re-enabled. */}
+                    {/* <button
                       type="button"
                       onClick={() => handleProviderSelect('flow')}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
@@ -368,24 +387,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className={currentProvider === 'flow' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Google Flow (flow.google.com)</span>
                       </div>
                       {currentProvider === 'flow' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleProviderSelect('vids')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
-                          alt="Google Vids"
-                          className="w-4.5 h-4.5 object-contain shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
-                        <span className={currentProvider === 'vids' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Google Vids (Omni Video)</span>
-                      </div>
-                      {currentProvider === 'vids' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-                    </button>
+                    </button> */}
 
                     <button
                       type="button"
@@ -429,7 +431,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {currentProvider === 'runninghub' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                     </button>
 
-                    <button
+                    {/* ROBONEO PROVIDER — MAINTENANCE: restore this option when the provider is re-enabled. */}
+                    {/* <button
                       type="button"
                       onClick={() => handleProviderSelect('roboneo')}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
@@ -446,7 +449,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className={currentProvider === 'roboneo' ? 'font-bold text-amber-700 dark:text-stone-100' : 'text-stone-700 dark:text-stone-200'}>RoboNeo</span>
                       </div>
                       {currentProvider === 'roboneo' && <Check className="w-4 h-4 text-amber-600 dark:text-stone-100" />}
-                    </button>
+                    </button> */}
 
                     {/* galleri5 maintenance
                     <button
@@ -473,7 +476,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </button>
                     */}
 
-                    <button
+                    {/* KIE.AI PROVIDER — MAINTENANCE: restore this option when the provider is re-enabled. */}
+                    {/* <button
                       type="button"
                       onClick={() => handleProviderSelect('kie')}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md hover:bg-amber-50 dark:hover:bg-stone-700 transition-colors text-left cursor-pointer"
@@ -490,7 +494,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className={currentProvider === 'kie' ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>Kie.ai</span>
                       </div>
                       {currentProvider === 'kie' && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-                    </button>
+                    </button> */}
                   </motion.div>
                 )}
               </div>
@@ -581,7 +585,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         referrerPolicy="no-referrer"
                       />
                     )}
-                    <span>{getCleanModelName(isVideo ? settings.videoModel : settings.imageModel)}</span>
+                    <span>
+                      {isVideo && settings.videoModel === 'Google Vids Omni'
+                        ? 'Vids Omni'
+                        : getCleanModelName(isVideo ? settings.videoModel : settings.imageModel)}
+                    </span>
                     <ChevronRight className={`w-4 h-4 text-stone-400 transition-transform ${activeDropdown === 'model' ? 'rotate-90' : ''}`} />
                   </div>
                 </button>
@@ -710,7 +718,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                   referrerPolicy="no-referrer"
                                 />
                               )}
-                              <span className={settings.videoModel === m || (m === 'Motion Control' && (settings.videoModel.toLowerCase().includes('ambmedia') || settings.videoModel.toLowerCase().includes('motionfly'))) ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>{getCleanModelName(m)}</span>
+                              <span className={settings.videoModel === m || (m === 'Motion Control' && (settings.videoModel.toLowerCase().includes('ambmedia') || settings.videoModel.toLowerCase().includes('motionfly'))) ? 'font-bold text-amber-700 dark:text-amber-400' : 'text-stone-700 dark:text-stone-200'}>
+                                {m === 'Google Vids Omni' ? 'Vids Omni' : getCleanModelName(m)}
+                              </span>
                             </div>
                             {(settings.videoModel === m || (m === 'Motion Control' && (settings.videoModel.toLowerCase().includes('ambmedia') || settings.videoModel.toLowerCase().includes('motionfly')))) && <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                           </button>
@@ -852,6 +862,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   {/* 3. Duration */}
+                  {isVideo && currentProvider === 'vids' && (
+                    <div className="space-y-3 rounded-lg border border-stone-200/80 bg-stone-50 p-3.5 dark:border-stone-700/80 dark:bg-stone-800/50">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-stone-600 dark:text-stone-400" />
+                          <span className="text-sm font-medium text-stone-700 dark:text-stone-300">Video duration</span>
+                        </div>
+                        <span className="text-xs font-semibold text-stone-900 dark:text-stone-100">{vidsDuration}s</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={3}
+                        max={15}
+                        step={1}
+                        value={vidsDuration}
+                        aria-label="Google Vids video duration"
+                        aria-valuetext={`${vidsDuration} seconds`}
+                        onChange={(event) => {
+                          onUpdateSettings({ videoDuration: `${event.target.value} seconds` as VideoDuration });
+                        }}
+                        className="h-2 w-full cursor-pointer appearance-none rounded-lg accent-amber-600"
+                      />
+                    </div>
+                  )}
                   {isVideo && currentProvider !== 'vids' && (
                     <div className="relative">
                       <button

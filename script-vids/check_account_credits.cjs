@@ -107,9 +107,23 @@ async function checkOne(target) {
   const quota = await fetchQuotaSummary(target.cookies, API_KEY);
   if (!quota || !quota.limit) {
     console.log('🔍 Status Sesi          : ❌ TIDAK AKTIF (server menolak sesi / kuota tidak terbaca)\n');
+    target.credits = 0;
+    target.accountStatus = 'expired';
+    target.statusMessage = 'Sesi Kedaluwarsa / Kuota Tidak Terbaca (Perlu Relogin)';
+    target.lastChecked = new Date().toISOString();
+    sessions[target.email.toLowerCase()] = target;
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
     return;
   }
   console.log('🔍 Status Sesi          : ✅ AKTIF (server menerima sesi)\n');
+
+  target.credits = quota.remaining;
+  target.totalCredits = quota.limit;
+  target.accountStatus = 'active';
+  delete target.statusMessage;
+  target.lastChecked = new Date().toISOString();
+  sessions[target.email.toLowerCase()] = target;
+  fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
 
   const totalQuota = quota.limit;
   const remainingQuota = quota.remaining;

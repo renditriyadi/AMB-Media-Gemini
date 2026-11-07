@@ -39,6 +39,7 @@ const VIDS_CONFIG_FALLBACK = path.join(process.cwd(), 'script-vids', 'config.jso
 
 // Default API Key Google Workspace GenAI Server
 const VIDS_API_KEY = 'AIzaSyA-njTXslyyMKk1VOogRfVP59F6fNGeNW8';
+const DEFAULT_VIDS_DOC_ID = '1Q7x7neLElTHJhtGL8oDX2xVadKOV0WdQXU_uoMh1DzM';
 
 export interface VidsAccountSession {
   email: string;
@@ -50,6 +51,8 @@ export interface VidsAccountSession {
   credits: number;
   totalCredits: number;
   lastChecked?: string;
+  accountStatus?: 'active' | 'expired' | 'banned' | 'error';
+  statusMessage?: string;
 }
 
 // Helper: Membaca cache sesi Google Vids
@@ -471,6 +474,7 @@ async function sendVidsGenerateRequest(
     throw new Error('Cookie SAPISID tidak valid untuk otentikasi Google Vids.');
   }
 
+  let firstError: Error | null = null;
   let lastError: Error | null = null;
   for (const opcode of [374, 386]) {
     try {
@@ -486,12 +490,13 @@ async function sendVidsGenerateRequest(
         authHeader
       );
     } catch (err: any) {
+      if (!firstError) firstError = err;
       lastError = err;
       console.warn(`[Google Vids] RPC Opcode ${opcode} gagal: ${err.message}. Mencoba fallback jika ada...`);
     }
   }
 
-  throw lastError || new Error('Gagal memproses request generate video Google Vids.');
+  throw firstError || lastError || new Error('Gagal memproses request generate video Google Vids.');
 }
 
 // Helper: Ekstraksi URL Video dari respon Google
@@ -529,44 +534,81 @@ function downloadVideoToMediaCache(videoUrl: string, cookies: string, filename: 
     const fileStream = fs.createWriteStream(filePath);
     let totalBytes = 0;
 
-    https.get(
-      videoUrl,
-      {
-        headers: {
-          Cookie: cookies,
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
-          Referer: 'https://docs.google.com/',
-        },
-      },
-      (res) => {
-        if (res.statusCode !== 200) {
-          fileStream.close();
-          try { fs.unlinkSync(filePath); } catch (_) {}
-          return reject(new Error(`Gagal mengunduh file video dari server Google. HTTP Status: ${res.statusCode}`));
-        }
+    // Filter cookie: usercontent.google.com menolak OSID docs.google.com dengan HTTP 403
+    const downloadCookies = cookies
+      .split(';')
+      .map((c) => c.trim())
+      .filter((c) => c && !/^(?:__Secure-)?OSID=/i.test(c))
+      .join('; ');
 
-        res.on('data', (chunk) => {
-          totalBytes += chunk.length;
-          fileStream.write(chunk);
-        });
-
-        res.on('end', () => {
-          fileStream.end();
-          resolve(totalBytes);
-        });
+    const executeDownload = (targetUrl: string, redirectCount = 0) => {
+      if (redirectCount > 5) {
+        fileStream.close();
+        try { fs.unlinkSync(filePath); } catch (_) {}
+        return reject(new Error('Terlalu banyak redirect saat mengunduh video Google Vids.'));
       }
-    ).on('error', (err) => {
-      fileStream.close();
-      try { fs.unlinkSync(filePath); } catch (_) {}
-      reject(err);
-    });
+
+      const req = https.get(
+        targetUrl,
+        {
+          headers: {
+            Cookie: downloadCookies,
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
+            Referer: 'https://docs.google.com/',
+          },
+        },
+        (res) => {
+          if (res.statusCode && [301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+            const redirectUrl = new URL(res.headers.location, targetUrl).toString();
+            return executeDownload(redirectUrl, redirectCount + 1);
+          }
+
+          if (res.statusCode !== 200) {
+            fileStream.close();
+            try { fs.unlinkSync(filePath); } catch (_) {}
+            return reject(new Error(`Gagal mengunduh file video dari server Google. HTTP Status: ${res.statusCode}`));
+          }
+
+          res.on('data', (chunk) => {
+            totalBytes += chunk.length;
+            fileStream.write(chunk);
+          });
+
+          res.on('end', () => {
+            fileStream.end();
+            resolve(totalBytes);
+          });
+        }
+      );
+
+      req.on('error', (err) => {
+        fileStream.close();
+        try { fs.unlinkSync(filePath); } catch (_) {}
+        reject(err);
+      });
+    };
+
+    executeDownload(videoUrl);
   });
 }
 
 // =========================================================================================
 // ROUTER ENDPOINTS
 // =========================================================================================
+
+// 0. GET /api/vids/accounts — Mengambil seluruh sesi & status akun Google Vids dari server
+router.get('/vids/accounts', (_req, res) => {
+  try {
+    const sessions = readAllVidsSessions();
+    return res.json({
+      success: true,
+      sessions,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // 1. POST /api/vids/accounts/verify — Verifikasi dan simpan akun Google Vids
 router.post('/vids/accounts/verify', async (req, res) => {
@@ -576,10 +618,16 @@ router.post('/vids/accounts/verify', async (req, res) => {
     const customLabel = String(req.body.nickname || req.body.name || '').trim();
     const customDocId = String(req.body.docId || '').trim();
 
+    const sessions = readAllVidsSessions();
+    const existing = customEmail ? sessions[customEmail] : undefined;
+
     const extracted = extractVidsAuth(rawInput);
-    const cookies = normalizeVidsCookies(extracted.cookies || rawInput);
-    const serverToken = extracted.serverToken || String(req.body.serverToken || '').trim();
-    const docId = extracted.docId || customDocId || '13dGvn8A9gR6OD_NgaUi1Tiik_J1xDv98BcvopPX6iRI';
+    let cookies = normalizeVidsCookies(extracted.cookies || rawInput);
+    if (!cookies && existing?.cookies) {
+      cookies = normalizeVidsCookies(existing.cookies);
+    }
+    const serverToken = extracted.serverToken || String(req.body.serverToken || '').trim() || existing?.serverToken || '';
+    const docId = extracted.docId || customDocId || existing?.docId || DEFAULT_VIDS_DOC_ID;
 
     if (!cookies) {
       return res.status(400).json({
@@ -592,11 +640,37 @@ router.post('/vids/accounts/verify', async (req, res) => {
     const resolvedEmail = customEmail || profile.email || 'vids.user@google.com';
     const resolvedName = customLabel || profile.name || 'Google Vids User';
 
-    const sessions = readAllVidsSessions();
-    const existing = sessions[resolvedEmail.toLowerCase()];
-
     // Ambil kuota live langsung dari Google Vids server (mendukung 500 kredit / 60 kredit)
     const liveQuota = await fetchQuotaSummary(cookies);
+
+    if (!liveQuota || typeof liveQuota.remaining !== 'number') {
+      const emailKey = (customEmail || resolvedEmail).toLowerCase();
+      const updatedAccount: VidsAccountSession = existing ? { ...existing } : {
+        email: customEmail || resolvedEmail,
+        name: customLabel || resolvedName,
+        cookies,
+        docId: docId || '',
+        serverToken: serverToken || '',
+        credits: 0,
+        totalCredits: 500,
+        accountStatus: 'expired',
+      };
+      updatedAccount.credits = 0;
+      updatedAccount.accountStatus = 'expired';
+      updatedAccount.statusMessage = 'Sesi Google Vids kedaluwarsa atau ditolak server Google (kuota tidak terbaca).';
+      updatedAccount.lastChecked = new Date().toISOString();
+      sessions[emailKey] = updatedAccount;
+      saveVidsSessions(sessions);
+
+      return res.status(401).json({
+        success: false,
+        accountStatus: 'expired',
+        statusMessage: 'Sesi Kedaluwarsa / Kuota Tidak Terbaca (Perlu Relogin)',
+        credits: 0,
+        totalCredits: 500,
+        error: 'Sesi Google Vids kedaluwarsa atau ditolak server Google (kuota tidak terbaca). Silakan lakukan Relogin akun ini.',
+      });
+    }
 
     const sessionData: VidsAccountSession = {
       email: resolvedEmail,
@@ -605,8 +679,9 @@ router.post('/vids/accounts/verify', async (req, res) => {
       cookies,
       docId: docId || existing?.docId || '',
       serverToken: serverToken || existing?.serverToken || '',
-      credits: liveQuota ? liveQuota.remaining : (existing?.credits ?? 60),
-      totalCredits: liveQuota ? liveQuota.limit : (existing?.totalCredits ?? 60),
+      credits: liveQuota.remaining,
+      totalCredits: liveQuota.limit,
+      accountStatus: 'active',
       lastChecked: new Date().toISOString(),
     };
 
@@ -923,13 +998,34 @@ router.get('/vids/quota', async (req, res) => {
     }
 
     const liveQuota = await fetchQuotaSummary(session.cookies);
-    if (liveQuota) {
-      session.credits = liveQuota.remaining;
-      session.totalCredits = liveQuota.limit;
+    if (!liveQuota || typeof liveQuota.remaining !== 'number') {
+      session.credits = 0;
+      session.accountStatus = 'expired';
+      session.statusMessage = 'Sesi Google Vids kedaluwarsa atau ditolak server Google (kuota tidak terbaca).';
       session.lastChecked = new Date().toISOString();
       sessions[session.email.toLowerCase()] = session;
       saveVidsSessions(sessions);
+
+      return res.status(401).json({
+        success: false,
+        email: session.email,
+        credits: 0,
+        totalCredits: session.totalCredits || 500,
+        usedCredits: session.totalCredits || 500,
+        estVideosRemaining: 0,
+        quotaLive: false,
+        accountStatus: 'expired',
+        statusMessage: 'Sesi Kedaluwarsa / Kuota Tidak Terbaca (Perlu Relogin)',
+        error: 'Sesi Google Vids kedaluwarsa atau ditolak server Google (kuota tidak terbaca). Silakan lakukan Relogin.',
+      });
     }
+
+    session.credits = liveQuota.remaining;
+    session.totalCredits = liveQuota.limit;
+    session.accountStatus = 'active';
+    session.lastChecked = new Date().toISOString();
+    sessions[session.email.toLowerCase()] = session;
+    saveVidsSessions(sessions);
 
     return res.json({
       success: true,
@@ -938,9 +1034,13 @@ router.get('/vids/quota', async (req, res) => {
       totalCredits: session.totalCredits,
       usedCredits: Math.max(0, session.totalCredits - session.credits),
       estVideosRemaining: Math.floor(session.credits / 10),
-      quotaLive: liveQuota !== null,
+      quotaLive: true,
+      accountStatus: 'active',
       resetEpoch: liveQuota?.resetEpoch ?? null,
       lastChecked: session.lastChecked,
+      cookies: session.cookies,
+      docId: session.docId,
+      serverToken: session.serverToken,
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -967,6 +1067,10 @@ router.post('/vids/generate-video', async (req, res) => {
     if (!safePrompt) {
       return res.status(400).json({ success: false, error: 'Prompt video tidak boleh kosong.' });
     }
+    const durationSeconds = Number(duration);
+    if (!Number.isInteger(durationSeconds) || durationSeconds < 3 || durationSeconds > 15) {
+      return res.status(400).json({ success: false, error: 'Durasi Google Vids harus antara 3 dan 15 detik.' });
+    }
     if (!['9:16', '9:16 (Vertical)', '16:9', '16:9 (Landscape)'].includes(requestAspectRatio)) {
       return res.status(400).json({ success: false, error: 'Google Vids saat ini hanya mendukung aspect ratio 9:16 dan 16:9.' });
     }
@@ -988,10 +1092,19 @@ router.post('/vids/generate-video', async (req, res) => {
       targetSession = Object.values(sessions)[0];
     }
 
-    const rawCookies = String(requestCookies || targetSession?.cookies || '');
+    // Prioritaskan cookie tersimpan di data/vids_sessions.json jika valid dan memiliki SAPISID
+    let rawCookies = '';
+    if (targetSession?.cookies && generateSapisidHash(targetSession.cookies)) {
+      rawCookies = targetSession.cookies;
+    } else if (requestCookies && generateSapisidHash(String(requestCookies))) {
+      rawCookies = String(requestCookies);
+    } else {
+      rawCookies = String(targetSession?.cookies || requestCookies || '');
+    }
+
     const cookies = normalizeVidsCookies(rawCookies);
-    const docId = requestDocId || flixDocId || targetSession?.docId || '13dGvn8A9gR6OD_NgaUi1Tiik_J1xDv98BcvopPX6iRI';
-    const serverToken = requestServerToken || targetSession?.serverToken;
+    const docId = targetSession?.docId || requestDocId || flixDocId || DEFAULT_VIDS_DOC_ID;
+    const serverToken = targetSession?.serverToken || requestServerToken;
 
     if (!cookies) {
       return res.status(400).json({
@@ -1005,7 +1118,7 @@ router.post('/vids/generate-video', async (req, res) => {
     // Kirim request ke Google Vids AI server
     const responseData = await sendVidsGenerateRequest(
       safePrompt,
-      Number(duration) || 10,
+      durationSeconds,
       docId,
       cookies,
       serverToken,
@@ -1051,7 +1164,7 @@ router.post('/vids/generate-video', async (req, res) => {
       videoUrl: localVideoUrl,
       remoteUrl: remoteVideoUrl,
       filename,
-      duration: Number(duration) || 10,
+      duration: durationSeconds,
       resolution:
         resolution === '1080p'
           ? aspectRatio === '16:9'

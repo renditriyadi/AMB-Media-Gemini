@@ -565,6 +565,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     url: string;
     title?: string;
     model?: string;
+    sourceNodeId?: string;
   }>({
     isOpen: false,
     url: '',
@@ -586,6 +587,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     isOpen: boolean;
     position: { x: number; y: number };
     canvasPosition: { x: number; y: number };
+    connectionSource?: { nodeId: string; outputId: string };
   }>({
     isOpen: false,
     position: { x: 0, y: 0 },
@@ -939,7 +941,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const handleAddNode = (
     type: CanvasNodeType,
     positionOverride?: { x: number; y: number }
-  ) => {
+  ): CanvasNode => {
     recordHistory();
     const id = `node_${type}_${Date.now()}`;
     const x = positionOverride ? positionOverride.x : Math.round((-pan.x + 300) / zoom);
@@ -1042,20 +1044,21 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       newNode = {
         id,
         type: 'vidsVideo',
-        title: 'Google Vids Omni',
-        subtitle: 'Video generation · Google Vids',
+        title: 'Vids Omni',
+        subtitle: 'Video generation',
         colorTheme: 'blue',
         position: { x, y },
         inputs: [
           { id: 'input-prompt', name: 'prompt', type: 'text', label: 'Prompt', required: true },
         ],
         outputs: [
-          { id: 'output-video', name: 'video', type: 'video', label: 'Google Vids Video' },
+          { id: 'output-video', name: 'video', type: 'video', label: 'Vids Omni Video' },
         ],
         data: {
-          modelDisplayName: 'Google Vids Omni',
+          modelDisplayName: 'Vids Omni',
           aspectRatio: '9:16',
-          resolution: '720p',
+          resolution: '1080p',
+          duration: 10,
           status: 'idle',
           progress: 0,
         },
@@ -1217,6 +1220,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     setSelectedNodeId(id);
     setSelectedNodeIds([id]);
     setStatusMessage(`✓ Node ${newNode.title} berhasil ditambahkan`);
+    return newNode;
   };
 
   // Add Sticky Note directly at viewport center
@@ -2201,59 +2205,25 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           const sourceNode = recipeRef.current.nodes.find((n) => n.id === connectingWire.sourceNodeId);
 
           if (sourceNode?.type === 'prompt') {
-            // User pulled wire from Prompt output and dropped on empty canvas -> Auto-spawn Image Model Node!
-            recordHistory();
-            const modelNodeId = `node_imageModel_${Date.now()}`;
-            const dropX = Math.round(releaseCanvasX);
-            const dropY = Math.round(releaseCanvasY - 60);
-
-            const newModelNode: CanvasNode = {
-              id: modelNodeId,
-              type: 'imageModel',
-              title: 'Weavy',
-              subtitle: 'Weavy AI Model',
-              colorTheme: 'red',
-              position: { x: dropX, y: dropY },
-              inputs: [
-                { id: 'input-prompt', name: 'prompt', type: 'text', label: 'Prompt', required: true },
-                { id: 'input-image', name: 'image_1', type: 'image', label: 'Image 1', required: false },
-              ],
-              outputs: [
-                { id: 'output-result', name: 'result', type: 'image', label: 'Generated Image' },
-              ],
-              data: {
-                modelId: 'fal-ai/nano-banana-pro/edit',
-                modelDisplayName: 'Gemini 3 (Nano Banana Pro)',
-                provider: 'weavy',
-                resolution: '1K',
-                aspectRatio: '1:1',
-                seed: Math.floor(Math.random() * 999999),
-                isRandomSeed: true,
-                creditsCost: 11,
-              },
-            };
-
-            const newEdge: CanvasEdge = {
-              id: `edge_${sourceNode.id}_${modelNodeId}_${Date.now()}`,
-              sourceNodeId: sourceNode.id,
-              sourceOutputId: connectingWire.sourcePortId || 'output-text',
-              targetNodeId: modelNodeId,
-              targetInputId: 'input-prompt',
-              color: '#10b981',
-            };
-
-            setRecipe((prev) => ({
-              ...prev,
-              nodes: [...prev.nodes, newModelNode],
-              edges: [
-                ...prev.edges.filter(
-                  (ed) => !(ed.targetNodeId === modelNodeId && ed.targetInputId === 'input-prompt')
-                ),
-                newEdge,
-              ],
-            }));
-            setSelectedNodeIds([modelNodeId]);
-            setStatusMessage('✓ Node Model AI otomatis dibuat dan terhubung!');
+            const releasedOverNode = document
+              .elementFromPoint(e.clientX, e.clientY)
+              ?.closest('[id^="canvas-node-"]');
+            if (!releasedOverNode) {
+              const screenX = e.clientX;
+              const screenY = e.clientY;
+              setContextMenu({
+                isOpen: true,
+                position: { x: screenX, y: screenY },
+                canvasPosition: {
+                  x: Math.round(releaseCanvasX),
+                  y: Math.round(releaseCanvasY - 60),
+                },
+                connectionSource: {
+                  nodeId: sourceNode.id,
+                  outputId: connectingWire.sourcePortId || 'output-text',
+                },
+              });
+            }
           } else if (sourceNode?.type === 'imageModel') {
             // User pulled wire from Image Model output and dropped on empty canvas -> Auto-spawn next Model Node in chain!
             recordHistory();
@@ -5273,16 +5243,20 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
       const aspectRatio = targetNode.data?.aspectRatio === '16:9' ? '16:9' : '9:16';
       const resolution = aspectRatio === '16:9'
         ? '720p'
-        : targetNode.data?.resolution === '1080p'
-        ? '1080p'
-        : '720p';
+        : targetNode.data?.resolution === '720p'
+        ? '720p'
+        : '1080p';
+      const requestedDuration = Number(targetNode.data?.duration);
+      const duration = Number.isInteger(requestedDuration)
+        ? Math.min(15, Math.max(3, requestedDuration))
+        : 10;
       const response = await fetch('/api/vids/generate-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: effectivePrompt,
           aspectRatio,
-          duration: 10,
+          duration,
           resolution,
           email: account.email,
           cookies: account.cookies || account.token,
@@ -5293,7 +5267,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
       });
       const result = await response.json();
       if (!response.ok || !result?.success || !result.videoUrl) {
-        throw new Error(result?.error || `Google Vids gagal (HTTP ${response.status}).`);
+        throw new Error(result?.error || `Vids Omni gagal (HTTP ${response.status}).`);
       }
 
       if (typeof result.quota?.remaining === 'number') {
@@ -5319,6 +5293,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
                 outputVideo: videoUrl,
                 videoUrl,
                 resultUrl: videoUrl,
+                duration,
                 accountId: account.id,
                 accountEmail: account.email,
                 status: 'completed',
@@ -5330,7 +5305,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
           if (connectedViewerNodeIds.includes(node.id)) {
             return {
               ...node,
-              title: 'Google Vids Omni',
+              title: 'Vids Omni',
               data: {
                 ...node.data,
                 resultUrl: videoUrl,
@@ -5355,7 +5330,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
         timestamp: new Date().toISOString(),
         aspectRatio,
         resolution,
-        duration: '10s',
+        duration: `${duration}s`,
         status: 'completed',
         mediaUrl: videoUrl,
         thumbnailUrl: videoUrl,
@@ -5377,11 +5352,11 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
       onAddGeneration?.(historyItem);
 
       setExecutingProgress(100);
-      setStatusMessage('✓ Video Google Vids Omni berhasil dibuat.');
+      setStatusMessage('✓ Video Vids Omni berhasil dibuat.');
     } catch (error) {
       console.error('[Canvas Vids Execution Error]:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setStatusMessage(`Google Vids gagal: ${errorMessage}`);
+      setStatusMessage(`Vids Omni gagal: ${errorMessage}`);
       setRecipe((prev) => ({
         ...prev,
         nodes: prev.nodes.map((node) =>
@@ -7010,7 +6985,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
                 onRemoveLastVideoInput={handleRemoveLastVideoInput}
                 onToast={(msg) => setStatusMessage(msg)}
                 onOpenFullPreview={(url, title, model) =>
-                  setFullPreviewModal({ isOpen: true, url, title, model })
+                  setFullPreviewModal({ isOpen: true, url, title, model, sourceNodeId: node.id })
                 }
                 onOpenMarkup={handleOpenMarkup}
                 onSpawnSceneNodes={handleSpawnSceneNodes}
@@ -7054,6 +7029,18 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
         mediaUrl={fullPreviewModal.url}
         title={fullPreviewModal.title}
         model={fullPreviewModal.model}
+        sourceNodeId={fullPreviewModal.sourceNodeId}
+        onRemoveWatermark={async (nodeId) => {
+          await handleRemoveVidsWatermark(nodeId);
+          const updatedNode = recipeRef.current.nodes.find((node) => node.id === nodeId);
+          const updatedUrl =
+            updatedNode?.data?.outputVideo || updatedNode?.data?.videoUrl || updatedNode?.data?.resultUrl;
+          if (updatedUrl) {
+            setFullPreviewModal((prev) =>
+              prev.sourceNodeId === nodeId ? { ...prev, url: updatedUrl } : prev
+            );
+          }
+        }}
         onToast={(msg) => setStatusMessage(msg)}
       />
 
@@ -7089,7 +7076,25 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
         position={contextMenu.position}
         onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
         onSelectType={(type: CanvasNodeType) => {
-          handleAddNode(type, contextMenu.canvasPosition);
+          const connectionSource = contextMenu.connectionSource;
+          const newNode = handleAddNode(type, contextMenu.canvasPosition);
+          if (connectionSource) {
+            const targetInput = newNode.inputs.find(
+              (port) => port.type === 'text' && port.id.toLowerCase().includes('prompt')
+            ) || newNode.inputs.find((port) => port.type === 'text');
+            if (targetInput) {
+              const edge: CanvasEdge = {
+                id: `edge_${connectionSource.nodeId}_${newNode.id}_${Date.now()}`,
+                sourceNodeId: connectionSource.nodeId,
+                sourceOutputId: connectionSource.outputId,
+                targetNodeId: newNode.id,
+                targetInputId: targetInput.id,
+                color: '#10b981',
+              };
+              setRecipe((prev) => ({ ...prev, edges: [...prev.edges, edge] }));
+              setStatusMessage('✓ Node berhasil ditambahkan dan kabel tersambung!');
+            }
+          }
           setContextMenu((prev) => ({ ...prev, isOpen: false }));
         }}
       />
@@ -7123,7 +7128,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
               : undefined
           }
           onOpenFullPreview={(url, title) =>
-            setFullPreviewModal({ isOpen: true, url, title, model: title })
+            setFullPreviewModal({ isOpen: true, url, title, model: title, sourceNodeId: selectedNode.id })
           }
         />
       )}

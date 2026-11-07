@@ -94,7 +94,7 @@ export default function App() {
         const resp = await fetch(`/api/providers/accounts?userId=${encodeURIComponent(user.userId)}`);
         const data = await resp.json();
         if (resp.ok && data.success && data.accounts) {
-          const { weavy, roboneo, galleri5, kie, runninghub, gemini, flow } = data.accounts;
+          const { weavy, roboneo, galleri5, kie, runninghub, gemini, flow, vids } = data.accounts;
           const mergeWithLocal = (storageKey: string, remoteAccs: any[], defaultCredits: number) => {
             if (!Array.isArray(remoteAccs) || remoteAccs.length === 0) return;
             try {
@@ -112,19 +112,31 @@ export default function App() {
                 const isThisActive = savedActiveId
                   ? (r.id === savedActiveId || matchedLocal?.id === savedActiveId)
                   : (matchedLocal?.isActive ?? r.isActive ?? (idx === 0));
-                const effectiveCredits = typeof matchedLocal?.credits === 'number'
-                  ? matchedLocal.credits
-                  : (typeof r.credits === 'number' ? r.credits : (storageKey === 'gemini_accounts' ? 0 : defaultCredits));
+
+                const resolvedStatus = (matchedLocal?.accountStatus && matchedLocal.accountStatus !== 'active')
+                  ? matchedLocal.accountStatus
+                  : (r.accountStatus || matchedLocal?.accountStatus || 'active');
+                const isDead = resolvedStatus !== 'active';
+                const effectiveCredits = isDead
+                  ? 0
+                  : (typeof matchedLocal?.credits === 'number'
+                      ? matchedLocal.credits
+                      : (typeof r.credits === 'number' ? r.credits : (storageKey === 'gemini_accounts' ? 0 : defaultCredits)));
 
                 return {
                   ...r,
                   id: matchedLocal?.id || r.id,
-                  isActive: Boolean(isThisActive),
+                  isActive: isDead ? false : Boolean(isThisActive),
+                  accountStatus: resolvedStatus,
+                  statusMessage: matchedLocal?.statusMessage || r.statusMessage,
                   credits: effectiveCredits,
                   creditSyncStatus: storageKey === 'gemini_accounts'
                     ? (r.creditSyncStatus || matchedLocal?.creditSyncStatus || 'unknown')
                     : undefined,
-                  totalCredits: typeof matchedLocal?.totalCredits === 'number' ? matchedLocal.totalCredits : (typeof r.totalCredits === 'number' ? r.totalCredits : (storageKey === 'gemini_accounts' ? GEMINI_MAX_CREDITS : (storageKey === 'flow_accounts' ? 50 : undefined))),
+                  totalCredits: typeof matchedLocal?.totalCredits === 'number' ? matchedLocal.totalCredits : (typeof r.totalCredits === 'number' ? r.totalCredits : (storageKey === 'gemini_accounts' ? GEMINI_MAX_CREDITS : (storageKey === 'flow_accounts' ? 50 : (storageKey === 'vids_accounts' ? 500 : undefined)))),
+                  cookies: r.cookies || matchedLocal?.cookies || (r.refreshToken?.includes('SAPISID=') ? r.refreshToken : matchedLocal?.refreshToken),
+                  docId: r.docId || matchedLocal?.docId,
+                  serverToken: r.serverToken || matchedLocal?.serverToken,
                 };
               });
               localStorage.setItem(storageKey, JSON.stringify(merged));
@@ -136,6 +148,7 @@ export default function App() {
           mergeWithLocal('weavy_accounts', weavy, 150);
           mergeWithLocal('flow_accounts', flow, 50);
           mergeWithLocal('gemini_accounts', gemini, GEMINI_MAX_CREDITS);
+          mergeWithLocal('vids_accounts', vids, 500);
           mergeWithLocal('runninghub_accounts', runninghub, 600);
           mergeWithLocal('roboneo_accounts', roboneo, 100);
           mergeWithLocal('galleri5_accounts', galleri5, 100);
@@ -145,6 +158,7 @@ export default function App() {
           window.dispatchEvent(new Event('weavy_accounts_updated'));
           window.dispatchEvent(new Event('gemini_accounts_updated'));
           window.dispatchEvent(new Event('flow_accounts_updated'));
+          window.dispatchEvent(new Event('vids_accounts_updated'));
         }
       } catch (err) {
         console.warn('[App login sync accounts]:', err);
@@ -160,7 +174,7 @@ export default function App() {
         const resp = await fetch(`/api/providers/accounts?userId=${encodeURIComponent(currentUser.userId)}`);
         const data = await resp.json();
         if (resp.ok && data.success && data.accounts) {
-          const { weavy, roboneo, galleri5, kie, runninghub, gemini, flow } = data.accounts;
+          const { weavy, roboneo, galleri5, kie, runninghub, gemini, flow, vids } = data.accounts;
           const mergeWithLocal = (storageKey: string, remoteAccs: any[], defaultCredits: number) => {
             if (!Array.isArray(remoteAccs) || remoteAccs.length === 0) return;
             try {
@@ -178,19 +192,31 @@ export default function App() {
                 const isThisActive = savedActiveId
                   ? (r.id === savedActiveId || matchedLocal?.id === savedActiveId)
                   : (matchedLocal?.isActive ?? r.isActive ?? (idx === 0));
-                const effectiveCredits = typeof matchedLocal?.credits === 'number'
-                  ? matchedLocal.credits
-                  : (typeof r.credits === 'number' ? r.credits : (storageKey === 'gemini_accounts' ? 0 : defaultCredits));
+
+                const resolvedStatus = (matchedLocal?.accountStatus && matchedLocal.accountStatus !== 'active')
+                  ? matchedLocal.accountStatus
+                  : (r.accountStatus || matchedLocal?.accountStatus || 'active');
+                const isDead = resolvedStatus !== 'active';
+                const effectiveCredits = isDead
+                  ? 0
+                  : (typeof matchedLocal?.credits === 'number'
+                      ? matchedLocal.credits
+                      : (typeof r.credits === 'number' ? r.credits : (storageKey === 'gemini_accounts' ? 0 : defaultCredits)));
 
                 return {
                   ...r,
                   id: matchedLocal?.id || r.id,
-                  isActive: Boolean(isThisActive),
+                  isActive: isDead ? false : Boolean(isThisActive),
+                  accountStatus: resolvedStatus,
+                  statusMessage: matchedLocal?.statusMessage || r.statusMessage,
                   credits: effectiveCredits,
                   creditSyncStatus: storageKey === 'gemini_accounts'
                     ? (r.creditSyncStatus || matchedLocal?.creditSyncStatus || 'unknown')
                     : undefined,
-                  totalCredits: typeof matchedLocal?.totalCredits === 'number' ? matchedLocal.totalCredits : (typeof r.totalCredits === 'number' ? r.totalCredits : (storageKey === 'gemini_accounts' ? GEMINI_MAX_CREDITS : (storageKey === 'flow_accounts' ? 50 : undefined))),
+                  totalCredits: typeof matchedLocal?.totalCredits === 'number' ? matchedLocal.totalCredits : (typeof r.totalCredits === 'number' ? r.totalCredits : (storageKey === 'gemini_accounts' ? GEMINI_MAX_CREDITS : (storageKey === 'flow_accounts' ? 50 : (storageKey === 'vids_accounts' ? 500 : undefined)))),
+                  cookies: r.cookies || matchedLocal?.cookies || (r.refreshToken?.includes('SAPISID=') ? r.refreshToken : matchedLocal?.refreshToken),
+                  docId: r.docId || matchedLocal?.docId,
+                  serverToken: r.serverToken || matchedLocal?.serverToken,
                 };
               });
               localStorage.setItem(storageKey, JSON.stringify(merged));
@@ -202,6 +228,7 @@ export default function App() {
           mergeWithLocal('weavy_accounts', weavy, 150);
           mergeWithLocal('flow_accounts', flow, 50);
           mergeWithLocal('gemini_accounts', gemini, GEMINI_MAX_CREDITS);
+          mergeWithLocal('vids_accounts', vids, 500);
           mergeWithLocal('runninghub_accounts', runninghub, 600);
           mergeWithLocal('roboneo_accounts', roboneo, 100);
           mergeWithLocal('galleri5_accounts', galleri5, 100);
@@ -211,6 +238,7 @@ export default function App() {
           window.dispatchEvent(new Event('weavy_accounts_updated'));
           window.dispatchEvent(new Event('gemini_accounts_updated'));
           window.dispatchEvent(new Event('flow_accounts_updated'));
+          window.dispatchEvent(new Event('vids_accounts_updated'));
         }
       } catch (e) {}
     };
@@ -310,9 +338,9 @@ export default function App() {
 
   const [settings, setSettings] = useState<GenerationSettings>({
     mode: 'video',
-    provider: 'gemini',
-    videoModel: 'Omni Flash',
-    imageModel: 'Google Imagen 3 Pro',
+    provider: 'vids',
+    videoModel: 'Google Vids Omni',
+    imageModel: '-',
     videoAspectRatio: '9:16 (Vertical)',
     imageAspectRatio: '9:16 (Vertical)',
     videoDuration: '10 seconds',
@@ -471,11 +499,15 @@ export default function App() {
       if (!item) return [];
       const parsed = JSON.parse(item);
       if (Array.isArray(parsed)) {
-        return parsed.map((a: any) => ({
-          ...a,
-          credits: typeof a.credits === 'number' ? Math.max(0, a.credits) : (a.credits ?? 450),
-          totalCredits: typeof a.totalCredits === 'number' && a.totalCredits > 0 ? a.totalCredits : 500,
-        }));
+        return parsed.map((a: any) => {
+          const isDead = a.accountStatus && a.accountStatus !== 'active';
+          return {
+            ...a,
+            isActive: isDead ? false : !!a.isActive,
+            credits: isDead ? 0 : (typeof a.credits === 'number' ? Math.max(0, a.credits) : 0),
+            totalCredits: typeof a.totalCredits === 'number' && a.totalCredits > 0 ? a.totalCredits : 500,
+          };
+        });
       }
       console.error('[Google Vids] Saved account list is not an array.');
     } catch (error) {
@@ -533,7 +565,7 @@ export default function App() {
         videoModel: 'Google Vids Omni',
         videoAspectRatio: '9:16 (Vertical)',
         videoDuration: '10 seconds',
-        videoResolution: '720p',
+        videoResolution: '1080p',
         imageModel: '-',
       }));
     } else if (providerId === 'flow') {
@@ -2475,6 +2507,10 @@ export default function App() {
           ...account,
           credits: quota.credits,
           totalCredits: quota.totalCredits,
+          cookies: quota.cookies || account.cookies,
+          token: quota.cookies || account.token,
+          docId: quota.docId || account.docId,
+          serverToken: quota.serverToken || account.serverToken,
           lastChecked: quota.lastChecked || new Date().toISOString(),
           quotaLive: true,
         };
@@ -3743,7 +3779,7 @@ export default function App() {
         ? {
             prompt: cleanPrompt,
             aspectRatio: isVideo ? settings.videoAspectRatio : '9:16 (Vertical)',
-            duration: 10,
+            duration: Math.min(15, Math.max(3, Number.parseInt(settings.videoDuration, 10) || 10)),
             resolution: settings.videoResolution,
             email: vidsAcc?.email,
             cookies: vidsAcc?.cookies || vidsAcc?.token,

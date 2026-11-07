@@ -160,6 +160,7 @@ export interface VidsVideoNodeData {
   modelDisplayName: 'Google Vids Omni' | string;
   aspectRatio: '16:9' | '9:16' | string;
   resolution: '720p' | '1080p' | string;
+  duration?: number;
   promptOverride?: string;
   inputPrompt?: string;
   outputVideo?: string;

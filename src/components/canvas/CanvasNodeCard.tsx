@@ -91,7 +91,7 @@ export const ModelBadgeIcon: React.FC<{ model?: string; className?: string }> = 
     return (
       <img
         src="https://ssl.gstatic.com/docs/videos/images/favicon-2026-v2.ico"
-        alt="Google Vids"
+        alt="Vids Omni"
         className={`${className} object-contain shrink-0`}
         referrerPolicy="no-referrer"
         onError={(event) => {
@@ -267,7 +267,7 @@ interface CanvasNodeCardProps {
   isConnectingWire?: boolean;
   connectingWireSourceNodeId?: string;
   onToast?: (msg: string) => void;
-  onOpenFullPreview?: (url: string, title?: string, model?: string) => void;
+  onOpenFullPreview?: (url: string, title?: string, model?: string, nodeId?: string) => void;
   onOpenMarkup?: (imageUrl: string, sourceNodeId: string, title?: string) => void;
   connectedInputPortIds?: string[];
   connectedOutputPortIds?: string[];
@@ -321,7 +321,7 @@ const CanvasMediaPreview: React.FC<{
   naturalWidth?: number;
   naturalHeight?: number;
   onToast?: (msg: string) => void;
-  onOpenFullPreview?: (url: string, title?: string, model?: string) => void;
+  onOpenFullPreview?: (url: string, title?: string, model?: string, nodeId?: string) => void;
   onDimensionsDetected?: (width: number, height: number) => void;
   previewTitle?: string;
   model?: string;
@@ -721,7 +721,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
             id: 'output-video',
             name: 'video',
             type: 'video' as const,
-            label: node.type === 'videoStitcher' ? 'Stitched Video' : node.type === 'vidsVideo' ? 'Google Vids Video' : 'Video',
+            label: node.type === 'videoStitcher' ? 'Stitched Video' : node.type === 'vidsVideo' ? 'Vids Omni Video' : 'Video',
           },
         ]
       : node.type === 'promptEnhancer' || node.type === 'anyLLM'
@@ -1240,7 +1240,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                 }}
               />
               <span className="text-xs font-semibold text-white tracking-tight truncate max-w-[210px]">
-                Google Vids Omni
+                Vids Omni
               </span>
             </>
           ) : node.type === 'imageModel' ? (
@@ -2108,7 +2108,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                     </span>
                   </div>
                   <span className="text-xs font-semibold text-stone-200 z-10">
-                    Membuat video Google Vids Omni...
+                    Membuat video Vids Omni...
                   </span>
                   <span className="text-[10px] text-stone-400 mt-1 max-w-[220px] z-10">
                     {node.data?.resolution || '720p'} · {node.data?.aspectRatio || '9:16'}
@@ -2138,9 +2138,9 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
                   naturalWidth={node.data?.naturalWidth}
                   naturalHeight={node.data?.naturalHeight}
                   onToast={onToast}
-                  onOpenFullPreview={onOpenFullPreview}
-                  previewTitle="Google Vids Omni"
-                  model="Google Vids Omni"
+                  onOpenFullPreview={(url, title, model) => onOpenFullPreview?.(url, title, model, node.id)}
+                  previewTitle="Vids Omni"
+                  model="Vids Omni"
                   onDimensionsDetected={(width, height) => {
                     if (node.data?.naturalWidth !== width || node.data?.naturalHeight !== height) {
                       onUpdateData(node.id, { ...node.data, naturalWidth: width, naturalHeight: height });
@@ -2152,16 +2152,13 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <span className="text-[10px] text-stone-400 truncate">
-                Google Vids Omni · {node.data?.resolution || '720p'} · {node.data?.aspectRatio || '9:16'}
-              </span>
+            <div className="flex items-center justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => onRunNode && onRunNode(node.id)}
                 disabled={isExecuting || node.data?.status === 'running'}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-[#24242b] border border-white/[0.12] hover:bg-[#2c2c36] text-stone-200 whitespace-nowrap shrink-0 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-                title="Generate video dengan Google Vids Omni"
+                title="Generate video dengan Vids Omni"
               >
                 {isExecuting || node.data?.status === 'running' ? (
                   <>

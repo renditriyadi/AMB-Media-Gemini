@@ -746,7 +746,16 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
       if (itemVids) {
         try {
           const parsed = JSON.parse(itemVids);
-          if (Array.isArray(parsed)) savedVidsAccounts = parsed;
+          if (Array.isArray(parsed)) {
+            savedVidsAccounts = parsed.map((a: any) => {
+              const isDead = a.accountStatus && a.accountStatus !== 'active';
+              return {
+                ...a,
+                isActive: isDead ? false : !!a.isActive,
+                credits: isDead ? 0 : (typeof a.credits === 'number' ? a.credits : 0),
+              };
+            });
+          }
         } catch (_) {}
       }
     } catch (e) {
@@ -766,12 +775,14 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         logoType: 'gemini',
         accounts: savedGeminiAccounts,
       },
+      /* GOOGLE FLOW PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
       {
         id: 'flow',
         name: 'Google Flow',
         logoType: 'flow',
         accounts: savedFlowAccounts,
       },
+      */
       {
         id: 'vids',
         name: 'Google Vids',
@@ -784,18 +795,22 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         logoType: 'runninghub',
         accounts: savedRunninghubAccounts,
       },
+      /* ROBONEO PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
       {
         id: 'roboneo',
         name: 'RoboNeo',
         logoType: 'roboneo',
         accounts: savedRoboneoAccounts,
       },
+      */
+      /* KIE.AI PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
       {
         id: 'kie',
         name: 'Kie.ai',
         logoType: 'kie',
         accounts: savedKieAccounts,
       },
+      */
     ];
   });
 
@@ -827,6 +842,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               if (raw) localList = JSON.parse(raw);
             } catch (e) {}
 
+            const provId = storageKey.replace('_accounts', '');
             const hasExplicitActive = activeId ? accs.some((a) => a.id === activeId) : accs.some((a) => a.isActive);
             return accs.map((a: any, idx: number) => {
               const cleanEmail = cleanEmailArtifacts(a.email);
@@ -837,27 +853,44 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                 (cleanEmail && l.email && l.email.toLowerCase() === cleanEmail.toLowerCase()) ||
                 (a.refreshToken && l.refreshToken === a.refreshToken)
               );
-              const isThisActive = activeId
-                ? (a.id === activeId || matchedLocal?.id === activeId)
-                : hasExplicitActive
-                ? Boolean(a.isActive)
-                : (matchedLocal?.isActive ?? idx === 0);
-              const effectiveCredits = typeof matchedLocal?.credits === 'number'
+              const resolvedStatus = (matchedLocal?.accountStatus && matchedLocal.accountStatus !== 'active')
+                ? matchedLocal.accountStatus
+                : (a.accountStatus || matchedLocal?.accountStatus || 'active');
+              const resolvedStatusMessage = matchedLocal?.statusMessage || a.statusMessage;
+              const isDead = resolvedStatus !== 'active';
+
+              const isThisActive = isDead
+                ? false
+                : (activeId
+                    ? (a.id === activeId || matchedLocal?.id === activeId)
+                    : hasExplicitActive
+                    ? Boolean(a.isActive)
+                    : (matchedLocal?.isActive ?? idx === 0));
+
+              const rawCredits = typeof matchedLocal?.credits === 'number'
                 ? matchedLocal.credits
                 : (typeof a.credits === 'number' ? a.credits : (storageKey === 'gemini_accounts' ? 0 : defaultCredits));
+
+              const effectiveCredits = isDead ? 0 : rawCredits;
 
               return {
                 ...a,
                 id: matchedLocal?.id || a.id,
+                providerId: a.providerId || matchedLocal?.providerId || provId,
                 email: cleanEmail,
                 name: cleanName,
                 displayName: cleanDisplay,
                 isActive: isThisActive,
+                accountStatus: resolvedStatus,
+                statusMessage: resolvedStatusMessage,
                 credits: effectiveCredits,
                 creditSyncStatus: storageKey === 'gemini_accounts'
                   ? (a.creditSyncStatus || matchedLocal?.creditSyncStatus || 'unknown')
                   : undefined,
                 totalCredits: typeof matchedLocal?.totalCredits === 'number' ? matchedLocal.totalCredits : (typeof a.totalCredits === 'number' ? a.totalCredits : (storageKey === 'gemini_accounts' ? GEMINI_MAX_CREDITS : (storageKey === 'flow_accounts' ? 50 : undefined))),
+                cookies: a.cookies || matchedLocal?.cookies || (a.refreshToken?.includes('SAPISID=') ? a.refreshToken : matchedLocal?.refreshToken),
+                docId: a.docId || matchedLocal?.docId,
+                serverToken: a.serverToken || matchedLocal?.serverToken,
               };
             });
           };
@@ -873,6 +906,10 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
           const sanitizedRoboneo = sanitizeAccountsList(roboneo, activeRoboneoId, 'roboneo_accounts', 100);
           const sanitizedKie = sanitizeAccountsList(kie, activeKieId, 'kie_accounts', 80);
 
+          try {
+            localStorage.setItem('vids_accounts', JSON.stringify(sanitizedVids));
+          } catch (_) {}
+
           setProviders([
             {
               id: 'weavy',
@@ -886,12 +923,14 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               logoType: 'gemini',
               accounts: sanitizedGemini,
             },
+            /* GOOGLE FLOW PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
             {
               id: 'flow',
               name: 'Google Flow',
               logoType: 'flow',
               accounts: sanitizedFlow,
             },
+            */
             {
               id: 'vids',
               name: 'Google Vids',
@@ -904,18 +943,22 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               logoType: 'runninghub',
               accounts: sanitizedRunninghub,
             },
+            /* ROBONEO PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
             {
               id: 'roboneo',
               name: 'RoboNeo',
               logoType: 'roboneo',
               accounts: sanitizedRoboneo,
             },
+            */
+            /* KIE.AI PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
             {
               id: 'kie',
               name: 'Kie.ai',
               logoType: 'kie',
               accounts: sanitizedKie,
             },
+            */
           ]);
 
           // Sync localStorage so deletions and changes persist across page reloads
@@ -1033,12 +1076,14 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
             logoType: 'gemini',
             accounts: Array.isArray(savedGemini) ? savedGemini : [],
           },
+          /* GOOGLE FLOW PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
           {
             id: 'flow',
             name: 'Google Flow',
             logoType: 'flow',
             accounts: Array.isArray(savedFlow) ? savedFlow : [],
           },
+          */
           {
             id: 'vids',
             name: 'Google Vids',
@@ -1051,12 +1096,14 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
             logoType: 'runninghub',
             accounts: Array.isArray(savedRunninghub) ? savedRunninghub : [],
           },
+          /* ROBONEO PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
           {
             id: 'roboneo',
             name: 'RoboNeo',
             logoType: 'roboneo',
             accounts: Array.isArray(savedRoboneo) ? savedRoboneo : [],
           },
+          */
           /* galleri5 maintenance
           {
             id: 'galleri5',
@@ -1065,12 +1112,14 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
             accounts: Array.isArray(savedGalleri5) ? savedGalleri5 : [],
           },
           */
+          /* KIE.AI PROVIDER — MAINTENANCE: restore this provider entry when re-enabled.
           {
             id: 'kie',
             name: 'Kie.ai',
             logoType: 'kie',
             accounts: Array.isArray(savedKie) ? savedKie : [],
           },
+          */
         ]);
       } catch (e) {}
     };
@@ -1415,6 +1464,9 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         email: reloginEmail || newAccount.email || existingAccount.email,
         refreshToken: newAccount.token || existingAccount.refreshToken,
         token: newAccount.token || existingAccount.token,
+        cookies: newAccount.cookies || (newAccount.token?.includes('SAPISID=') ? newAccount.token : existingAccount.cookies),
+        docId: newAccount.docId || existingAccount.docId,
+        serverToken: newAccount.serverToken || existingAccount.serverToken,
         credits: hasSyncedBalance ? newAccount.credits : existingAccount.credits,
         creditsUsed: hasSyncedBalance ? newAccount.creditsUsed : existingAccount.creditsUsed,
         totalCredits: newAccount.totalCredits || existingAccount.totalCredits || 500,
@@ -1472,6 +1524,9 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
         existingAccounts[existingIdx] = {
           ...existingAccounts[existingIdx],
           ...newAcc,
+          cookies: newAcc.cookies || (newAcc.token?.includes('SAPISID=') ? newAcc.token : existingAccounts[existingIdx].cookies),
+          docId: newAcc.docId || existingAccounts[existingIdx].docId,
+          serverToken: newAcc.serverToken || existingAccounts[existingIdx].serverToken,
         };
       } else {
         orderedNewAccounts.push(newAcc);
@@ -2135,25 +2190,29 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
       if (!matchSearch) return false;
     }
 
+    const isDead = acc.accountStatus && acc.accountStatus !== 'active';
+
     if (accountFilter === 'hasCredits') {
+      if (isDead) return false;
       const c = typeof acc.credits === 'number' ? acc.credits : 0;
       return c > 0;
     }
     if (accountFilter === 'zeroCredits') {
+      if (isDead) return true;
       const c = typeof acc.credits === 'number' ? acc.credits : 0;
       return c <= 0;
     }
     if (accountFilter === 'active') {
-      return !!acc.isActive;
+      return !isDead && !!acc.isActive;
     }
 
     return true;
   });
 
   const allAccountsCount = currentProvider?.accounts.length || 0;
-  const hasCreditsAccountsCount = (currentProvider?.accounts || []).filter((a) => (typeof a.credits === 'number' ? a.credits : 0) > 0).length;
-  const zeroCreditsAccountsCount = (currentProvider?.accounts || []).filter((a) => (typeof a.credits === 'number' ? a.credits : 0) <= 0).length;
-  const activeAccountsCount = (currentProvider?.accounts || []).filter((a) => a.isActive).length;
+  const hasCreditsAccountsCount = (currentProvider?.accounts || []).filter((a) => (!a.accountStatus || a.accountStatus === 'active') && (typeof a.credits === 'number' ? a.credits : 0) > 0).length;
+  const zeroCreditsAccountsCount = (currentProvider?.accounts || []).filter((a) => (a.accountStatus && a.accountStatus !== 'active') || (typeof a.credits === 'number' ? a.credits : 0) <= 0).length;
+  const activeAccountsCount = (currentProvider?.accounts || []).filter((a) => a.isActive && (!a.accountStatus || a.accountStatus === 'active')).length;
 
   // Select/activate an account
   const handleSelectActiveAccount = async (providerId: string, accountId: string) => {
@@ -2887,18 +2946,23 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
   };
 
   const handleAccountRelogin = (account: ProviderAccount) => {
+    const resolvedProviderId = account.providerId || currentProvider?.id || selectedProviderId || 'gemini';
     if (!account.email) {
-      setErrorMsg(`Email akun ${account.providerId === 'vids' ? 'Google Vids' : 'Gemini'} tidak tersedia untuk proses relogin.`);
+      setErrorMsg(`Email akun ${resolvedProviderId === 'vids' ? 'Google Vids' : 'Gemini'} tidak tersedia untuk proses relogin.`);
       return;
     }
     setActiveMenuAccountId(null);
-    setReloginAccount(account);
+    setReloginAccount({
+      ...account,
+      providerId: resolvedProviderId as any,
+    });
   };
   const handleGeminiRelogin = handleAccountRelogin;
 
   const handleOpenAccountBrowser = async (account: ProviderAccount) => {
+    const resolvedProviderId = account.providerId || currentProvider?.id || selectedProviderId || 'gemini';
     if (!account.email) {
-      window.alert(`Email akun ${account.providerId === 'vids' ? 'Google Vids' : 'Gemini'} tidak tersedia untuk membuka browser.`);
+      window.alert(`Email akun ${resolvedProviderId === 'vids' ? 'Google Vids' : 'Gemini'} tidak tersedia untuk membuka browser.`);
       return;
     }
     if (openingGeminiBrowserAccountId) return;
@@ -3069,7 +3133,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
           }),
         });
         const data = await resp.json().catch(() => ({}));
-        if (resp.ok && data.success) {
+        if (resp.ok && data.success && data.accountStatus === 'active') {
           return {
             ...acc,
             email: data.email || acc.email,
@@ -3078,21 +3142,21 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
             docId: data.docId || acc.docId,
             serverToken: data.serverToken || acc.serverToken,
             flixDocId: data.docId || acc.flixDocId,
-            credits: typeof data.credits === 'number' ? data.credits : (typeof acc.credits === 'number' ? acc.credits : 0),
-            totalCredits: typeof data.totalCredits === 'number' ? data.totalCredits : (typeof acc.totalCredits === 'number' ? acc.totalCredits : 500),
+            credits: typeof data.credits === 'number' ? data.credits : 0,
+            totalCredits: typeof data.totalCredits === 'number' ? data.totalCredits : 500,
             accountStatus: 'active',
             statusMessage: undefined,
             lastChecked: nowIso,
           };
         }
 
-        const errInfo = classifyError(resp.status || 401, data.error || data.message || 'Cookie / sesi Google Vids tidak valid atau kedaluwarsa');
+        const errInfo = classifyError(resp.status || 401, data.statusMessage || data.error || data.message || 'Cookie / sesi Google Vids tidak valid atau kedaluwarsa');
         return {
           ...acc,
           credits: 0,
           isActive: false,
-          accountStatus: errInfo.accountStatus,
-          statusMessage: errInfo.statusMessage,
+          accountStatus: (data.accountStatus === 'expired' || data.accountStatus === 'banned') ? data.accountStatus : errInfo.accountStatus,
+          statusMessage: data.statusMessage || errInfo.statusMessage,
           lastChecked: nowIso,
         };
       } else if (providerId === 'gemini') {
@@ -4713,15 +4777,11 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
             const activeAcc = accs.find((a) => a.isActive);
             const activeLabel = activeAcc ? (activeAcc.displayName || activeAcc.name || activeAcc.email || 'Belum dipilih') : 'Belum dipilih';
             const totalCredits = accs.reduce(
-              (sum, a) =>
-                sum +
-                (typeof a.credits === 'number'
-                  ? currentProvider.id === 'gemini'
-                    ? Math.min(GEMINI_MAX_CREDITS, Math.max(0, a.credits))
-                    : a.credits
-                  : currentProvider.id === 'gemini'
-                  ? 0
-                  : 0),
+              (sum, a) => {
+                if (a.accountStatus && a.accountStatus !== 'active') return sum;
+                const c = typeof a.credits === 'number' ? Math.max(0, a.credits) : 0;
+                return sum + (currentProvider.id === 'gemini' ? Math.min(GEMINI_MAX_CREDITS, c) : c);
+              },
               0
             );
             const creditUnit = currentProvider.id === 'runninghub' ? 'RH Coins' : 'Credits';
@@ -5112,7 +5172,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 50;
                     creditLabel = `${numC} / ${numT} Credits`;
                   } else if (currentProvider?.id === 'vids') {
-                    const numC = typeof c === 'number' ? Math.max(0, c) : 0;
+                    const numC = isDead ? 0 : (typeof c === 'number' ? Math.max(0, c) : 0);
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 500;
                     const estVideos = Math.floor(numC / 40);
                     creditLabel = `${numC} / ${numT} Credits (~${estVideos} Video)`;
@@ -5120,7 +5180,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                     creditLabel = `${typeof c === 'number' ? c.toLocaleString() : c} Credits`;
                   } else {
                     const defaultQ = currentProvider?.id === 'galleri5' ? 200 : currentProvider?.id === 'kie' ? 80 : currentProvider?.id === 'roboneo' ? 70 : 150;
-                    const numC = typeof c === 'number' ? c : 0;
+                    const numC = isDead ? 0 : (typeof c === 'number' ? c : 0);
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 0;
                     const t = currentProvider?.id === 'kie'
                       ? (numT > 80 ? numT : Math.max(numC, 80))
@@ -5129,10 +5189,10 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                       : currentProvider?.id === 'roboneo'
                       ? (numT > 70 ? numT : Math.max(numC, 70))
                       : (numT > defaultQ ? numT : Math.max(numC, defaultQ));
-                    creditLabel = `${typeof c === 'number' ? c.toLocaleString() : c} / ${typeof t === 'number' ? t.toLocaleString() : t} Credits`;
+                    creditLabel = `${typeof numC === 'number' ? numC.toLocaleString() : numC} / ${typeof t === 'number' ? t.toLocaleString() : t} Credits`;
                   }
-                  const numCredits = typeof c === 'number' ? c : 0;
-                  const hasCredits = numCredits > 0;
+                  const numCredits = isDead ? 0 : (typeof c === 'number' ? c : 0);
+                  const hasCredits = !isDead && numCredits > 0;
 
                   return (
                     <div
@@ -5379,7 +5439,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 50;
                     creditLabel = `${numC} / ${numT} Credits`;
                   } else if (currentProvider?.id === 'vids') {
-                    const numC = typeof c === 'number' ? Math.max(0, c) : 0;
+                    const numC = isDead ? 0 : (typeof c === 'number' ? Math.max(0, c) : 0);
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 500;
                     const estVideos = Math.floor(numC / 40);
                     creditLabel = `${numC} / ${numT} Credits (~${estVideos} Video)`;
@@ -5387,7 +5447,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                     creditLabel = `${typeof c === 'number' ? c.toLocaleString() : c} Credits`;
                   } else {
                     const defaultQ = currentProvider?.id === 'galleri5' ? 200 : currentProvider?.id === 'kie' ? 80 : currentProvider?.id === 'roboneo' ? 70 : 150;
-                    const numC = typeof c === 'number' ? c : 0;
+                    const numC = isDead ? 0 : (typeof c === 'number' ? c : 0);
                     const numT = typeof acc.totalCredits === 'number' && acc.totalCredits > 0 ? acc.totalCredits : 0;
                     const t = currentProvider?.id === 'kie'
                       ? (numT > 80 ? numT : Math.max(numC, 80))
@@ -5396,10 +5456,10 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
                       : currentProvider?.id === 'roboneo'
                       ? (numT > 70 ? numT : Math.max(numC, 70))
                       : (numT > defaultQ ? numT : Math.max(numC, defaultQ));
-                    creditLabel = `${typeof c === 'number' ? c.toLocaleString() : c} / ${typeof t === 'number' ? t.toLocaleString() : t} Credits`;
+                    creditLabel = `${typeof numC === 'number' ? numC.toLocaleString() : numC} / ${typeof t === 'number' ? t.toLocaleString() : t} Credits`;
                   }
-                  const numCredits = typeof c === 'number' ? c : 0;
-                  const hasCredits = numCredits > 0;
+                  const numCredits = isDead ? 0 : (typeof c === 'number' ? c : 0);
+                  const hasCredits = !isDead && numCredits > 0;
 
                   return (
                     <div
@@ -5630,9 +5690,9 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
       {reloginAccount && (
         <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/55 p-3 sm:p-6">
           <div className="w-full max-w-4xl my-auto">
-            {reloginAccount.providerId === 'vids' ? (
+            {(reloginAccount.providerId === 'vids' || currentProvider?.id === 'vids' || selectedProviderId === 'vids') ? (
               <VidsPlaywrightAddAccount
-                key={reloginAccount.email}
+                key={`vids-relogin-${reloginAccount.email}`}
                 onAccountAdded={(account) => handleVidsAccountAdded(account, reloginAccount.email)}
                 onClose={() => setReloginAccount(null)}
                 existingAccountsCount={currentProvider?.accounts.length || 0}
@@ -5641,7 +5701,7 @@ export const GlobalSettingsView: React.FC<GlobalSettingsViewProps> = ({
               />
             ) : (
               <GeminiPlaywrightAddAccount
-                key={reloginAccount.email}
+                key={`gemini-relogin-${reloginAccount.email}`}
                 onAccountAdded={handleGeminiAccountAdded}
                 onClose={() => setReloginAccount(null)}
                 existingAccountsCount={currentProvider?.accounts.length || 0}

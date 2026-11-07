@@ -16,10 +16,15 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $excludedDirectories = @(
   'node_modules', 'dist', '.git', 'tmp', 'media-cache',
   'playwright-browsers', '.playwright-browsers', '.playwright', 'ffmpeg',
-  '.playwright-profiles'
+  '.playwright-profiles', '.playwright-profiles-vids',
+  'debug-tes-gemini', '.tmp-wm', '.tmp-smoke', 'playwright-report', 'test-results',
+  'script-video-flow'
 )
 $excludedFiles = @(
-  'google-service-account.json', 'ambmedia-v4.rar'
+  'google-service-account.json', 'ambmedia-v4.rar', 'akun-contoh.txt'
+)
+$excludedExtensions = @(
+  '.zip', '.rar', '.7z', '.tar', '.gz', '.mp4', '.log', '.pem', '.key', '.p12', '.pfx'
 )
 
 try {
@@ -40,20 +45,26 @@ try {
         if ($item.PSIsContainer) {
           $isRootRuntimeData = $item.Name -eq 'data' -and
             [string]::Equals($directory, $projectRoot, [System.StringComparison]::OrdinalIgnoreCase)
-          if ($excludedDirectories -notcontains $item.Name -and -not $isRootRuntimeData) {
+          $isPlaywrightProfile = $item.Name -like '.playwright-profiles*'
+          if ($excludedDirectories -notcontains $item.Name -and -not $isRootRuntimeData -and -not $isPlaywrightProfile) {
             $pendingDirectories.Push($item.FullName)
           }
           continue
         }
+
+        $relativePath = $item.FullName.Substring($rootPrefix.Length).Replace('\', '/')
+
         if (
           $excludedFiles -contains $item.Name -or
-          $item.Extension -ieq '.zip' -or
-          $item.Name -match '^\.env($|\.)'
+          $excludedExtensions -contains $item.Extension.ToLower() -or
+          $item.Name -match '^\.env($|\.)' -or
+          $item.Name -match 'service-account.*\.json$' -or
+          $item.Name -eq 'credentials.json' -or
+          $relativePath -match '^script-vids/(config\.json|config\.json\.bak|curl\.txt|\.probe_aspect\.cjs)'
         ) {
           continue
         }
 
-        $relativePath = $item.FullName.Substring($rootPrefix.Length).Replace('\', '/')
         $entry = $zip.CreateEntry($relativePath, [System.IO.Compression.CompressionLevel]::Fastest)
         $entryStream = $entry.Open()
         $fileStream = [System.IO.File]::OpenRead($item.FullName)

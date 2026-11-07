@@ -97,6 +97,10 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
   connectedPrompt,
 }) => {
   const nodeData = selectedNode.data || {};
+  const savedVidsDuration = Number(nodeData.duration);
+  const vidsDuration = Number.isInteger(savedVidsDuration)
+    ? Math.min(15, Math.max(3, savedVidsDuration))
+    : 10;
   const [runs, setRuns] = useState<number>(nodeData.runs || 1);
   const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
   const [watermarkError, setWatermarkError] = useState<string | null>(null);
@@ -519,7 +523,7 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
               : isGeminiVideoNode
               ? geminiModelDisplayName
               : isVidsVideoNode
-              ? 'Google Vids Omni'
+              ? 'Vids Omni'
               : isVideoStitcherNode
               ? 'Video Stitcher'
               : selectedNode.title || 'Node Settings'}
@@ -798,7 +802,7 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
             <div className="space-y-1.5">
               <label className="text-[11px] font-medium text-stone-400">Model Video</label>
               <div className="w-full bg-[#202026] text-white border border-white/10 rounded-xl px-3 py-2 text-xs font-medium">
-                Google Vids Omni · 10s
+                Vids Omni · {vidsDuration}s
               </div>
             </div>
 
@@ -828,6 +832,29 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
                   );
                 })}
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-stone-400">Durasi</label>
+                <span className="text-[11px] font-mono font-semibold text-stone-300">{vidsDuration}s</span>
+              </div>
+              <input
+                type="range"
+                min={3}
+                max={15}
+                step={1}
+                value={vidsDuration}
+                aria-label="Durasi Google Vids"
+                aria-valuetext={`${vidsDuration} detik`}
+                onChange={(event) =>
+                  onUpdateData(selectedNode.id, {
+                    ...nodeData,
+                    duration: Number(event.target.value),
+                  })
+                }
+                className="w-full h-1.5 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -1894,7 +1921,7 @@ const CanvasInspectorContent: React.FC<CanvasInspectorContentProps> = ({
 
           <div className="space-y-2">
             <h4 className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-              {isStoryboardNode ? 'Jalankan Storyboard Copilot' : isVideoStitcherNode ? 'Gabungkan Video (FFmpeg)' : isGeminiVideoNode ? 'Jalankan Gemini Video' : isVidsVideoNode ? 'Jalankan Google Vids Omni' : 'Run selected nodes'}
+              {isStoryboardNode ? 'Jalankan Storyboard Copilot' : isVideoStitcherNode ? 'Gabungkan Video (FFmpeg)' : isGeminiVideoNode ? 'Jalankan Gemini Video' : isVidsVideoNode ? 'Jalankan Vids Omni' : 'Run selected nodes'}
             </h4>
 
             {!isGeminiVideoNode && !isVidsVideoNode && !isVideoStitcherNode && (

@@ -234,6 +234,7 @@ export interface VidsPlaywrightSession {
     displayName: string;
     email: string;
     token: string;
+    cookies?: string;
     providerId: 'vids';
     tier: string;
     credits: number;
@@ -1777,14 +1778,15 @@ export class VidsPlaywrightManager {
       await page.waitForTimeout(500);
     }
 
-    // Extract all cookies across Google domains
-    const docCookies = await context.cookies(['https://docs.google.com', 'https://google.com']);
+    // Extract all cookies across Google domains (calling without url returns all cookies in context)
+    const docCookies = await context.cookies();
     const docCookieStr = await page.evaluate(() => document.cookie).catch(() => '');
 
     const cookiePairs: string[] = [];
     const seen = new Set<string>();
 
     for (const c of docCookies) {
+      if (/^(?:__Secure-)?OSID$/i.test(c.name)) continue;
       if (!seen.has(c.name) && c.value) {
         seen.add(c.name);
         cookiePairs.push(`${c.name}=${c.value}`);
@@ -1799,6 +1801,7 @@ export class VidsPlaywrightManager {
         if (eqIdx > 0) {
           const k = trimmed.slice(0, eqIdx).trim();
           const v = trimmed.slice(eqIdx + 1).trim();
+          if (/^(?:__Secure-)?OSID$/i.test(k)) continue;
           if (k && v && !seen.has(k)) {
             seen.add(k);
             cookiePairs.push(`${k}=${v}`);
@@ -1921,6 +1924,8 @@ export class VidsPlaywrightManager {
         serverToken: serverToken || existing?.serverToken || '',
         credits,
         totalCredits,
+        accountStatus: 'active',
+        statusMessage: undefined,
         lastChecked: new Date().toISOString(),
       };
       saveVidsSessions(allSessions);
@@ -1936,6 +1941,7 @@ export class VidsPlaywrightManager {
       displayName,
       email,
       token: session.getAsyncDataCurl || cookieString,
+      cookies: cookieString,
       providerId: 'vids' as const,
       tier: 'Google Vids (Web Session)',
       credits,

@@ -15,14 +15,17 @@ import authRouter from './server/routes/auth';
 import providerAccountsRouter from './server/routes/providerAccounts';
 import cliGeminiRouter from './server/routes/cliGemini';
 import weavyRouter from './server/providers/weavy';
-import roboneoRouter from './server/providers/roboneo';
+// ROBONEO PROVIDER — MAINTENANCE: restore import and route mount when re-enabled.
+// import roboneoRouter from './server/providers/roboneo';
 import galleri5Router from './server/providers/galleri5';
-import kieRouter from './server/providers/kie';
+// KIE.AI PROVIDER — MAINTENANCE: restore import and route mount when re-enabled.
+// import kieRouter from './server/providers/kie';
 import runninghubRouter from './server/providers/runninghub';
 import geminiRouter from './server/providers/gemini';
 import chatSessionsRouter from './server/routes/chatSessions';
 import studioRouter from './server/routes/studio';
-import flowRouter from './server/providers/flow';
+// GOOGLE FLOW PROVIDER — MAINTENANCE: restore import and route mount when re-enabled.
+// import flowRouter from './server/providers/flow';
 import vidsRouter from './server/providers/vids';
 import resolveLinkRouter from './server/routes/resolveLink';
 import stitchVideoRouter from './server/routes/stitchVideo';
@@ -218,13 +221,16 @@ async function startServer() {
   app.use('/api', cliGeminiRouter);
   app.use('/api', providerAccountsRouter);
   app.use('/api', weavyRouter);
-  app.use('/api', roboneoRouter);
+  // ROBONEO PROVIDER — MAINTENANCE: endpoints intentionally not mounted.
+  // app.use('/api', roboneoRouter);
   app.use('/api', galleri5Router);
-  app.use('/api', kieRouter);
+  // KIE.AI PROVIDER — MAINTENANCE: endpoints intentionally not mounted.
+  // app.use('/api', kieRouter);
   app.use('/api', runninghubRouter);
   // Google Gemini Provider Router: MURNI menggunakan input sesi cURL bash / cookies akun Google pengguna (BUKAN API Key)
   app.use('/api', geminiRouter);
-  app.use('/api', flowRouter);
+  // GOOGLE FLOW PROVIDER — MAINTENANCE: endpoints intentionally not mounted.
+  // app.use('/api', flowRouter);
   app.use('/api', vidsRouter);
   app.use('/api', chatSessionsRouter);
   app.use('/api', studioRouter);

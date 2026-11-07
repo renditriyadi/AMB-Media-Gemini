@@ -16,10 +16,10 @@ interface NodeOption {
 }
 
 const PRIMARY_NODES: NodeOption[] = [
+  { type: 'imageInput', label: 'Import File' },
   { type: 'prompt', label: 'Prompt' },
   { type: 'aiWorker', label: 'AI Worker' },
   { type: 'storyboard', label: 'Storyboard Copilot' },
-  { type: 'imageInput', label: 'Import File' },
   { type: 'anyLLM', label: 'Any LLM' },
   { type: 'imageModel', label: 'Model Gambar' },
   { type: 'geminiVideo', label: 'Gemini Omni Flash' },

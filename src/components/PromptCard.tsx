@@ -859,7 +859,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({
               <div className="inline-flex items-center gap-1.5 text-[11px] font-sans text-stone-500 dark:text-stone-400 flex-wrap">
                 <span className="text-stone-300 dark:text-stone-600">/</span>
                 <span className="font-medium text-amber-600 dark:text-amber-400">
-                  {isVideo ? settings.videoModel : settings.imageModel}
+                  {isVideo && settings.videoModel === 'Google Vids Omni' ? 'Vids Omni' : isVideo ? settings.videoModel : settings.imageModel}
                 </span>
                 {(isVideo && (settings.videoModel === 'MiniMax H3 Turbo Video' || settings.videoModel === 'Google Veo 2 / Gemini Video' || settings.videoModel === 'Gemini Omni Flash Video (10s)' || activeProviderDetails.id === 'gemini')) && (
                   <div className="inline-flex items-center gap-1 ml-1 text-[10px] font-mono">
@@ -877,6 +877,13 @@ export const PromptCard: React.FC<PromptCardProps> = ({
                     </span>
                   </div>
                 )}
+              </div>
+            )}
+            {isVideo && activeProviderDetails.id === 'vids' && (
+              <div className="inline-flex flex-wrap items-center gap-x-2 text-[10px] font-mono text-stone-500 dark:text-stone-400">
+                <span>{settings.videoAspectRatio.split(' ')[0]}</span>
+                <span>{Number.parseInt(settings.videoDuration, 10) || 10} seconds</span>
+                <span>{settings.videoResolution}</span>
               </div>
             )}
           </div>

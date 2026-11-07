@@ -47,7 +47,7 @@ let config;
 
 // Prompt default jika pengguna tidak memasukkan via argument CLI
 const promptText = process.argv[2] || 'pemandangan indah sunset di pantai dengan ombak tenang sinematik';
-const durationSeconds = 10; // Preset 10 detik
+const durationSeconds = process.argv[4] ? Number(process.argv[4]) : 15; // Preset 15 detik
 
 function printHeader() {
   console.log('====================================================');
@@ -275,32 +275,56 @@ function downloadVideo(videoUrl, destinationPath) {
     const fileStream = fs.createWriteStream(destinationPath);
     let downloaded = 0;
 
-    https.get(videoUrl, {
-      headers: {
-        'Cookie': config.cookies,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36',
-        'Referer': 'https://docs.google.com/'
-      }
-    }, (res) => {
-      if (res.statusCode !== 200) {
+    // Filter cookie: contribution-rt.usercontent.google.com menolak OSID dengan HTTP 403
+    const downloadCookies = (config.cookies || '')
+      .split(';')
+      .map((c) => c.trim())
+      .filter((c) => c && !/^(?:__Secure-)?OSID=/i.test(c))
+      .join('; ');
+
+    const executeDownload = (targetUrl, redirectCount = 0) => {
+      if (redirectCount > 5) {
         fileStream.close();
-        return reject(new Error(`Gagal unduh file video! HTTP Code: ${res.statusCode}`));
+        try { fs.unlinkSync(destinationPath); } catch (_) {}
+        return reject(new Error('Terlalu banyak redirect saat mengunduh video.'));
       }
 
-      res.on('data', (chunk) => {
-        downloaded += chunk.length;
-        fileStream.write(chunk);
-        process.stdout.write(`\r📥 Mengunduh Video: ${(downloaded / (1024 * 1024)).toFixed(2)} MB...`);
-      });
+      https.get(targetUrl, {
+        headers: {
+          'Cookie': downloadCookies,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
+          'Referer': 'https://docs.google.com/'
+        }
+      }, (res) => {
+        if (res.statusCode && [301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          const redirectUrl = new URL(res.headers.location, targetUrl).toString();
+          return executeDownload(redirectUrl, redirectCount + 1);
+        }
 
-      res.on('end', () => {
-        fileStream.end();
-        resolve(downloaded);
+        if (res.statusCode !== 200) {
+          fileStream.close();
+          try { fs.unlinkSync(destinationPath); } catch (_) {}
+          return reject(new Error(`Gagal unduh file video! HTTP Code: ${res.statusCode}`));
+        }
+
+        res.on('data', (chunk) => {
+          downloaded += chunk.length;
+          fileStream.write(chunk);
+          process.stdout.write(`\r📥 Mengunduh Video: ${(downloaded / (1024 * 1024)).toFixed(2)} MB...`);
+        });
+
+        res.on('end', () => {
+          fileStream.end();
+          resolve(downloaded);
+        });
+      }).on('error', (err) => {
+        fileStream.close();
+        try { fs.unlinkSync(destinationPath); } catch (_) {}
+        reject(err);
       });
-    }).on('error', (err) => {
-      fileStream.close();
-      reject(err);
-    });
+    };
+
+    executeDownload(videoUrl);
   });
 }
 

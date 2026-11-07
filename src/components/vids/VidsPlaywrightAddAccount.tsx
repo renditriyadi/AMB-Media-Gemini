@@ -148,6 +148,10 @@ export const VidsPlaywrightAddAccount: React.FC<VidsPlaywrightAddAccountProps> =
         return {
           ...account,
           email: data.email || account.email,
+          cookies: data.cookies || account.cookies,
+          token: data.cookies || account.token,
+          docId: data.docId || account.docId,
+          serverToken: data.serverToken || account.serverToken,
           credits: data.credits,
           creditsUsed: data.usedCredits ?? Math.max(0, (data.totalCredits || VIDS_MAX_CREDITS) - data.credits),
           totalCredits: data.totalCredits || VIDS_MAX_CREDITS,

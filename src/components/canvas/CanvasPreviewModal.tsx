@@ -30,6 +30,8 @@ interface CanvasPreviewModalProps {
   mediaUrl: string;
   title?: string;
   model?: string;
+  sourceNodeId?: string;
+  onRemoveWatermark?: (nodeId: string) => Promise<void>;
   onToast?: (msg: string) => void;
 }
 
@@ -39,9 +41,12 @@ export const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
   mediaUrl,
   title,
   model,
+  sourceNodeId,
+  onRemoveWatermark,
   onToast,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
   const [useProxy, setUseProxy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -64,6 +69,13 @@ export const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
 
   const cleanUrl = (mediaUrl || '').trim();
   const isVideo = !!cleanUrl.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i);
+  const isVidsVideo = `${model || ''} ${title || ''}`.toLowerCase().includes('vids omni');
+  const canRemoveWatermark =
+    isVideo &&
+    isVidsVideo &&
+    Boolean(sourceNodeId && onRemoveWatermark) &&
+    /^\/media-cache\/vids_[^/]+\.mp4$/i.test(cleanUrl) &&
+    !/_nowm\.mp4$/i.test(cleanUrl);
 
   // Resolve accurate model name
   const rawModel = model || title || '';
@@ -84,6 +96,7 @@ export const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
       setIsLoading(true);
       setHasError(false);
       setIsDownloading(false);
+      setIsRemovingWatermark(false);
       setDetectedAspect(null);
       setExtractedFrame(null);
       setIsFrameModalOpen(false);
@@ -186,6 +199,19 @@ export const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
       window.open(cleanUrl, '_blank');
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleRemoveWatermark = async () => {
+    if (!sourceNodeId || !onRemoveWatermark || isRemovingWatermark) return;
+    setIsRemovingWatermark(true);
+    try {
+      await onRemoveWatermark(sourceNodeId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Remove watermark gagal.';
+      onToast?.(message);
+    } finally {
+      setIsRemovingWatermark(false);
     }
   };
 
@@ -508,6 +534,23 @@ export const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
                     )}
                     <span>Download</span>
                   </button>
+
+                  {canRemoveWatermark && (
+                    <button
+                      id="btn-canvas-remove-watermark"
+                      type="button"
+                      onClick={handleRemoveWatermark}
+                      disabled={isRemovingWatermark}
+                      className="px-3 py-2 bg-stone-700 hover:bg-stone-600 active:scale-[0.98] text-white font-semibold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                    >
+                      {isRemovingWatermark ? (
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 shrink-0" />
+                      )}
+                      <span>{isRemovingWatermark ? 'Memproses...' : 'Remove Watermark'}</span>
+                    </button>
+                  )}
 
                   {/* Extract Frame (.PNG) for Video */}
                   {isVideo && cleanUrl && (

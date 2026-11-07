@@ -115,7 +115,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const explicitlyActive = accs.find((a) => a.isActive && (!a.accountStatus || a.accountStatus === 'active'));
   const activeAcc = savedActiveAcc || explicitlyActive || accs.find((a) => !a.accountStatus || a.accountStatus === 'active') || accs[0];
 
-  const activeAccCredits = activeAcc
+  const isActiveDead = activeAcc?.accountStatus && activeAcc.accountStatus !== 'active';
+  const activeAccCredits = activeAcc && !isActiveDead
     ? (isGeminiActive
         ? Math.min(GEMINI_MAX_CREDITS, typeof activeAcc.credits === 'number' ? activeAcc.credits : 0)
         : (typeof activeAcc.credits === 'number' ? activeAcc.credits : 0))
@@ -124,8 +125,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const defaultProviderQuota = isGeminiActive ? GEMINI_MAX_CREDITS : activeProvider.defaultQuota;
 
   const remaining = isGeminiActive
-    ? accs.reduce((sum, a) => sum + (typeof a.credits === 'number' ? Math.min(GEMINI_MAX_CREDITS, a.credits) : 0), 0)
-    : accs.reduce((sum, a) => sum + (typeof a.credits === 'number' ? a.credits : 0), 0);
+    ? accs.reduce((sum, a) => ((a.accountStatus && a.accountStatus !== 'active') ? sum : sum + (typeof a.credits === 'number' ? Math.min(GEMINI_MAX_CREDITS, Math.max(0, a.credits)) : 0)), 0)
+    : accs.reduce((sum, a) => ((a.accountStatus && a.accountStatus !== 'active') ? sum : sum + (typeof a.credits === 'number' ? Math.max(0, a.credits) : 0)), 0);
   const quota = isGeminiActive
     ? Math.max(GEMINI_MAX_CREDITS, accs.length * GEMINI_MAX_CREDITS)
     : accs.reduce((sum, a) => {
@@ -162,6 +163,19 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           >
             <Sparkles className={`w-4 h-4 shrink-0 transition-colors duration-100 ${activeTab === 'generate' ? 'text-amber-600 dark:text-amber-400' : 'text-stone-400 dark:text-stone-500'}`} />
             <span>Generate</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onTabChange('canvas')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-medium text-xs border transition-colors duration-100 outline-none select-none cursor-pointer ${
+              activeTab === 'canvas'
+                ? 'bg-stone-200/80 dark:bg-amber-500/15 border-stone-300 dark:border-amber-500/25 text-amber-800 dark:text-amber-300 font-bold'
+                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100/60 dark:hover:bg-white/5'
+            }`}
+          >
+            <Workflow className={`w-4 h-4 shrink-0 transition-colors duration-100 ${activeTab === 'canvas' ? 'text-amber-600 dark:text-amber-400' : 'text-stone-400 dark:text-stone-500'}`} />
+            <span>Canvas</span>
           </button>
 
           <button
@@ -204,19 +218,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           >
             <MessageSquare className={`w-4 h-4 shrink-0 transition-colors duration-100 ${activeTab === 'chat' ? 'text-amber-600 dark:text-amber-400' : 'text-stone-400 dark:text-stone-500'}`} />
             <span>Chat</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onTabChange('canvas')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-medium text-xs border transition-colors duration-100 outline-none select-none cursor-pointer ${
-              activeTab === 'canvas'
-                ? 'bg-stone-200/80 dark:bg-amber-500/15 border-stone-300 dark:border-amber-500/25 text-amber-800 dark:text-amber-300 font-bold'
-                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100/60 dark:hover:bg-white/5'
-            }`}
-          >
-            <Workflow className={`w-4 h-4 shrink-0 transition-colors duration-100 ${activeTab === 'canvas' ? 'text-amber-600 dark:text-amber-400' : 'text-stone-400 dark:text-stone-500'}`} />
-            <span>Canvas</span>
           </button>
 
           {/* Menu Studio disembunyikan sementara */}
@@ -319,7 +320,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 </span>
               </button>
 
-              <button
+              {/* GOOGLE FLOW PROVIDER — MAINTENANCE: restore this entry when the provider is re-enabled. */}
+              {/* <button
                 type="button"
                 onClick={() => onSelectProvider('flow')}
                 className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium border transition-colors duration-100 cursor-pointer ${
@@ -340,7 +342,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 <span className="text-xs font-mono font-medium text-stone-500 dark:text-stone-400">
                   {flowAccountsCount}
                 </span>
-              </button>
+              </button> */}
 
               <button
                 type="button"
@@ -391,7 +393,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 </span>
               </button>
 
-              <button
+              {/* ROBONEO PROVIDER — MAINTENANCE: restore this entry when the provider is re-enabled. */}
+              {/* <button
                 type="button"
                 onClick={() => onSelectProvider('roboneo')}
                 className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium border transition-colors duration-100 cursor-pointer ${
@@ -412,9 +415,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 <span className="text-xs font-mono font-medium text-stone-500 dark:text-stone-400">
                   {roboneoAccountsCount}
                 </span>
-              </button>
+              </button> */}
 
-              <button
+              {/* KIE.AI PROVIDER — MAINTENANCE: restore this entry when the provider is re-enabled. */}
+              {/* <button
                 type="button"
                 onClick={() => onSelectProvider('kie')}
                 className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium border transition-colors duration-100 cursor-pointer ${
@@ -435,7 +439,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 <span className="text-xs font-mono font-medium text-stone-500 dark:text-stone-400">
                   {kieAccountsCount}
                 </span>
-              </button>
+              </button> */}
             </div>
           </div>
         </div>

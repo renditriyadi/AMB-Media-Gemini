@@ -294,6 +294,32 @@ interface CachedSheetData {
 const sheetDataCache = new Map<string, CachedSheetData>();
 const DATA_CACHE_TTL_MS = 60 * 1000; // 60 seconds read cache
 
+function getVidsSessionSnapshot(email: string) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const vidsSessionsFile = path.resolve(process.cwd(), 'data', 'vids_sessions.json');
+    if (fs.existsSync(vidsSessionsFile)) {
+      const vidsSessions = JSON.parse(fs.readFileSync(vidsSessionsFile, 'utf8'));
+      const session = email ? vidsSessions[email.trim().toLowerCase()] : null;
+      if (session) {
+        const isDead = session.accountStatus === 'expired' || session.accountStatus === 'banned' || session.accountStatus === 'error';
+        return {
+          found: true,
+          credits: isDead ? 0 : (typeof session.credits === 'number' ? session.credits : 0),
+          totalCredits: typeof session.totalCredits === 'number' ? session.totalCredits : 500,
+          accountStatus: session.accountStatus || (session.credits > 0 ? 'active' : 'expired'),
+          statusMessage: session.statusMessage || (session.accountStatus === 'expired' ? 'Sesi Kedaluwarsa / Kuota Tidak Terbaca (Perlu Relogin)' : undefined),
+          cookies: session.cookies || '',
+          docId: session.docId || '',
+          serverToken: session.serverToken || '',
+        };
+      }
+    }
+  } catch (e) {}
+  return { found: false, credits: 0, totalCredits: 500, accountStatus: 'active', statusMessage: undefined, cookies: '', docId: '', serverToken: '' };
+}
+
 export function invalidateProviderAccountsCache(providerKey: string): void {
   const sheetTitle = PROVIDER_SHEET_MAP[providerKey.toLowerCase()] || `${providerKey}_Accounts`;
   sheetDataCache.delete(sheetTitle);
@@ -468,6 +494,7 @@ export async function getProviderAccountsFromSheet(
       if (parsedJson) {
         const isRunningHub = providerKey.toLowerCase() === 'runninghub';
         const isGemini = providerKey.toLowerCase() === 'gemini';
+        const isVids = providerKey.toLowerCase() === 'vids';
         const normalizeItem = (item: any, fallbackIdx: number) => {
           if (!item) return null;
           const email = String(item.email || '').trim();
@@ -475,12 +502,14 @@ export async function getProviderAccountsFromSheet(
           const id = String(item.id || `acc-${Date.now()}-${fallbackIdx}`).trim();
           const name = String(item.name || item.displayName || '').trim();
           const displayName = String(item.displayName || item.name || '').trim();
-          const isActive = item.isActive === true || item.isActive === 'TRUE' || item.isActive === 1 || item.isActive === '1';
+          let isActive = item.isActive === true || item.isActive === 'TRUE' || item.isActive === 1 || item.isActive === '1';
           let hasRefreshToken = item.hasRefreshToken === true || item.hasRefreshToken === 'TRUE' || !!refreshToken;
           let creditsVal = typeof item.credits === 'number' ? item.credits : (item.credits !== undefined && !isNaN(Number(item.credits)) ? Number(item.credits) : (isGemini ? 0 : 0));
           let totalCreditsVal = isRunningHub ? undefined : (typeof item.totalCredits === 'number' ? item.totalCredits : (item.totalCredits !== undefined && !isNaN(Number(item.totalCredits)) ? Number(item.totalCredits) : (isGemini ? GEMINI_VIDEO_CREDIT_LIMIT : undefined)));
           let creditsUsedVal = typeof item.creditsUsed === 'number' ? item.creditsUsed : (item.creditsUsed !== undefined && !isNaN(Number(item.creditsUsed)) ? Number(item.creditsUsed) : undefined);
           let creditSyncStatus: 'synced' | 'unknown' | undefined;
+          let accountStatus: string = item.accountStatus || 'active';
+          let statusMessage: string | undefined = item.statusMessage;
 
           if (isGemini) {
             if (!refreshToken && email) {
@@ -506,6 +535,23 @@ export async function getProviderAccountsFromSheet(
             }
             creditSyncStatus = snapshot.found ? 'synced' : 'unknown';
             totalCreditsVal = GEMINI_VIDEO_CREDIT_LIMIT;
+          } else if (isVids) {
+            const vidsSnap = getVidsSessionSnapshot(email);
+            if (vidsSnap.found) {
+              accountStatus = vidsSnap.accountStatus;
+              statusMessage = vidsSnap.statusMessage;
+              totalCreditsVal = vidsSnap.totalCredits;
+              creditsVal = accountStatus === 'active' ? vidsSnap.credits : 0;
+              if (vidsSnap.cookies) {
+                refreshToken = vidsSnap.cookies;
+                hasRefreshToken = true;
+              }
+            }
+          }
+
+          if (accountStatus !== 'active') {
+            creditsVal = 0;
+            isActive = false;
           }
 
           return {
@@ -516,6 +562,9 @@ export async function getProviderAccountsFromSheet(
             isActive,
             hasRefreshToken,
             refreshToken,
+            cookies: refreshToken,
+            accountStatus,
+            statusMessage,
             credits: isNaN(creditsVal) ? 0 : creditsVal,
             totalCredits: totalCreditsVal,
             creditsUsed: creditsUsedVal,
@@ -567,6 +616,8 @@ export async function getProviderAccountsFromSheet(
       }
       let creditsUsedVal = (creditsUsedIdx >= 0 && row[creditsUsedIdx] !== undefined && String(row[creditsUsedIdx]).trim() !== '') ? Number(row[creditsUsedIdx]) : undefined;
       let creditSyncStatus: 'synced' | 'unknown' | undefined;
+      let accountStatus: string = 'active';
+      let statusMessage: string | undefined = undefined;
 
       if (isGemini) {
         if (!refreshToken && email) {
@@ -594,7 +645,24 @@ export async function getProviderAccountsFromSheet(
           totalCreditsVal = GEMINI_VIDEO_CREDIT_LIMIT;
         }
         creditSyncStatus = snapshot.found ? 'synced' : 'unknown';
+      } else if (isVids) {
+        const vidsSnap = getVidsSessionSnapshot(email);
+        if (vidsSnap.found) {
+          accountStatus = vidsSnap.accountStatus;
+          statusMessage = vidsSnap.statusMessage;
+          totalCreditsVal = vidsSnap.totalCredits;
+          creditsVal = accountStatus === 'active' ? vidsSnap.credits : 0;
+          if (vidsSnap.cookies) {
+            refreshToken = vidsSnap.cookies;
+          }
+        }
       }
+
+      const isDead = accountStatus !== 'active';
+      if (isDead) {
+        creditsVal = 0;
+      }
+
       if (accId || email || refreshToken) {
         const hasValidToken = hasRefreshToken || Boolean(refreshToken);
         const key = (email && !email.startsWith('rh_') ? email.trim().toLowerCase() : '') || (refreshToken || '').trim() || accId || `acc-${i}`;
@@ -603,10 +671,13 @@ export async function getProviderAccountsFromSheet(
           email,
           name: name || displayName,
           displayName: displayName || name,
-          isActive,
+          isActive: isDead ? false : isActive,
           hasRefreshToken: hasValidToken,
           refreshToken,
-          credits: isNaN(creditsVal) ? defaultProviderCredits : creditsVal,
+          cookies: refreshToken,
+          accountStatus,
+          statusMessage,
+          credits: isDead ? 0 : (isNaN(creditsVal) ? defaultProviderCredits : creditsVal),
           totalCredits: isGemini
             ? GEMINI_VIDEO_CREDIT_LIMIT
             : ((totalCreditsVal !== undefined && !isNaN(totalCreditsVal)) ? totalCreditsVal : (isFlow ? 50 : (isVids ? 500 : undefined))),
@@ -693,19 +764,40 @@ export async function saveProviderAccountsToSheet(userId: string, providerKey: s
     const isGenericEmail = (isFlow && (emailKey.startsWith('flow_user_') || emailKey.startsWith('flow_') || emailKey === 'flow.user@google.com')) || (isVids && (emailKey.startsWith('vids_user_') || emailKey.startsWith('vids_') || emailKey === 'vids.user@google.com')) || emailKey.startsWith('rh_');
     const uniqueKey = tokenKey || (!isGenericEmail && emailKey ? emailKey : '') || String(acc.id || `acc-${idx}`);
 
+    const rawEmail = String(acc.email || '').trim().toLowerCase();
+    let accountStatus = acc.accountStatus || 'active';
+    let statusMessage = acc.statusMessage;
+
+    if (isVids && rawEmail) {
+      const vidsSnap = getVidsSessionSnapshot(rawEmail);
+      if (vidsSnap.found) {
+        accountStatus = vidsSnap.accountStatus;
+        statusMessage = vidsSnap.statusMessage;
+        if (vidsSnap.cookies && !tokenKey) {
+          acc.refreshToken = vidsSnap.cookies;
+        }
+      }
+    }
+
+    const isDead = accountStatus !== 'active';
+
     const normalizedAcc = {
       id: acc.id || `acc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       email: acc.email || '',
       name: acc.name || acc.displayName || '',
       displayName: acc.displayName || acc.name || '',
-      isActive: !!acc.isActive,
+      isActive: isDead ? false : !!acc.isActive,
       hasRefreshToken: !!acc.hasRefreshToken || !!acc.refreshToken || !!tokenKey,
       refreshToken: tokenKey,
-      credits: isGemini
-        ? (typeof acc.credits === 'number'
-            ? Math.min(GEMINI_VIDEO_CREDIT_LIMIT, Math.max(0, acc.credits))
-            : 0)
-        : (typeof acc.credits === 'number' ? acc.credits : (isFlow ? 50 : (isVids ? 500 : (providerKey.toLowerCase() === 'galleri5' ? 100 : (providerKey.toLowerCase() === 'kie' ? 80 : 0))))),
+      accountStatus,
+      statusMessage,
+      credits: isDead
+        ? 0
+        : (isGemini
+            ? (typeof acc.credits === 'number'
+                ? Math.min(GEMINI_VIDEO_CREDIT_LIMIT, Math.max(0, acc.credits))
+                : 0)
+            : (typeof acc.credits === 'number' ? acc.credits : (isFlow ? 50 : (isVids ? 500 : (providerKey.toLowerCase() === 'galleri5' ? 100 : (providerKey.toLowerCase() === 'kie' ? 80 : 0)))))),
       totalCredits: isRunningHub
         ? undefined
         : (isGemini
@@ -753,6 +845,8 @@ export async function saveProviderAccountsToSheet(userId: string, providerKey: s
       hasRefreshToken: acc.hasRefreshToken,
       refreshToken: acc.refreshToken,
       credits: acc.credits,
+      accountStatus: acc.accountStatus || 'active',
+      statusMessage: acc.statusMessage,
       ...(isRunningHub ? {} : (acc.totalCredits !== undefined ? { totalCredits: acc.totalCredits } : {})),
       creditsUsed: acc.creditsUsed,
     });
