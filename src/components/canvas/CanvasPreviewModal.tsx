@@ -69,12 +69,10 @@ export const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
 
   const cleanUrl = (mediaUrl || '').trim();
   const isVideo = !!cleanUrl.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i);
-  const isVidsVideo = `${model || ''} ${title || ''}`.toLowerCase().includes('vids omni');
   const canRemoveWatermark =
     isVideo &&
-    isVidsVideo &&
     Boolean(sourceNodeId && onRemoveWatermark) &&
-    /^\/media-cache\/vids_[^/]+\.mp4$/i.test(cleanUrl) &&
+    /^\/media-cache\/(?:vids|stitched)_[^/]+\.mp4$/i.test(cleanUrl) &&
     !/_nowm\.mp4$/i.test(cleanUrl);
 
   // Resolve accurate model name

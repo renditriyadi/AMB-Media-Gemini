@@ -8,7 +8,7 @@ interface AddMediaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAttachMedia: (media: AttachedMedia) => void;
-  activeProvider?: { id: 'kie' | 'roboneo' | 'galleri5' | 'runninghub' | 'weavy' | 'gemini'; name: string };
+  activeProvider?: { id: 'kie' | 'roboneo' | 'galleri5' | 'runninghub' | 'weavy' | 'gemini' | 'vids' | 'flow' | string; name: string };
   weavyAccounts?: ProviderAccount[];
   roboneoAccounts?: ProviderAccount[];
   galleri5Accounts?: ProviderAccount[];
@@ -39,7 +39,9 @@ export const AddMediaModal: React.FC<AddMediaModalProps> = ({
 }) => {
   const isGemini = activeProvider.id === 'gemini';
   const isMiniMax = mode === 'video' && videoModel === 'MiniMax H3 Turbo Video';
-  const isImageOnly = (mode === 'image' && !isGemini) || isMiniMax;
+  const isVids = activeProvider.id === 'vids' || videoModel === 'Google Vids Omni' || (videoModel && videoModel.toLowerCase().includes('vids'));
+  const isFlow = activeProvider.id === 'flow' || (videoModel && videoModel.toLowerCase().includes('flow'));
+  const isImageOnly = (mode === 'image' && !isGemini) || isMiniMax || isVids || isFlow;
 
   // Track reference counts for Gemini
   const attachedImages = attachedMedia.filter(

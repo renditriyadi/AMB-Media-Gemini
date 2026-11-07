@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { dedupeStoryboardScenes } from '../../lib/storyboardScenes';
 import {
   CanvasNode,
@@ -735,6 +735,21 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
         ]
       : [];
 
+  // Guarantee that vidsVideo has both Prompt and Image inputs even on legacy canvas nodes
+  const effectiveInputs = useMemo(() => {
+    const rawInputs = node.inputs || [];
+    if (node.type === 'vidsVideo') {
+      const hasImage = rawInputs.some((p) => p.type === 'image' || p.id === 'input-image' || p.name === 'image' || p.name === 'image_1');
+      if (!hasImage) {
+        return [
+          ...rawInputs.map((p) => (p.id === 'input-prompt' ? { ...p, required: false } : p)),
+          { id: 'input-image', name: 'image_1', type: 'image' as const, label: 'Image', required: false },
+        ];
+      }
+    }
+    return rawInputs;
+  }, [node.inputs, node.type]);
+
   const getHeaderTheme = () => {
     switch (node.type) {
       case 'storyboard':
@@ -968,7 +983,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
       style={{ width: `${nodeWidth}px`, minHeight: '150px' }}
     >
       {/* Input Ports (Left Edge) - Weavy Design Connectors */}
-      {node.inputs.map((port, idx) => {
+      {effectiveInputs.map((port, idx) => {
         const isTarget = isConnectingWire && connectingWireSourceNodeId !== node.id;
         const isConnected = connectedInputPortIds?.includes(port.id);
         const isTextPort = port.type === 'text' || port.id.includes('prompt');
@@ -979,7 +994,7 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
         );
         const portColor = isTextPort ? '#F1A0FA' : isVideoInputPort ? '#EF9092' : '#6EDDB3';
         // Port gambar selalu diberi nomor berurutan: Image 1, Image 2, ... (tanpa "Opsional")
-        const imageOrdinal = node.inputs
+        const imageOrdinal = effectiveInputs
           .slice(0, idx + 1)
           .filter((p) => !(p.type === 'text' || p.id.includes('prompt'))).length;
         // Keep Storyboard Copilot connector labels short, including nodes saved before this update.
@@ -2152,7 +2167,30 @@ export const CanvasNodeCard: React.FC<CanvasNodeCardProps> = ({
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-1">
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <div className="flex items-center gap-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => onAddImageInput && onAddImageInput(node.id)}
+                  className="flex items-center gap-1 text-xs font-normal text-stone-400 hover:text-stone-200 active:scale-95 transition-colors cursor-pointer select-none py-1 px-1 rounded hover:bg-white/[0.04]"
+                  title="Tambah slot input gambar referensi"
+                >
+                  <Plus className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                  <span className="truncate">Add another image input</span>
+                </button>
+
+                {effectiveInputs.filter((p) => p.type === 'image').length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveLastImageInput && onRemoveLastImageInput(node.id)}
+                    className="text-stone-400 hover:text-rose-400 transition-colors cursor-pointer p-1 rounded hover:bg-rose-500/10 shrink-0"
+                    title="Hapus slot input gambar terakhir"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => onRunNode && onRunNode(node.id)}

@@ -1128,6 +1128,8 @@ export default function App() {
 
     const isVideoMode = settings.mode === 'video';
     const activeProvider = resolveActiveProviderId(settings, activeTab, externalProviderId);
+    const isVidsModel = activeProvider === 'vids' || settings.videoModel === 'Google Vids Omni' || (settings.videoModel && settings.videoModel.toLowerCase().includes('vids'));
+    const isFlowModel = activeProvider === 'flow' || (settings.videoModel && settings.videoModel.toLowerCase().includes('flow')) || (settings.imageModel && settings.imageModel.toLowerCase().includes('flow'));
     const isGeminiModel = activeProvider === 'gemini';
     const isRunningHubModel = activeProvider === 'runninghub';
     const isRoboneoModel = activeProvider === 'roboneo';
@@ -1165,6 +1167,25 @@ export default function App() {
         )
       );
     };
+
+    // --- GOOGLE VIDS & FLOW UPLOAD BRANCH (Direct Local Base64 / No External Weavy Upload Needed) ---
+    if (isVidsModel || isFlowModel) {
+      console.log(`[Client 📤 Upload Start ${isVidsModel ? 'Google Vids' : 'Google Flow'}] Memproses file ${mediaItem.name} secara lokal...`);
+      try {
+        setAttachedMedia((prev) =>
+          prev.map((m) => (m.id === mediaItem.id ? { ...m, isUploading: true, uploadProgress: 50 } : m))
+        );
+        const base64Data = await readFileAsBase64(mediaItem.fileObject, (percent) => {
+          setAttachedMedia((prev) =>
+            prev.map((m) => (m.id === mediaItem.id ? { ...m, isUploading: true, uploadProgress: percent } : m))
+          );
+        });
+        handleUploadSuccess(base64Data);
+      } catch (err: any) {
+        handleUploadFailure(err?.message || `Gagal memproses file untuk ${isVidsModel ? 'Google Vids' : 'Google Flow'}.`);
+      }
+      return;
+    }
 
     // --- GEMINI UPLOAD BRANCH ---
     if (isGeminiModel) {
@@ -3364,8 +3385,8 @@ export default function App() {
       return;
     }
 
-    if (isVidsModel && !prompt.trim()) {
-      alert('Google Vids Omni memerlukan teks prompt untuk membuat video.');
+    if (isVidsModel && !prompt.trim() && !imgItem && !attachedMedia.some((m) => m.type === 'image' || (!m.type && !m.name?.match(/\.(mp4|mov|webm)$/i)))) {
+      alert('Google Vids Omni memerlukan teks prompt (Text-to-Video) atau gambar referensi (Image-to-Video).');
       return;
     }
 
@@ -3532,7 +3553,7 @@ export default function App() {
     } else if (isGeminiModel) {
       defaultMotionTitle = isVideo ? (imgItem ? 'Gemini Image to Video' : 'Google Gemini Video') : 'Google Gemini Image';
     } else if (isVidsModel) {
-      defaultMotionTitle = 'Google Vids Omni';
+      defaultMotionTitle = isVideo && (imgItem || attachedMedia.some((m) => m.type === 'image' || (!m.type && !m.name?.match(/\.(mp4|mov|webm)$/i)))) ? 'Google Vids Image to Video' : 'Google Vids Omni';
     } else if (isRunningHubModel) {
       defaultMotionTitle = settings.videoModel === 'MiniMax H3 Turbo Video'
         ? 'MiniMax H3 Turbo Video'
@@ -3720,20 +3741,23 @@ export default function App() {
       const refImages = imgItems.slice(0, 5);
       const refVideo = vidItems[0];
 
+      const targetImgItem = imgItem || refImages[0] || attachedMedia.find((m) => m.type === 'image' || (!m.type && !m.name?.match(/\.(mp4|mov|webm)$/i)));
       let resolvedRefImageData: string | undefined = undefined;
-      if (imgItem) {
-        if (imgItem.fileObject) {
+      if (targetImgItem) {
+        if (targetImgItem.fileObject) {
           try {
-            resolvedRefImageData = await readFileAsBase64(imgItem.fileObject);
+            resolvedRefImageData = await readFileAsBase64(targetImgItem.fileObject);
           } catch (e) {}
-        } else if (imgItem.url && imgItem.url.startsWith('data:')) {
-          resolvedRefImageData = imgItem.url;
-        } else if (imgItem.url && imgItem.url.startsWith('blob:')) {
+        } else if (targetImgItem.url && targetImgItem.url.startsWith('data:')) {
+          resolvedRefImageData = targetImgItem.url;
+        } else if (targetImgItem.url && targetImgItem.url.startsWith('blob:')) {
           try {
-            const resp = await fetch(imgItem.url);
+            const resp = await fetch(targetImgItem.url);
             const blob = await resp.blob();
-            resolvedRefImageData = await readFileAsBase64(new File([blob], imgItem.name || 'image.png', { type: blob.type || 'image/png' }));
+            resolvedRefImageData = await readFileAsBase64(new File([blob], targetImgItem.name || 'image.png', { type: blob.type || 'image/png' }));
           } catch (e) {}
+        } else if (targetImgItem.url) {
+          resolvedRefImageData = targetImgItem.url;
         }
       }
 
@@ -3750,8 +3774,8 @@ export default function App() {
             token: geminiAcc?.token || geminiAcc?.refreshToken || geminiAcc?.apiKey || geminiAcc?.idToken,
             apiKey: geminiAcc?.apiKey,
             cookies: geminiAcc?.cookies || (/(?:__Secure-1PSID|(?:^|;\s*)SID=|(?:^|;\s*)SAPISID=)/i.test(geminiAcc?.token || '') ? geminiAcc.token : undefined),
-            referenceImageUrl: refImages[0]?.url || attachedMedia[0]?.url,
-            referenceImageData: resolvedRefImageData,
+            referenceImageUrl: targetImgItem?.url || refImages[0]?.url || attachedMedia[0]?.url,
+            referenceImageData: resolvedRefImageData || targetImgItem?.url || refImages[0]?.url,
             referenceImageUrls: refImages.map((m) => m.url).filter(Boolean),
             referenceVideoUrl: refVideo?.url,
             referenceVideoUrls: refVideo?.url ? [refVideo.url] : [],
@@ -3772,8 +3796,8 @@ export default function App() {
             cookies: flowAcc?.cookies || flowAcc?.token,
             authHeader: flowAcc?.authHeader,
             apiKey: flowAcc?.apiKey,
-            referenceImageUrl: refImages[0]?.url || attachedMedia[0]?.url,
-            referenceImageData: resolvedRefImageData,
+            referenceImageUrl: targetImgItem?.url || refImages[0]?.url || attachedMedia[0]?.url,
+            referenceImageData: resolvedRefImageData || targetImgItem?.url || refImages[0]?.url,
           }
         : isVidsModel
         ? {
@@ -3786,6 +3810,8 @@ export default function App() {
             docId: vidsAcc?.docId || vidsAcc?.flixDocId,
             flixDocId: vidsAcc?.flixDocId || vidsAcc?.docId,
             serverToken: vidsAcc?.serverToken,
+            referenceImageUrl: targetImgItem?.url || refImages[0]?.url || attachedMedia[0]?.url,
+            referenceImageData: resolvedRefImageData || targetImgItem?.url || refImages[0]?.url,
           }
         : isRunningHubModel
         ? {

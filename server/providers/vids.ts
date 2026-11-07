@@ -326,16 +326,168 @@ export async function fetchGoogleUserProfile(cookies: string): Promise<{ email?:
   });
 }
 
+// Helper: Upload file gambar ke Google Vids temporaryblob storage
+async function uploadImageToTemporaryBlob(
+  imageBuffer: Buffer,
+  cookies: string,
+  docId: string
+): Promise<string> {
+  const md5Hash = crypto.createHash('md5').update(imageBuffer).digest('hex');
+
+  // Step 1: Start Resumable Upload Session
+  const uploadUrl = await new Promise<string>((resolve, reject) => {
+    const req = https.request(
+      'https://docs.google.com/upload/temporaryblob/videos?authuser=0',
+      {
+        method: 'POST',
+        headers: {
+          'cookie': cookies,
+          'origin': 'https://docs.google.com',
+          'referer': `https://docs.google.com/videos/d/${docId}/edit`,
+          'user-agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
+          'x-goog-upload-command': 'start',
+          'x-goog-upload-content-length': String(imageBuffer.length),
+          'x-goog-upload-file-name': 'temporary_blob',
+          'x-goog-upload-protocol': 'resumable',
+        },
+      },
+      (res) => {
+        const url = res.headers['x-goog-upload-url'] as string;
+        if (res.statusCode === 200 && url) {
+          resolve(url);
+        } else {
+          let errData = '';
+          res.on('data', (c) => (errData += c));
+          res.on('end', () => {
+            reject(new Error(`Gagal inisiasi upload gambar (HTTP ${res.statusCode}): ${errData}`));
+          });
+        }
+      }
+    );
+    req.on('error', reject);
+    req.end();
+  });
+
+  // Step 2: Transfer Image Binary Data and Finalize
+  const token = await new Promise<string>((resolve, reject) => {
+    const req = https.request(
+      uploadUrl,
+      {
+        method: 'PUT',
+        headers: {
+          'cookie': cookies,
+          'origin': 'https://docs.google.com',
+          'referer': `https://docs.google.com/videos/d/${docId}/edit`,
+          'user-agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
+          'content-type': 'application/x-www-form-urlencoded;charset=utf-8',
+          'x-goog-upload-command': 'upload, finalize',
+          'x-goog-upload-entity-md5': md5Hash,
+          'x-goog-upload-offset': '0',
+          'content-length': String(imageBuffer.length),
+        },
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (c) => (body += c));
+        res.on('end', () => {
+          if (res.statusCode !== 200) {
+            return reject(new Error(`Gagal transfer data gambar ke Google Vids (HTTP ${res.statusCode}): ${body}`));
+          }
+          try {
+            const parsed = JSON.parse(body);
+            if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+              return resolve(parsed[0]);
+            }
+            if (typeof parsed === 'string') {
+              return resolve(parsed);
+            }
+            const match = body.match(/AYGXpj[a-zA-Z0-9_\-]+/);
+            if (match) return resolve(match[0]);
+            reject(new Error(`Format token blob tidak dikenali: ${body}`));
+          } catch (e: any) {
+            const match = body.match(/AYGXpj[a-zA-Z0-9_\-]+/);
+            if (match) return resolve(match[0]);
+            reject(new Error(`Gagal membaca token respon upload gambar: ${e.message}`));
+          }
+        });
+      }
+    );
+    req.on('error', reject);
+    req.write(imageBuffer);
+    req.end();
+  });
+
+  return token;
+}
+
+// Helper: Menyelesaikan input gambar menjadi Buffer binary
+async function resolveImageBuffer(
+  referenceImageData?: string,
+  referenceImageUrl?: string,
+  image?: string
+): Promise<Buffer | null> {
+  const candidate = referenceImageData || image || referenceImageUrl;
+  if (!candidate || typeof candidate !== 'string') return null;
+
+  // Base64 Data URL
+  if (candidate.startsWith('data:')) {
+    const base64Data = candidate.includes(';base64,')
+      ? candidate.split(';base64,')[1]
+      : candidate.replace(/^data:[^;]+;base64,/, '');
+    return Buffer.from(base64Data, 'base64');
+  }
+
+  // Raw base64 string
+  if (!candidate.startsWith('http') && !candidate.startsWith('/') && candidate.length > 200) {
+    try {
+      return Buffer.from(candidate, 'base64');
+    } catch (_) {}
+  }
+
+  // File cache lokal
+  if (candidate.startsWith('/media-cache/') || candidate.includes('media-cache')) {
+    const filename = path.basename(candidate);
+    const localPath = path.join(mediaCacheDir, filename);
+    if (fs.existsSync(localPath)) {
+      return fs.readFileSync(localPath);
+    }
+  }
+
+  // URL remote HTTP / HTTPS
+  if (candidate.startsWith('http://') || candidate.startsWith('https://')) {
+    try {
+      const response = await fetch(candidate);
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (e: any) {
+      console.warn(`[Google Vids] Gagal mengunduh referensi gambar dari URL: ${e.message}`);
+    }
+  }
+
+  // Path file lokal di disk
+  if (fs.existsSync(candidate)) {
+    try {
+      return fs.readFileSync(candidate);
+    } catch (_) {}
+  }
+
+  return null;
+}
+
 // Helper: Membangun array payload Protobuf JSON
 // Opcode 374: Versi RPC Google Vids modern (Workspace GenAI / 500 kredit)
 // Opcode 386: Versi RPC Google Vids legacy (Consumer GenAI / 60 kredit)
+// Opcode 376: Versi RPC Google Vids Image-to-Video multimodal
 function buildProtobufPayload(
   prompt: string,
   duration: number,
   docId: string,
   aspectRatio: '9:16' | '16:9',
   resolution: '720p' | '1080p',
-  opcode = 374
+  opcode = 374,
+  imageBlobToken?: string
 ): any[] {
   const aspectRatioCode = 12;
   const resolutionCode = resolution === '1080p' ? 6 : (aspectRatio === '16:9' ? 1 : 2);
@@ -362,6 +514,89 @@ function buildProtobufPayload(
   ctx[11] = [24, 0];
   ctx[13] = 'en';
   ctx[19] = 1;
+
+  // Mode Image-to-Video (Opcode 376)
+  if (imageBlobToken) {
+    const imageUuid = crypto.randomUUID().toUpperCase();
+    ctx[25] = [
+      [
+        [
+          null, null, null, null, null, null, null,
+          [
+            imageUuid,
+            [
+              null, null, null, null, null, null, null, null, null, null, null,
+              [
+                null, null, null, null, null, null, null, null,
+                [
+                  null, null, null,
+                  imageBlobToken,
+                  1
+                ],
+                null, null, null, null,
+                'Image1'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ];
+    ctx[34] = 'Asia/Jakarta';
+    ctx[40] = 0;
+
+    const promptSlot = prompt.trim()
+      ? [
+          null, null, null,
+          [
+            [
+              [
+                null, null, null, null, null, null, null,
+                [
+                  null,
+                  [null, null, 'Image1'],
+                  [null, null, null, null, null, null, null, [imageUuid]]
+                ]
+              ],
+              [null, null, ' '],
+              [null, null, prompt.trim()]
+            ]
+          ]
+        ]
+      : [
+          null, null, null,
+          [
+            [
+              [
+                null, null, null, null, null, null, null,
+                [
+                  null,
+                  [null, null, 'Image1'],
+                  [null, null, null, null, null, null, null, [imageUuid]]
+                ]
+              ]
+            ]
+          ]
+        ];
+
+    return [
+      376,
+      null,
+      ctx,
+      promptSlot,
+      [
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        [0, aspectRatioCode, null, 0, resolutionCode, null, null, null, duration]
+      ],
+      [
+        1,
+        null,
+        [[null, '1', 1189]]
+      ],
+      1
+    ];
+  }
+
+  // Mode Text-to-Video biasa (Opcode 374 / 386)
   ctx[34] = 'Asia/Jakarta';
   ctx[40] = 0;
 
@@ -395,10 +630,13 @@ function executeVidsGenerateRpc(
   aspectRatio: '9:16' | '16:9',
   resolution: '720p' | '1080p',
   opcode: number,
-  authHeader: string
+  authHeader: string,
+  imageBlobToken?: string
 ): Promise<any> {
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(buildProtobufPayload(prompt, duration, docId, aspectRatio, resolution, opcode));
+    const payload = JSON.stringify(
+      buildProtobufPayload(prompt, duration, docId, aspectRatio, resolution, opcode, imageBlobToken)
+    );
     const url = `https://appsgenaiserver-pa.clients6.google.com/v1/genai/generate?key=${VIDS_API_KEY}`;
     const urlObj = new URL(url);
 
@@ -459,7 +697,8 @@ function executeVidsGenerateRpc(
 }
 
 // Helper: Kirim request generate video ke server Google Vids (Held Connection)
-// Coba Opcode 374 lebih dahulu, jika gagal coba Opcode 386
+// Jika ada imageBlobToken, langsung gunakan Opcode 376 (Image-to-Video)
+// Jika tidak ada gambar, coba Opcode 374 lebih dahulu, lalu fallback ke Opcode 386
 async function sendVidsGenerateRequest(
   prompt: string,
   duration: number,
@@ -467,11 +706,28 @@ async function sendVidsGenerateRequest(
   cookies: string,
   serverToken: string | undefined,
   aspectRatio: '9:16' | '16:9',
-  resolution: '720p' | '1080p'
+  resolution: '720p' | '1080p',
+  imageBlobToken?: string
 ): Promise<any> {
   const authHeader = generateSapisidHash(cookies);
   if (!authHeader) {
     throw new Error('Cookie SAPISID tidak valid untuk otentikasi Google Vids.');
+  }
+
+  // Jika Image-to-Video, gunakan Opcode 376
+  if (imageBlobToken) {
+    return await executeVidsGenerateRpc(
+      prompt,
+      duration,
+      docId,
+      cookies,
+      serverToken,
+      aspectRatio,
+      resolution,
+      376,
+      authHeader,
+      imageBlobToken
+    );
   }
 
   let firstError: Error | null = null;
@@ -1061,11 +1317,16 @@ router.post('/vids/generate-video', async (req, res) => {
       flixDocId,
       aspectRatio: requestAspectRatio = '9:16 (Vertical)',
       resolution: requestResolution = '720p',
+      referenceImageData,
+      referenceImageUrl,
+      image,
     } = req.body || {};
 
     const safePrompt = String(prompt || '').trim();
-    if (!safePrompt) {
-      return res.status(400).json({ success: false, error: 'Prompt video tidak boleh kosong.' });
+    const imageBuffer = await resolveImageBuffer(referenceImageData, referenceImageUrl, image);
+
+    if (!safePrompt && !imageBuffer) {
+      return res.status(400).json({ success: false, error: 'Prompt video atau gambar referensi tidak boleh kosong.' });
     }
     const durationSeconds = Number(duration);
     if (!Number.isInteger(durationSeconds) || durationSeconds < 3 || durationSeconds > 15) {
@@ -1113,7 +1374,16 @@ router.post('/vids/generate-video', async (req, res) => {
       });
     }
 
-    console.log(`[Google Vids] 🚀 Memulai generate video untuk prompt: "${safePrompt.slice(0, 50)}..."`);
+    let imageBlobToken: string | undefined;
+    if (imageBuffer) {
+      console.log(`[Google Vids] 🖼️ Mengunggah referensi gambar (${(imageBuffer.length / 1024).toFixed(1)} KB) ke temporaryblob...`);
+      imageBlobToken = await uploadImageToTemporaryBlob(imageBuffer, cookies, docId);
+      console.log(`[Google Vids] ✅ Token blob gambar berhasil didapat: ${imageBlobToken.slice(0, 25)}...`);
+    }
+
+    console.log(
+      `[Google Vids] 🚀 Memulai generate video (${imageBlobToken ? 'Image-to-Video' : 'Text-to-Video'}) untuk prompt: "${safePrompt.slice(0, 50)}..."`
+    );
 
     // Kirim request ke Google Vids AI server
     const responseData = await sendVidsGenerateRequest(
@@ -1123,7 +1393,8 @@ router.post('/vids/generate-video', async (req, res) => {
       cookies,
       serverToken,
       aspectRatio,
-      resolution
+      resolution,
+      imageBlobToken
     );
 
     // Ambil direct video URL
@@ -1176,12 +1447,15 @@ router.post('/vids/generate-video', async (req, res) => {
       aspectRatio,
       renderTimeSeconds: parseFloat(renderTimeSec),
       fileSize: totalBytes,
+      isImageToVideo: !!imageBlobToken,
       quota: {
         total: quotaInfo.total,
         remaining: quotaInfo.remaining,
         cost: quotaInfo.cost,
       },
-      message: 'Video Google Vids berhasil dibuat dan siap diputar!',
+      message: imageBlobToken
+        ? 'Video Google Vids (Image-to-Video) berhasil dibuat dan siap diputar!'
+        : 'Video Google Vids berhasil dibuat dan siap diputar!',
     });
   } catch (err: any) {
     const errorTimeSec = ((Date.now() - startTime) / 1000).toFixed(1);

@@ -113,6 +113,46 @@ interface CanvasViewProps {
 // Tipe node yang punya aksi "Run" (dipakai oleh Run Selected)
 const RUNNABLE_NODE_TYPES: string[] = ['aiWorker', 'storyboard', 'promptEnhancer', 'anyLLM', 'imageModel', 'geminiVideo', 'vidsVideo', 'videoStitcher'];
 
+const ensureVidsNodeInputs = (r: CanvasRecipe): CanvasRecipe => {
+  if (!r?.nodes || !Array.isArray(r.nodes)) return r;
+  let hasChange = false;
+  const updatedNodes = r.nodes.map((n) => {
+    if (n.type === 'vidsVideo') {
+      const hasImage = n.inputs?.some((p) => p.type === 'image' || p.id === 'input-image' || p.name === 'image' || p.name === 'image_1');
+      if (!hasImage) {
+        hasChange = true;
+        return {
+          ...n,
+          inputs: [
+            ...((n.inputs || []).map((p) => (p.id === 'input-prompt' ? { ...p, required: false } : p))),
+            { id: 'input-image', name: 'image_1', type: 'image' as const, label: 'Image', required: false },
+          ],
+        };
+      }
+    }
+    return n;
+  });
+  return hasChange ? { ...r, nodes: updatedNodes } : r;
+};
+
+const ensureDataUrlIfBlob = async (url: string): Promise<string> => {
+  if (!url || typeof url !== 'string') return '';
+  if (!url.startsWith('blob:')) return url;
+
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return url;
+  }
+};
+
 const getAiWorkerAnalysisSignature = (
   node: CanvasNode,
   linkText: string,
@@ -323,7 +363,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.nodes && parsed?.edges && !isDefaultPresetRecipe(parsed)) {
-          return parsed;
+          return ensureVidsNodeInputs(parsed);
         } else {
           localStorage.removeItem('amb_media_canvas_recipe');
         }
@@ -356,6 +396,11 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       window.removeEventListener('accounts-updated', refreshGeminiAccounts);
       window.removeEventListener('storage', refreshGeminiAccounts);
     };
+  }, []);
+
+  // Auto-heal / normalize vidsVideo inputs so existing canvas nodes get the Image connector
+  useEffect(() => {
+    setRecipe((prev) => ensureVidsNodeInputs(prev));
   }, []);
 
   // Active Canvas Tool: 'select' (Move/Select) or 'pan' (Hand)
@@ -1049,7 +1094,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         colorTheme: 'blue',
         position: { x, y },
         inputs: [
-          { id: 'input-prompt', name: 'prompt', type: 'text', label: 'Prompt', required: true },
+          { id: 'input-prompt', name: 'prompt', type: 'text', label: 'Prompt', required: false },
+          { id: 'input-image', name: 'image_1', type: 'image', label: 'Image', required: false },
         ],
         outputs: [
           { id: 'output-video', name: 'video', type: 'video', label: 'Vids Omni Video' },
@@ -4836,26 +4882,6 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
       effectivePrompt = `${effectivePrompt}\n\n[VOICEOVER / SPOKEN NARRATION]:\n"${effectiveVo}"`.trim();
     }
 
-    // Helper to resolve blob: URLs to Base64 data URLs for Node.js server compatibility
-    const ensureDataUrlIfBlob = async (url: string): Promise<string> => {
-      if (!url || typeof url !== 'string') return '';
-      if (url.startsWith('blob:')) {
-        try {
-          const resp = await fetch(url);
-          const blob = await resp.blob();
-          return await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => resolve(url);
-            reader.readAsDataURL(blob);
-          });
-        } catch {
-          return url;
-        }
-      }
-      return url;
-    };
-
     // Find all connected image/video viewer nodes
     const connectedViewerNodeIds = getConnectedViewerIds(videoNodeId);
     const viewerNodeId = connectedViewerNodeIds[0];
@@ -5158,11 +5184,14 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
     const targetNode = recipeRef.current.nodes.find((node) => node.id === videoNodeId);
     if (!targetNode || targetNode.type !== 'vidsVideo') return;
 
-    const { prompt: connectedPrompt } = resolveModelInputs(
+    const { prompt: connectedPrompt, imageUrl, imageUrls } = resolveModelInputs(
       videoNodeId,
       recipeRef.current.nodes,
       recipeRef.current.edges
     );
+    const rawRefImages = imageUrls && imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [];
+    const resolvedRefImage = rawRefImages[0] ? await ensureDataUrlIfBlob(rawRefImages[0]) : undefined;
+
     const effectivePrompt = (
       targetNode.data?.promptOverride ||
       connectedPrompt ||
@@ -5171,8 +5200,8 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
     ).trim();
     const connectedViewerNodeIds = getConnectedViewerIds(videoNodeId);
 
-    if (!effectivePrompt) {
-      const errorMessage = 'Hubungkan node Prompt atau isi prompt di pengaturan Vids Omni.';
+    if (!effectivePrompt && !resolvedRefImage) {
+      const errorMessage = 'Hubungkan node Prompt/Gambar atau isi prompt di pengaturan Vids Omni.';
       setStatusMessage(errorMessage);
       setRecipe((prev) => ({
         ...prev,
@@ -5263,6 +5292,8 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
           docId: account.docId || account.flixDocId,
           flixDocId: account.flixDocId || account.docId,
           serverToken: account.serverToken,
+          referenceImageData: resolvedRefImage,
+          referenceImageUrl: rawRefImages[0],
         }),
       });
       const result = await response.json();
@@ -6323,7 +6354,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
           const allFiles = loadAllCanvasFiles();
           setFiles(allFiles);
           setCurrentFileId(newFile.id);
-          setRecipe(newFile.recipe);
+          setRecipe(ensureVidsNodeInputs(newFile.recipe));
           setUndoStack([]);
           setRedoStack([]);
           setSelectedNodeIds([]);
@@ -6331,7 +6362,7 @@ Jangan mengubah jumlah scene, durasi, pembagian shoot, aturan voiceover, CTA, at
         }}
         onOpenFile={(file) => {
           setCurrentFileId(file.id);
-          setRecipe(file.recipe);
+          setRecipe(ensureVidsNodeInputs(file.recipe));
           setUndoStack([]);
           setRedoStack([]);
           setSelectedNodeIds([]);

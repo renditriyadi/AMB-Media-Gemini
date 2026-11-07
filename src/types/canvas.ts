@@ -792,7 +792,13 @@ export const getPortCoordinate = (
         );
       }
     }
-    if (portIndex < 0) portIndex = 0;
+    if (portIndex < 0) {
+      if (node.type === 'vidsVideo' && portId?.includes('image')) {
+        portIndex = 1;
+      } else {
+        portIndex = 0;
+      }
+    }
 
     const top = getPortOffsetTop(node.type, portIndex);
     return {
@@ -860,7 +866,13 @@ export const getPortCoordinate = (
         );
       }
     }
-    if (portIndex < 0) portIndex = 0;
+    if (portIndex < 0) {
+      if (node.type === 'vidsVideo' && portId?.includes('image')) {
+        portIndex = 1;
+      } else {
+        portIndex = 0;
+      }
+    }
 
     const top = getPortOffsetTop(node.type, portIndex);
     return {
